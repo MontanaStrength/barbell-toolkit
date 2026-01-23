@@ -54,12 +54,16 @@ const Header = () => {
                   Your support helps keep the project alive and enables new features.
                 </p>
                 <div className="flex flex-col gap-3">
-                  <Button className="w-full bg-tool-yellow text-primary-foreground hover:bg-tool-yellow/90">
-                    ☕ Buy Me a Coffee - $5
-                  </Button>
-                  <Button variant="outline" className="w-full border-border text-muted-foreground hover:text-foreground hover:bg-secondary">
-                    🏋️ Sponsor Monthly - $10/mo
-                  </Button>
+                  <a 
+                    href="https://buymeacoffee.com/montanastrength" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="w-full"
+                  >
+                    <Button className="w-full bg-tool-yellow text-primary-foreground hover:bg-tool-yellow/90">
+                      ☕ Buy Me a Coffee
+                    </Button>
+                  </a>
                 </div>
               </div>
               <p className="text-xs text-center text-muted-foreground">
