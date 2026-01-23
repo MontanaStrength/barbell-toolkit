@@ -169,7 +169,7 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
                 Analysis Complete
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
                   <Gauge className="w-8 h-8 mx-auto mb-3 text-tool-red" />
                   <p className="text-muted-foreground text-sm mb-1">
@@ -184,12 +184,23 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
                 <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
                   <Zap className="w-8 h-8 mx-auto mb-3 text-tool-red" />
                   <p className="text-muted-foreground text-sm mb-1">
-                    Peak Force
+                    Peak Force (N)
                   </p>
                   <p className="text-2xl font-semibold text-foreground">
-                    {Math.round(displayForce)}
+                    {Math.round(analysisResult.peakForce)}
                   </p>
-                  <p className="text-muted-foreground text-xs">{forceUnit}</p>
+                  <p className="text-muted-foreground text-xs">Newtons</p>
+                </div>
+
+                <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
+                  <Zap className="w-8 h-8 mx-auto mb-3 text-tool-red" />
+                  <p className="text-muted-foreground text-sm mb-1">
+                    Peak Force (lbf)
+                  </p>
+                  <p className="text-2xl font-semibold text-foreground">
+                    {Math.round(analysisResult.peakForce * NEWTONS_TO_LBF)}
+                  </p>
+                  <p className="text-muted-foreground text-xs">pounds-force</p>
                 </div>
 
                 <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
