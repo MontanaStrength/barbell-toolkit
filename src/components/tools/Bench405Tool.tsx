@@ -83,16 +83,10 @@ const Bench405Tool = ({ onBack }: Bench405ToolProps) => {
         </Card>
 
         <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="text-lg">🚧 Under Construction 🚧</p>
-              <p className="text-sm mt-2">
-                Logic coming soon. Enter your stats above to prepare.
-              </p>
-            </div>
+          <CardContent className="py-12">
+            <p className="text-center text-2xl font-bold text-foreground">
+              I don't fucking know, please stop asking
+            </p>
           </CardContent>
         </Card>
 
