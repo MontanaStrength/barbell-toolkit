@@ -19,7 +19,7 @@ const tools = [
   {
     id: "bar-speed",
     name: "Bar Speed Analyzer",
-    description: "Analyze bar path velocity and force from video",
+    description: "Analyze bar path velocity and peak force from video",
     icon: Dumbbell,
     accent: "red",
     borderColor: "border-tool-red/20",
