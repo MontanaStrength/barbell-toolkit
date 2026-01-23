@@ -12,16 +12,16 @@ interface Set {
   id: number;
   intensity: string;
   reps: string;
-  rir: string;
+  rpe: string;
 }
 
 const FrederickTool = ({ onBack }: FrederickToolProps) => {
   const [sets, setSets] = useState<Set[]>([
-    { id: 1, intensity: "", reps: "", rir: "" },
+    { id: 1, intensity: "", reps: "", rpe: "" },
   ]);
 
   const addSet = () => {
-    setSets([...sets, { id: Date.now(), intensity: "", reps: "", rir: "" }]);
+    setSets([...sets, { id: Date.now(), intensity: "", reps: "", rpe: "" }]);
   };
 
   const removeSet = (id: number) => {
@@ -47,8 +47,10 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
   const totalLoad = sets.reduce((acc, set) => {
     const reps = parseFloat(set.reps);
     const intensity = parseFloat(set.intensity);
-    const rir = parseFloat(set.rir);
-    if (isNaN(reps) || isNaN(intensity) || isNaN(rir)) return acc;
+    const rpe = parseFloat(set.rpe);
+    if (isNaN(reps) || isNaN(intensity) || isNaN(rpe)) return acc;
+    // Convert RPE to RIR for calculation: RIR = 10 - RPE
+    const rir = 10 - rpe;
     return acc + calculateSetLoad(reps, intensity, rir);
   }, 0);
 
@@ -130,12 +132,15 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">RIR</Label>
+                    <Label className="text-xs text-muted-foreground">RPE</Label>
                     <Input
                       type="number"
-                      value={set.rir}
-                      onChange={(e) => updateSet(set.id, "rir", e.target.value)}
-                      placeholder="2"
+                      min="6"
+                      max="10"
+                      step="0.5"
+                      value={set.rpe}
+                      onChange={(e) => updateSet(set.id, "rpe", e.target.value)}
+                      placeholder="8"
                       className="bg-secondary border-border focus:border-tool-yellow h-9"
                     />
                   </div>
