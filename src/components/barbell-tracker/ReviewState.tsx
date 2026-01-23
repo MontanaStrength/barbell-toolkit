@@ -107,7 +107,7 @@ export function ReviewState({
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div className="bg-secondary/50 rounded-lg p-4 text-center border border-border">
           <Gauge className="w-6 h-6 mx-auto mb-2 text-tool-red" />
           <p className="text-muted-foreground text-xs mb-0.5">Mean Velocity</p>
@@ -124,6 +124,15 @@ export function ReviewState({
             {Math.round(metrics.peakForce)}
           </p>
           <p className="text-muted-foreground text-xs">N</p>
+        </div>
+
+        <div className="bg-secondary/50 rounded-lg p-4 text-center border border-border">
+          <Zap className="w-6 h-6 mx-auto mb-2 text-tool-red" />
+          <p className="text-muted-foreground text-xs mb-0.5">Peak Force</p>
+          <p className="text-xl font-semibold text-foreground">
+            {Math.round(metrics.peakForce * 0.224809)}
+          </p>
+          <p className="text-muted-foreground text-xs">lbf</p>
         </div>
       </div>
 
