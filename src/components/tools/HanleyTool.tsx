@@ -254,6 +254,32 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                   </p>
                 </div>
               )}
+
+              <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
+                <h3 className="text-sm font-medium text-foreground mb-3">Zone Reference</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                  <div className="p-2 rounded bg-tool-emerald/10 border border-tool-emerald/20 text-center">
+                    <p className="text-tool-emerald font-medium">Light</p>
+                    <p className="text-muted-foreground text-xs">&lt; 400</p>
+                  </div>
+                  <div className="p-2 rounded bg-tool-yellow/10 border border-tool-yellow/20 text-center">
+                    <p className="text-tool-yellow font-medium">Moderate</p>
+                    <p className="text-muted-foreground text-xs">400–499</p>
+                  </div>
+                  <div className="p-2 rounded bg-orange-400/10 border border-orange-400/20 text-center">
+                    <p className="text-orange-400 font-medium">Mod. High</p>
+                    <p className="text-muted-foreground text-xs">500–599</p>
+                  </div>
+                  <div className="p-2 rounded bg-tool-red/10 border border-tool-red/20 text-center">
+                    <p className="text-tool-red font-medium">High</p>
+                    <p className="text-muted-foreground text-xs">600–699</p>
+                  </div>
+                  <div className="p-2 rounded bg-tool-purple/10 border border-tool-purple/20 text-center">
+                    <p className="text-tool-purple font-medium">Extreme</p>
+                    <p className="text-muted-foreground text-xs">≥ 700</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
