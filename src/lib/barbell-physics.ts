@@ -7,9 +7,29 @@
 /**
  * Peak Force Window Size (in milliseconds)
  * Used for rolling average when calculating peak force to avoid noise spikes.
- * Recommended values: 50ms - 100ms
+ * Recommended values: 50ms - 150ms
  */
 export const PEAK_FORCE_WINDOW_MS = 100;
+
+/**
+ * Position Smoothing Window (in milliseconds)
+ * Applied to raw position data before deriving velocity.
+ * Larger values = smoother but less responsive.
+ */
+export const POSITION_SMOOTHING_MS = 100;
+
+/**
+ * Velocity Smoothing Window (in milliseconds)
+ * Applied to velocity before deriving acceleration.
+ */
+export const VELOCITY_SMOOTHING_MS = 100;
+
+/**
+ * Acceleration Smoothing Window (in milliseconds)
+ * Applied to acceleration before calculating force.
+ * Critical for avoiding force spikes from tracking noise.
+ */
+export const ACCELERATION_SMOOTHING_MS = 100;
 
 // ============================================
 // TYPE DEFINITIONS
@@ -37,7 +57,36 @@ export interface AnalysisResult {
 }
 
 /**
- * Apply moving average filter to smooth noisy data
+ * Apply time-based moving average filter to smooth noisy data
+ * Uses time window (ms) instead of frame count for consistency across frame rates
+ */
+export function timeBasedMovingAverage(
+  data: { time: number; value: number }[],
+  windowMs: number
+): number[] {
+  const windowSeconds = windowMs / 1000;
+  const halfWindow = windowSeconds / 2;
+  
+  return data.map((point) => {
+    const windowStart = point.time - halfWindow;
+    const windowEnd = point.time + halfWindow;
+    
+    let sum = 0;
+    let count = 0;
+    
+    for (const p of data) {
+      if (p.time >= windowStart && p.time <= windowEnd) {
+        sum += p.value;
+        count++;
+      }
+    }
+    
+    return count > 0 ? sum / count : point.value;
+  });
+}
+
+/**
+ * Apply frame-based moving average filter (legacy, used as fallback)
  */
 export function movingAverageFilter(data: number[], windowSize: number = 5): number[] {
   const result: number[] = [];
@@ -221,13 +270,14 @@ export function detectConcentricPhase(
 }
 
 /**
- * Full processing pipeline
+ * Full processing pipeline with time-based smoothing
+ * Applies smoothing at each derivative stage to minimize noise amplification
  */
 export function processTrackingData(
   trackingPoints: TrackingPoint[],
   pixelsPerMeter: number,
   mass: number,
-  smoothingWindow: number = 5
+  _smoothingWindow: number = 5 // Deprecated, using time-based constants instead
 ): ProcessedFrame[] {
   if (trackingPoints.length < 3) {
     return [];
@@ -236,36 +286,43 @@ export function processTrackingData(
   // Convert to meters
   const metersData = pixelsToMeters(trackingPoints, pixelsPerMeter);
   
-  // Smooth Y coordinates (position smoothing before deriving velocity)
-  const smoothedY = movingAverageFilter(
-    metersData.map(p => p.y),
-    smoothingWindow
-  );
+  // Step 1: Smooth Y coordinates (position) using time-based window
+  const positionForSmoothing = metersData.map(p => ({ time: p.time, value: p.y }));
+  const smoothedY = timeBasedMovingAverage(positionForSmoothing, POSITION_SMOOTHING_MS);
   
-  const smoothedData = metersData.map((p, i) => ({
+  const smoothedPositionData = metersData.map((p, i) => ({
     ...p,
     y: smoothedY[i],
   }));
   
-  // Calculate velocity from smoothed position
-  const velocityData = calculateVelocity(smoothedData);
+  // Step 2: Calculate velocity from smoothed position
+  const velocityData = calculateVelocity(smoothedPositionData);
   
-  // Smooth velocity for cleaner acceleration calculation
-  const smoothedVelocity = movingAverageFilter(
-    velocityData.map(p => p.velocity),
-    smoothingWindow
-  );
+  // Step 3: Smooth velocity using time-based window
+  const velocityForSmoothing = velocityData.map(p => ({ time: p.time, value: p.velocity }));
+  const smoothedVelocity = timeBasedMovingAverage(velocityForSmoothing, VELOCITY_SMOOTHING_MS);
   
   const smoothedVelocityData = velocityData.map((p, i) => ({
     ...p,
     velocity: smoothedVelocity[i],
   }));
   
-  // Calculate acceleration and instantaneous force
+  // Step 4: Calculate acceleration from smoothed velocity
   const accelerationData = calculateAcceleration(smoothedVelocityData);
-  const forceData = calculateForce(accelerationData, mass);
   
-  // Apply time-windowed rolling average to force for peak force calculation
+  // Step 5: Smooth acceleration using time-based window (CRITICAL for force accuracy)
+  const accelerationForSmoothing = accelerationData.map(p => ({ time: p.time, value: p.acceleration }));
+  const smoothedAcceleration = timeBasedMovingAverage(accelerationForSmoothing, ACCELERATION_SMOOTHING_MS);
+  
+  const smoothedAccelerationData = accelerationData.map((p, i) => ({
+    ...p,
+    acceleration: smoothedAcceleration[i],
+  }));
+  
+  // Step 6: Calculate force from smoothed acceleration
+  const forceData = calculateForce(smoothedAccelerationData, mass);
+  
+  // Step 7: Apply additional rolling average to force for peak calculation
   const forceDataWithSmoothing = applyForceRollingAverage(forceData);
   
   return forceDataWithSmoothing;
