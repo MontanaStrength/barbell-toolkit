@@ -137,7 +137,6 @@ const tools = [
     hoverBorder: "hover:border-tool-amber/50",
     textColor: "text-tool-amber",
     shadowClass: "hover:shadow-tool-amber",
-    badge: "Coming Soon",
   },
 ];
 
