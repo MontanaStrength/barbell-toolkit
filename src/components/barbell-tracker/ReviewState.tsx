@@ -192,6 +192,35 @@ export function ReviewState({
                 fillOpacity={0.1}
               />
               
+              {/* Rep highlight areas */}
+              {repMetrics.map((rep) => (
+                <ReferenceArea
+                  key={`rep-area-${rep.repNumber}`}
+                  x1={rep.startTime.toFixed(2)}
+                  x2={rep.endTime.toFixed(2)}
+                  fill="hsl(142, 70%, 45%)"
+                  fillOpacity={0.15}
+                />
+              ))}
+              
+              {/* Rep start/end markers */}
+              {repMetrics.map((rep) => (
+                <ReferenceLine
+                  key={`rep-start-${rep.repNumber}`}
+                  x={rep.startTime.toFixed(2)}
+                  stroke="hsl(142, 70%, 45%)"
+                  strokeWidth={1.5}
+                  strokeDasharray="2 2"
+                  label={{
+                    value: `R${rep.repNumber}`,
+                    position: 'top',
+                    fill: 'hsl(142, 70%, 45%)',
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}
+                />
+              ))}
+              
               {/* Trim lines */}
               <ReferenceLine
                 x={trimTimes.start.toFixed(2)}
