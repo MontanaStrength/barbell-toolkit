@@ -6,7 +6,8 @@
  */
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { Activity, Upload, Play, Pause, Ruler, Target, RefreshCw, ChevronRight, Info, History, Save, Trash2, RotateCcw, TrendingUp, ArrowLeft } from 'lucide-react';
+import { Activity, Upload, Play, Pause, Ruler, Target, RefreshCw, ChevronRight, Info, History, Save, Trash2, RotateCcw, TrendingUp } from 'lucide-react';
+import BackButton from '@/components/ui/back-button';
 
 // ============================================================================
 // ANIMATED NUMBER COMPONENT
@@ -987,10 +988,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
         {/* Header */}
         <div className="flex flex-wrap items-center gap-4 mb-6">
           {onBack && (
-            <button onClick={onBack} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft size={16} />
-              Back to Dashboard
-            </button>
+            <BackButton onClick={onBack} />
           )}
           <div className="flex items-center gap-3">
             <Activity className="w-6 h-6 text-primary" />
