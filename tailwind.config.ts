@@ -58,6 +58,9 @@ export default {
           "yellow-muted": "hsl(var(--tool-yellow-muted))",
           emerald: "hsl(var(--tool-emerald))",
           "emerald-muted": "hsl(var(--tool-emerald-muted))",
+          orange: "hsl(var(--tool-orange))",
+          gold: "hsl(var(--tool-gold))",
+          bronze: "hsl(var(--tool-bronze))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
