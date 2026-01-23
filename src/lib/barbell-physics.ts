@@ -1,35 +1,12 @@
 // Physics calculations for barbell velocity and force analysis
+// Using Rolling Window smoothing algorithm for LDT-matching accuracy
 
 // ============================================
-// CONFIGURABLE CONSTANTS
+// PHYSICS ENGINE CONSTANTS
 // ============================================
-
-/**
- * Peak Force Window Size (in milliseconds)
- * Used for rolling average when calculating peak force to avoid noise spikes.
- * This is the ONLY stage where we smooth force - keeps peaks accurate.
- */
-export const PEAK_FORCE_WINDOW_MS = 50;
-
-/**
- * Position Smoothing Window (in milliseconds)
- * Minimal smoothing to reduce tracking jitter without dampening motion.
- * Lower = more responsive, higher = smoother but loses peaks.
- */
-export const POSITION_SMOOTHING_MS = 33; // ~1 frame at 30fps
-
-/**
- * Velocity Smoothing Window (in milliseconds)
- * Light smoothing before acceleration calculation.
- */
-export const VELOCITY_SMOOTHING_MS = 50;
-
-/**
- * Acceleration Smoothing Window (in milliseconds)
- * Moderate smoothing to prevent noise spikes while preserving peaks.
- * This is critical - too high loses peaks, too low creates noise.
- */
-export const ACCELERATION_SMOOTHING_MS = 66; // ~2 frames at 30fps
+const GRAVITY = 9.81; // m/s²
+const SMOOTHING_WINDOW = 5; // Frames to smooth position (removes camera jitter)
+const FORCE_WINDOW_MS = 100; // ms window to find "Peak Force" (prevents spikes)
 
 // ============================================
 // TYPE DEFINITIONS
@@ -38,16 +15,16 @@ export const ACCELERATION_SMOOTHING_MS = 66; // ~2 frames at 30fps
 export interface TrackingPoint {
   x: number;
   y: number;
-  time: number; // in seconds
+  time: number; // in seconds (will be converted from ms if needed)
 }
 
 export interface ProcessedFrame {
   time: number;
-  y: number; // in meters
+  y: number; // in meters (position)
   velocity: number; // m/s
   acceleration: number; // m/s²
   force: number; // Newtons
-  smoothedForce?: number; // Newtons (time-windowed average)
+  smoothedForce?: number; // Newtons (for compatibility)
 }
 
 export interface RepMetrics {
@@ -66,387 +43,150 @@ export interface AnalysisResult {
   reps: RepMetrics[];
 }
 
-/**
- * Apply time-based moving average filter to smooth noisy data
- * Uses time window (ms) instead of frame count for consistency across frame rates
- */
-export function timeBasedMovingAverage(
-  data: { time: number; value: number }[],
-  windowMs: number
-): number[] {
-  const windowSeconds = windowMs / 1000;
-  const halfWindow = windowSeconds / 2;
-  
-  return data.map((point) => {
-    const windowStart = point.time - halfWindow;
-    const windowEnd = point.time + halfWindow;
-    
-    let sum = 0;
-    let count = 0;
-    
-    for (const p of data) {
-      if (p.time >= windowStart && p.time <= windowEnd) {
-        sum += p.value;
-        count++;
-      }
-    }
-    
-    return count > 0 ? sum / count : point.value;
-  });
-}
+// ============================================
+// CORE ANALYSIS FUNCTION (Rolling Window Algorithm)
+// ============================================
 
 /**
- * Apply frame-based moving average filter (legacy, used as fallback)
- */
-export function movingAverageFilter(data: number[], windowSize: number = 5): number[] {
-  const result: number[] = [];
-  const halfWindow = Math.floor(windowSize / 2);
-  
-  for (let i = 0; i < data.length; i++) {
-    let sum = 0;
-    let count = 0;
-    
-    for (let j = Math.max(0, i - halfWindow); j <= Math.min(data.length - 1, i + halfWindow); j++) {
-      sum += data[j];
-      count++;
-    }
-    
-    result.push(sum / count);
-  }
-  
-  return result;
-}
-
-/**
- * Convert pixel coordinates to meters using calibration data
- */
-export function pixelsToMeters(
-  trackingPoints: TrackingPoint[],
-  pixelsPerMeter: number
-): { time: number; y: number }[] {
-  return trackingPoints.map(point => ({
-    time: point.time,
-    y: point.y / pixelsPerMeter,
-  }));
-}
-
-/**
- * Calculate velocity from position data using central difference
- */
-export function calculateVelocity(
-  positions: { time: number; y: number }[]
-): { time: number; y: number; velocity: number }[] {
-  const result: { time: number; y: number; velocity: number }[] = [];
-  
-  for (let i = 0; i < positions.length; i++) {
-    let velocity = 0;
-    
-    if (i === 0) {
-      // Forward difference for first point
-      const dt = positions[i + 1].time - positions[i].time;
-      velocity = dt > 0 ? (positions[i].y - positions[i + 1].y) / dt : 0;
-    } else if (i === positions.length - 1) {
-      // Backward difference for last point
-      const dt = positions[i].time - positions[i - 1].time;
-      velocity = dt > 0 ? (positions[i - 1].y - positions[i].y) / dt : 0;
-    } else {
-      // Central difference for middle points
-      const dt = positions[i + 1].time - positions[i - 1].time;
-      velocity = dt > 0 ? (positions[i - 1].y - positions[i + 1].y) / dt : 0;
-    }
-    
-    result.push({
-      time: positions[i].time,
-      y: positions[i].y,
-      velocity,
-    });
-  }
-  
-  return result;
-}
-
-/**
- * Calculate acceleration from velocity data
- */
-export function calculateAcceleration(
-  velocityData: { time: number; y: number; velocity: number }[]
-): { time: number; y: number; velocity: number; acceleration: number }[] {
-  const result: { time: number; y: number; velocity: number; acceleration: number }[] = [];
-  
-  for (let i = 0; i < velocityData.length; i++) {
-    let acceleration = 0;
-    
-    if (i === 0 && velocityData.length > 1) {
-      const dt = velocityData[i + 1].time - velocityData[i].time;
-      acceleration = dt > 0 ? (velocityData[i + 1].velocity - velocityData[i].velocity) / dt : 0;
-    } else if (i === velocityData.length - 1) {
-      const dt = velocityData[i].time - velocityData[i - 1].time;
-      acceleration = dt > 0 ? (velocityData[i].velocity - velocityData[i - 1].velocity) / dt : 0;
-    } else {
-      const dt = velocityData[i + 1].time - velocityData[i - 1].time;
-      acceleration = dt > 0 ? (velocityData[i + 1].velocity - velocityData[i - 1].velocity) / dt : 0;
-    }
-    
-    result.push({
-      ...velocityData[i],
-      acceleration,
-    });
-  }
-  
-  return result;
-}
-
-/**
- * Calculate force from acceleration data
- * Force = mass * (acceleration + gravity)
- */
-export function calculateForce(
-  accelerationData: { time: number; y: number; velocity: number; acceleration: number }[],
-  mass: number
-): ProcessedFrame[] {
-  const GRAVITY = 9.81; // m/s²
-  
-  return accelerationData.map(point => ({
-    ...point,
-    force: mass * (point.acceleration + GRAVITY),
-  }));
-}
-
-/**
- * Apply time-based rolling average to force data
- * This helps avoid noise spikes when calculating peak force
- * @param forceData - Array of processed frames with force values
- * @param windowMs - Window size in milliseconds (default: PEAK_FORCE_WINDOW_MS)
- */
-export function applyForceRollingAverage(
-  forceData: ProcessedFrame[],
-  windowMs: number = PEAK_FORCE_WINDOW_MS
-): ProcessedFrame[] {
-  const windowSeconds = windowMs / 1000;
-  const halfWindow = windowSeconds / 2;
-  
-  return forceData.map((point, i) => {
-    // Find all points within the time window centered on current point
-    const windowStart = point.time - halfWindow;
-    const windowEnd = point.time + halfWindow;
-    
-    let sum = 0;
-    let count = 0;
-    
-    for (let j = 0; j < forceData.length; j++) {
-      if (forceData[j].time >= windowStart && forceData[j].time <= windowEnd) {
-        sum += forceData[j].force;
-        count++;
-      }
-    }
-    
-    return {
-      ...point,
-      smoothedForce: count > 0 ? sum / count : point.force,
-    };
-  });
-}
-
-/**
- * Detect concentric phase (upward movement with positive velocity)
- * Returns indices of frames that are part of the concentric phase
- */
-export function detectConcentricPhase(
-  processedData: ProcessedFrame[],
-  velocityThreshold: number = 0.05 // m/s
-): { startIndex: number; endIndex: number }[] {
-  const phases: { startIndex: number; endIndex: number }[] = [];
-  let inPhase = false;
-  let startIndex = 0;
-  
-  for (let i = 0; i < processedData.length; i++) {
-    const isPositiveVelocity = processedData[i].velocity > velocityThreshold;
-    
-    if (isPositiveVelocity && !inPhase) {
-      inPhase = true;
-      startIndex = i;
-    } else if (!isPositiveVelocity && inPhase) {
-      inPhase = false;
-      phases.push({ startIndex, endIndex: i - 1 });
-    }
-  }
-  
-  // Handle case where phase extends to end
-  if (inPhase) {
-    phases.push({ startIndex, endIndex: processedData.length - 1 });
-  }
-  
-  return phases;
-}
-
-/**
- * Full processing pipeline with time-based smoothing
- * Applies smoothing at each derivative stage to minimize noise amplification
+ * Core analysis function to convert raw pixels to physics data
+ * Uses Rolling Window smoothing for LDT-matching accuracy
  */
 export function processTrackingData(
   trackingPoints: TrackingPoint[],
   pixelsPerMeter: number,
   mass: number,
-  _smoothingWindow: number = 5 // Deprecated, using time-based constants instead
+  _smoothingWindow: number = 5 // Kept for API compatibility
 ): ProcessedFrame[] {
-  if (trackingPoints.length < 3) {
-    return [];
+  if (trackingPoints.length < 10) return [];
+
+  // Convert TrackingPoints to the format expected by the algorithm
+  // Note: TrackingPoint.time is in seconds, we work in seconds throughout
+  const rawTrace = trackingPoints.map(p => ({
+    x: p.x,
+    y: p.y,
+    timestamp: p.time * 1000 // Convert to ms for algorithm
+  }));
+
+  // 1. Convert Pixels to Meters (Invert Y because screen Y goes down)
+  const maxY = Math.max(...rawTrace.map(t => t.y));
+  const metersTrace = rawTrace.map(p => ({
+    time: p.timestamp / 1000, // seconds
+    pos: (maxY - p.y) / pixelsPerMeter
+  }));
+
+  // 2. SMOOTHING (Moving Average)
+  // Essential for "Speed Reps" where 30fps video is noisy
+  const smoothed = metersTrace.map((p, i, arr) => {
+    const start = Math.max(0, i - Math.floor(SMOOTHING_WINDOW / 2));
+    const end = Math.min(arr.length, i + Math.floor(SMOOTHING_WINDOW / 2) + 1);
+    const window = arr.slice(start, end);
+    const avgPos = window.reduce((sum, item) => sum + item.pos, 0) / window.length;
+    return { ...p, pos: avgPos };
+  });
+
+  // 3. DERIVATIVES (Velocity & Acceleration)
+  // Track previous velocity for acceleration calculation
+  let prevVel = 0;
+  
+  const physicsData: ProcessedFrame[] = smoothed.map((p, i, arr) => {
+    if (i === 0) {
+      return { 
+        time: p.time, 
+        y: p.pos, 
+        velocity: 0, 
+        acceleration: 0, 
+        force: mass * GRAVITY,
+        smoothedForce: mass * GRAVITY
+      };
+    }
+    
+    const dt = p.time - arr[i - 1].time || 0.033; // Prevent div by zero
+    const vel = (p.pos - arr[i - 1].pos) / dt;
+    const acc = (vel - prevVel) / dt;
+    
+    // F = ma + mg
+    const force = mass * (acc + GRAVITY);
+    
+    prevVel = vel;
+    
+    return { 
+      time: p.time, 
+      y: p.pos, 
+      velocity: vel, 
+      acceleration: acc, 
+      force,
+      smoothedForce: force // Will be updated below
+    };
+  });
+
+  // Apply rolling average to force for smoothedForce
+  const framesInWindow = Math.max(1, Math.floor(FORCE_WINDOW_MS / 33)); // approx 3 frames at 30fps
+  
+  for (let i = 0; i < physicsData.length; i++) {
+    const start = Math.max(0, i - framesInWindow + 1);
+    const window = physicsData.slice(start, i + 1);
+    const avgForce = window.reduce((sum, f) => sum + f.force, 0) / window.length;
+    physicsData[i].smoothedForce = avgForce;
   }
-  
-  // Convert to meters
-  const metersData = pixelsToMeters(trackingPoints, pixelsPerMeter);
-  
-  // Step 1: Smooth Y coordinates (position) using time-based window
-  const positionForSmoothing = metersData.map(p => ({ time: p.time, value: p.y }));
-  const smoothedY = timeBasedMovingAverage(positionForSmoothing, POSITION_SMOOTHING_MS);
-  
-  const smoothedPositionData = metersData.map((p, i) => ({
-    ...p,
-    y: smoothedY[i],
-  }));
-  
-  // Step 2: Calculate velocity from smoothed position
-  const velocityData = calculateVelocity(smoothedPositionData);
-  
-  // Step 3: Smooth velocity using time-based window
-  const velocityForSmoothing = velocityData.map(p => ({ time: p.time, value: p.velocity }));
-  const smoothedVelocity = timeBasedMovingAverage(velocityForSmoothing, VELOCITY_SMOOTHING_MS);
-  
-  const smoothedVelocityData = velocityData.map((p, i) => ({
-    ...p,
-    velocity: smoothedVelocity[i],
-  }));
-  
-  // Step 4: Calculate acceleration from smoothed velocity
-  const accelerationData = calculateAcceleration(smoothedVelocityData);
-  
-  // Step 5: Smooth acceleration using time-based window (CRITICAL for force accuracy)
-  const accelerationForSmoothing = accelerationData.map(p => ({ time: p.time, value: p.acceleration }));
-  const smoothedAcceleration = timeBasedMovingAverage(accelerationForSmoothing, ACCELERATION_SMOOTHING_MS);
-  
-  const smoothedAccelerationData = accelerationData.map((p, i) => ({
-    ...p,
-    acceleration: smoothedAcceleration[i],
-  }));
-  
-  // Step 6: Calculate force from smoothed acceleration
-  const forceData = calculateForce(smoothedAccelerationData, mass);
-  
-  // Step 7: Apply additional rolling average to force for peak calculation
-  const forceDataWithSmoothing = applyForceRollingAverage(forceData);
-  
-  return forceDataWithSmoothing;
+
+  return physicsData;
 }
 
-/**
- * Calculate analysis metrics from processed data within a time range
- * Peak force uses the smoothedForce (time-windowed rolling average) to avoid noise spikes
- */
-export function calculateMetrics(
-  processedData: ProcessedFrame[],
-  startTime: number,
-  endTime: number
-): { meanVelocity: number; peakForce: number } {
-  const filteredData = processedData.filter(
-    p => p.time >= startTime && p.time <= endTime && p.velocity > 0
-  );
-  
-  if (filteredData.length === 0) {
-    return { meanVelocity: 0, peakForce: 0 };
-  }
-  
-  const meanVelocity = filteredData.reduce((sum, p) => sum + p.velocity, 0) / filteredData.length;
-  
-  // Use smoothedForce (rolling average) for peak force to avoid noise spikes
-  // Falls back to raw force if smoothedForce not available
-  const peakForce = Math.max(
-    ...filteredData.map(p => p.smoothedForce ?? p.force)
-  );
-  
-  return { meanVelocity, peakForce };
-}
+// ============================================
+// REP DETECTION (Velocity-based)
+// ============================================
 
 /**
- * Detect individual repetitions in the data based on velocity patterns.
- * Uses a hybrid approach: 
- * - If velocity goes negative (proper eccentric), use zero-crossing detection
- * - If velocity only dips low (noisy tracking), use threshold-crossing detection
- * This handles both high-quality and noisy tracking data.
+ * Detect individual repetitions based on velocity patterns
+ * Detects concentric phase (velocity > 0.1 m/s)
  */
 export function detectRepetitions(
   processedData: ProcessedFrame[],
-  velocityThreshold: number = 0.03, // m/s - threshold for detecting rep start/end
-  minRepDurationMs: number = 150 // Minimum rep duration in ms
+  velocityThreshold: number = 0.1, // m/s - threshold for detecting rep start
+  _minRepDurationMs: number = 150 // Kept for API compatibility
 ): { startIndex: number; endIndex: number }[] {
   if (processedData.length < 2) return [];
-  
-  // Check if data has significant negative velocities (good tracking)
-  const minVelocity = Math.min(...processedData.map(p => p.velocity));
-  const hasNegativeVelocity = minVelocity < -0.02;
-  
-  // Choose detection threshold based on data quality
-  const startThreshold = hasNegativeVelocity ? 0 : velocityThreshold;
-  const endThreshold = hasNegativeVelocity ? 0 : velocityThreshold * 0.5;
-  
+
   const reps: { startIndex: number; endIndex: number }[] = [];
-  let repStartIndex: number | null = null;
-  
-  // Calculate approximate frame rate from data
-  const avgDt = (processedData[processedData.length - 1].time - processedData[0].time) / (processedData.length - 1);
-  const fps = 1 / avgDt;
-  const minFrames = Math.ceil((minRepDurationMs / 1000) * fps);
-  
-  for (let i = 1; i < processedData.length; i++) {
-    const prevVel = processedData[i - 1].velocity;
-    const currVel = processedData[i].velocity;
-    
-    // Detect crossing from below threshold to above (start of concentric)
-    if (prevVel <= startThreshold && currVel > startThreshold && repStartIndex === null) {
-      repStartIndex = i;
-    }
-    
-    // Detect crossing from above threshold to below (end of concentric)
-    if (prevVel > endThreshold && currVel <= endThreshold && repStartIndex !== null) {
-      const duration = i - repStartIndex;
-      
-      // Check if rep is long enough and had meaningful velocity
-      if (duration >= minFrames) {
-        const repData = processedData.slice(repStartIndex, i);
-        const peakVel = Math.max(...repData.map(p => p.velocity));
-        
-        // Only count if peak velocity exceeded a minimum
-        if (peakVel >= velocityThreshold) {
-          reps.push({ startIndex: repStartIndex, endIndex: i - 1 });
-        }
+  let inRep = false;
+  let repStartIndex = 0;
+
+  processedData.forEach((d, i) => {
+    // Threshold: 0.1 m/s to filter out "unracking" noise
+    if (d.velocity > velocityThreshold) {
+      if (!inRep) {
+        inRep = true;
+        repStartIndex = i;
       }
+    } else if (inRep && d.velocity < 0.05) {
+      // Rep Finished
+      inRep = false;
       
-      repStartIndex = null;
-    }
-  }
-  
-  // Handle case where last rep extends to end of data
-  if (repStartIndex !== null) {
-    const duration = processedData.length - 1 - repStartIndex;
-    if (duration >= minFrames) {
-      const repData = processedData.slice(repStartIndex);
-      const peakVel = Math.max(...repData.map(p => p.velocity));
-      
-      if (peakVel >= velocityThreshold) {
-        reps.push({ startIndex: repStartIndex, endIndex: processedData.length - 1 });
+      // Only count reps with significant samples (> 5 frames)
+      if (i - repStartIndex > 5) {
+        reps.push({ startIndex: repStartIndex, endIndex: i - 1 });
       }
     }
+  });
+
+  // Handle case where last rep extends to end
+  if (inRep && processedData.length - repStartIndex > 5) {
+    reps.push({ startIndex: repStartIndex, endIndex: processedData.length - 1 });
   }
-  
+
   return reps;
 }
 
 /**
  * Calculate metrics for each detected repetition
+ * Uses rolling peak force calculation (LDT simulation)
  */
 export function calculateRepMetrics(
   processedData: ProcessedFrame[],
   reps: { startIndex: number; endIndex: number }[]
 ): RepMetrics[] {
+  const framesInWindow = Math.max(1, Math.floor(FORCE_WINDOW_MS / 33)); // approx 3 frames at 30fps
+  
   return reps.map((rep, index) => {
     const repData = processedData.slice(rep.startIndex, rep.endIndex + 1);
     
@@ -464,18 +204,32 @@ export function calculateRepMetrics(
     const startTime = repData[0].time;
     const endTime = repData[repData.length - 1].time;
     
-    // Filter to positive velocity only for mean calculation
-    const positiveVelData = repData.filter(p => p.velocity > 0);
-    const meanVelocity = positiveVelData.length > 0
-      ? positiveVelData.reduce((sum, p) => sum + p.velocity, 0) / positiveVelData.length
-      : 0;
+    // Calculate mean velocity from all samples
+    const velSamples = repData.map(p => p.velocity);
+    const meanVelocity = velSamples.reduce((a, b) => a + b, 0) / velSamples.length;
+    const peakVelocity = Math.max(...velSamples);
     
-    const peakVelocity = Math.max(...repData.map(p => p.velocity));
+    // CALCULATE ROLLING PEAK FORCE (The LDT Simulation)
+    // Look at the last N frames to find a sustained peak, not a spike
+    let maxForce = 0;
+    const forceSamples: number[] = [];
     
-    // Use smoothedForce for peak force
-    const peakForce = Math.max(
-      ...repData.map(p => p.smoothedForce ?? p.force)
-    );
+    for (const frame of repData) {
+      forceSamples.push(frame.force);
+      
+      if (forceSamples.length >= framesInWindow) {
+        const recentForce = forceSamples.slice(-framesInWindow);
+        const avgRecentForce = recentForce.reduce((a, b) => a + b, 0) / recentForce.length;
+        if (avgRecentForce > maxForce) {
+          maxForce = avgRecentForce;
+        }
+      }
+    }
+    
+    // Fallback if we didn't have enough frames for the rolling window
+    if (maxForce === 0 && forceSamples.length > 0) {
+      maxForce = forceSamples.reduce((a, b) => a + b, 0) / forceSamples.length;
+    }
     
     return {
       repNumber: index + 1,
@@ -483,7 +237,68 @@ export function calculateRepMetrics(
       endTime,
       meanVelocity,
       peakVelocity,
-      peakForce,
+      peakForce: maxForce,
     };
   });
+}
+
+// ============================================
+// HELPER FUNCTIONS (for compatibility)
+// ============================================
+
+/**
+ * Calculate analysis metrics from processed data within a time range
+ */
+export function calculateMetrics(
+  processedData: ProcessedFrame[],
+  startTime: number,
+  endTime: number
+): { meanVelocity: number; peakForce: number } {
+  const filteredData = processedData.filter(
+    p => p.time >= startTime && p.time <= endTime && p.velocity > 0
+  );
+  
+  if (filteredData.length === 0) {
+    return { meanVelocity: 0, peakForce: 0 };
+  }
+  
+  const meanVelocity = filteredData.reduce((sum, p) => sum + p.velocity, 0) / filteredData.length;
+  
+  // Use smoothedForce for peak force
+  const peakForce = Math.max(
+    ...filteredData.map(p => p.smoothedForce ?? p.force)
+  );
+  
+  return { meanVelocity, peakForce };
+}
+
+/**
+ * Detect concentric phase (upward movement with positive velocity)
+ * Returns indices of frames that are part of the concentric phase
+ */
+export function detectConcentricPhase(
+  processedData: ProcessedFrame[],
+  velocityThreshold: number = 0.05
+): { startIndex: number; endIndex: number }[] {
+  const phases: { startIndex: number; endIndex: number }[] = [];
+  let inPhase = false;
+  let startIndex = 0;
+  
+  for (let i = 0; i < processedData.length; i++) {
+    const isPositiveVelocity = processedData[i].velocity > velocityThreshold;
+    
+    if (isPositiveVelocity && !inPhase) {
+      inPhase = true;
+      startIndex = i;
+    } else if (!isPositiveVelocity && inPhase) {
+      inPhase = false;
+      phases.push({ startIndex, endIndex: i - 1 });
+    }
+  }
+  
+  if (inPhase) {
+    phases.push({ startIndex, endIndex: processedData.length - 1 });
+  }
+  
+  return phases;
 }
