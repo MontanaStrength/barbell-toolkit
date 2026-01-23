@@ -80,17 +80,7 @@ const TonnageTool = ({ onBack }: TonnageToolProps) => {
   const displayAvgIntensity = averageIntensity;
 
   const formatTonnage = (value: number): string => {
-    if (value >= 1000) {
-      return `${(value / 1000).toFixed(2)}`;
-    }
-    return value.toFixed(1);
-  };
-
-  const getTonnageUnit = (value: number): string => {
-    if (value >= 1000) {
-      return useKg ? "tonnes" : "tons";
-    }
-    return unitLabel;
+    return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
   };
 
   return (
@@ -224,10 +214,10 @@ const TonnageTool = ({ onBack }: TonnageToolProps) => {
             <div className="text-center p-6 rounded-lg bg-tool-pink/10 border border-tool-pink/20">
               <p className="text-sm text-muted-foreground mb-1">Total Tonnage</p>
               <p className="text-4xl font-bold text-tool-pink mb-1">
-                {formatTonnage(displayTonnage)}
+                {formatTonnage(displayTonnage)} {unitLabel}
               </p>
               <p className="text-sm text-muted-foreground">
-                {getTonnageUnit(displayTonnage)}
+                total volume
               </p>
             </div>
             
