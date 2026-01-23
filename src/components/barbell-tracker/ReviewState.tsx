@@ -67,12 +67,11 @@ export function ReviewState({
     return calculateRepMetrics(trimmedData, reps);
   }, [processedData, trimTimes]);
 
-  // Chart data
+  // Chart data - show actual velocity including negative (eccentric) values
   const chartData = useMemo(() => {
     return processedData.map((frame) => ({
       time: frame.time.toFixed(2),
-      velocity: Math.max(0, frame.velocity), // Only show positive velocity
-      force: frame.force,
+      velocity: frame.velocity, // Show actual velocity, not clamped
       inRange: frame.time >= trimTimes.start && frame.time <= trimTimes.end,
     }));
   }, [processedData, trimTimes]);
@@ -172,7 +171,7 @@ export function ReviewState({
                 stroke="hsl(220, 10%, 55%)"
                 fontSize={10}
                 tickLine={false}
-                domain={[0, 'auto']}
+                domain={['auto', 'auto']}
               />
               <Tooltip
                 contentStyle={{
