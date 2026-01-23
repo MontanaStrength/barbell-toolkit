@@ -27,16 +27,14 @@ export function TrackingState({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackingPointsRef = useRef<TrackingPoint[]>([]);
-  const animationRef = useRef<number | null>(null);
   const videoUrlRef = useRef<string | null>(null);
-  const lastSampleTimeRef = useRef<number>(-1);
 
   // Simple tracking using template matching simulation
   const trackFrame = useCallback((
     video: HTMLVideoElement,
     canvas: HTMLCanvasElement,
     lastPos: { x: number; y: number },
-    frameTime: number
+    _frameTime: number
   ): { x: number; y: number } => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return lastPos;
@@ -120,7 +118,6 @@ export function TrackingState({
     const canvas = canvasRef.current;
     let lastPosition = { ...circleCenter };
     trackingPointsRef.current = [];
-    lastSampleTimeRef.current = -1;
 
     let isCancelled = false;
 
@@ -130,82 +127,83 @@ export function TrackingState({
       onTrackingComplete(trackingPointsRef.current);
     };
 
-    const sampleFrame = (currentTime: number) => {
-      const duration = video.duration;
+    const seekTo = (t: number) =>
+      new Promise<void>((resolve, reject) => {
+        const onSeeked = () => {
+          cleanup();
+          resolve();
+        };
+        const onError = () => {
+          cleanup();
+          reject(new Error('Video seek error'));
+        };
+        const cleanup = () => {
+          video.removeEventListener('seeked', onSeeked);
+          video.removeEventListener('error', onError);
+        };
+        video.addEventListener('seeked', onSeeked);
+        video.addEventListener('error', onError);
+        video.currentTime = t;
+      });
 
-      if (!Number.isFinite(duration) || duration <= 0) {
-        // Can't compute progress reliably yet
-      } else {
-        setProgress((currentTime / duration) * 100);
-      }
+    const sampleFrameAt = (t: number, duration: number) => {
+      setProgress(duration > 0 ? (t / duration) * 100 : 0);
       setStatus('tracking');
 
-      // Only sample once per *video frame*.
-      // requestAnimationFrame can run faster than the video frame rate, and video.currentTime
-      // may not advance each tick. Sampling duplicates causes jitter-driven spikes (force)
-      // and breaks rep detection.
-      if (currentTime === lastSampleTimeRef.current) return;
-      lastSampleTimeRef.current = currentTime;
-
-      const newPosition = trackFrame(video, canvas, lastPosition, currentTime);
+      const newPosition = trackFrame(video, canvas, lastPosition, t);
       lastPosition = newPosition;
       setCurrentPosition(newPosition);
 
       trackingPointsRef.current.push({
         x: newPosition.x,
         y: newPosition.y,
-        time: currentTime,
+        time: t,
       });
-    };
-
-    const useVideoFrameCallback = typeof (video as any).requestVideoFrameCallback === 'function';
-
-    const processFrame = () => {
-      if (isCancelled) return;
-      if (video.ended) {
-        handleComplete();
-        return;
-      }
-
-      sampleFrame(video.currentTime);
-      animationRef.current = requestAnimationFrame(processFrame);
-    };
-
-    const onVideoFrame = (_now: number, metadata: any) => {
-      if (isCancelled) return;
-      if (video.ended) {
-        handleComplete();
-        return;
-      }
-
-      // metadata.mediaTime is tied to decoded frames (best for frame-accurate sampling)
-      const mediaTime = typeof metadata?.mediaTime === 'number' ? metadata.mediaTime : video.currentTime;
-      sampleFrame(mediaTime);
-
-      (video as any).requestVideoFrameCallback(onVideoFrame);
     };
 
     const startTracking = () => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      
-      video.currentTime = 0;
-      video.playbackRate = 1; // Normal speed for accurate tracking
-      
-      video.play().then(() => {
-        // Complete when the video ends (RVFC does not fire after end)
-        video.onended = handleComplete;
 
-        if (useVideoFrameCallback) {
-          (video as any).requestVideoFrameCallback(onVideoFrame);
-        } else {
-          processFrame();
-        }
-      }).catch((err) => {
+      // Deterministic, stall-proof processing: step through the video by seeking.
+      // This avoids playback stalling (where currentTime stops advancing), which can
+      // truncate data around ~5-6s in some environments.
+      const duration = video.duration;
+      if (!Number.isFinite(duration) || duration <= 0) {
         setStatus('error');
-        setErrorMessage('Failed to play video for tracking. Please try again.');
-        console.error('Video play error:', err);
-      });
+        setErrorMessage('Could not read video duration. Please try a different file.');
+        return;
+      }
+
+      setStatus('tracking');
+      setProgress(0);
+      video.pause();
+      video.playbackRate = 1;
+
+      const run = async () => {
+        try {
+          // Default to ~30fps sampling (matches FORCE_WINDOW_MS/33 assumption)
+          const step = 1 / 30;
+          const endTime = Math.max(0, duration);
+
+          for (let t = 0; t <= endTime; t += step) {
+            if (isCancelled) return;
+            const clampedT = Math.min(endTime, t);
+            await seekTo(clampedT);
+            if (isCancelled) return;
+            sampleFrameAt(clampedT, endTime);
+          }
+
+          handleComplete();
+        } catch (err) {
+          if (isCancelled) return;
+          setStatus('error');
+          setErrorMessage('Tracking failed while reading the video. Please try again.');
+          console.error('Tracking seek error:', err);
+        }
+      };
+
+      void run();
     };
 
     video.onloadedmetadata = startTracking;
@@ -220,9 +218,6 @@ export function TrackingState({
 
     return () => {
       isCancelled = true;
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
       video.pause();
       video.playbackRate = 1;
       video.src = '';
