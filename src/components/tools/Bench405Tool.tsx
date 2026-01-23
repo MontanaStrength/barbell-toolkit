@@ -13,17 +13,15 @@ interface Bench405ToolProps {
 const Bench405Tool = ({ onBack }: Bench405ToolProps) => {
   const [currentMax, setCurrentMax] = useState("");
   const [trainingAge, setTrainingAge] = useState("");
+  const [showResult, setShowResult] = useState(false);
 
-  // Placeholder calculation - user will fill in logic later
-  const calculateTimeToGoal = () => {
-    const max = parseFloat(currentMax);
-    if (!max || max <= 0) return null;
-    
-    // Placeholder: returns null until real logic is added
-    return null;
+  const canCalculate = currentMax && trainingAge;
+
+  const handleCalculate = () => {
+    if (canCalculate) {
+      setShowResult(true);
+    }
   };
-
-  const result = calculateTimeToGoal();
 
   return (
     <main className="container mx-auto px-4 py-10 max-w-3xl">
@@ -76,19 +74,25 @@ const Bench405Tool = ({ onBack }: Bench405ToolProps) => {
               />
             </div>
 
-            <Button className="w-full h-12 text-base" disabled>
-              Calculate (Coming Soon)
+            <Button 
+              className="w-full h-12 text-base" 
+              disabled={!canCalculate}
+              onClick={handleCalculate}
+            >
+              Calculate
             </Button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="py-12">
-            <p className="text-center text-2xl font-bold text-foreground">
-              I don't fucking know, please stop asking
-            </p>
-          </CardContent>
-        </Card>
+        {showResult && (
+          <Card>
+            <CardContent className="py-12">
+              <p className="text-center text-2xl font-bold text-foreground">
+                I don't fucking know, please stop asking
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-2">
