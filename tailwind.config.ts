@@ -62,6 +62,7 @@ export default {
           cyan: "hsl(var(--tool-cyan))",
           pink: "hsl(var(--tool-pink))",
           indigo: "hsl(var(--tool-indigo))",
+          teal: "hsl(var(--tool-teal))",
           gold: "hsl(var(--tool-gold))",
           bronze: "hsl(var(--tool-bronze))",
         },

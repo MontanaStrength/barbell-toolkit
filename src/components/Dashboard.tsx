@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown, Layers } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -104,6 +104,17 @@ const tools = [
     hoverBorder: "hover:border-tool-indigo/50",
     textColor: "text-tool-indigo",
     shadowClass: "hover:shadow-tool-indigo",
+  },
+  {
+    id: "volume-landmarks",
+    name: "Volume Landmarks",
+    description: "MEV, MAV, MRV guidelines per muscle group",
+    icon: Layers,
+    accent: "teal",
+    borderColor: "border-tool-teal/20",
+    hoverBorder: "hover:border-tool-teal/50",
+    textColor: "text-tool-teal",
+    shadowClass: "hover:shadow-tool-teal",
   },
 ];
 
