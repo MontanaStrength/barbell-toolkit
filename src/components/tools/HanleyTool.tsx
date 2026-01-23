@@ -52,11 +52,11 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   }, 0);
 
   const getStressLevel = (score: number) => {
-    if (score < 300) return { label: "Low", color: "text-tool-blue" };
-    if (score < 400) return { label: "Low-Moderate", color: "text-tool-emerald" };
+    if (score < 400) return { label: "Light", color: "text-tool-emerald" };
     if (score < 500) return { label: "Moderate", color: "text-tool-yellow" };
-    if (score < 600) return { label: "Mod-High", color: "text-orange-400" };
-    return { label: "High", color: "text-tool-red" };
+    if (score < 600) return { label: "Moderate High", color: "text-orange-400" };
+    if (score < 700) return { label: "High", color: "text-tool-red" };
+    return { label: "You sure about this?", color: "text-tool-purple" };
   };
 
   // Reverse calculator: Reps = TargetScore / (100 / (100 - Intensity))^2
