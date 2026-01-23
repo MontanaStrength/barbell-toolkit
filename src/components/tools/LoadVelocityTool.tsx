@@ -172,7 +172,7 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
                     placeholder={`Load (${unitLabel})`}
                     value={point.load}
                     onChange={(e) => updateDataPoint(point.id, "load", e.target.value)}
-                    className="h-11 text-base"
+                    className="h-14 text-lg"
                   />
                 </div>
                 <div className="flex-1">
@@ -181,16 +181,16 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
                     placeholder="Velocity (m/s)"
                     value={point.velocity}
                     onChange={(e) => updateDataPoint(point.id, "velocity", e.target.value)}
-                    className="h-11 text-base"
+                    className="h-14 text-lg"
                     step="0.01"
                   />
                 </div>
                 {dataPoints.length > 2 && (
                   <button
                     onClick={() => removeDataPoint(point.id)}
-                    className="text-destructive hover:text-destructive/80 transition-colors p-1"
+                    className="text-destructive hover:text-destructive/80 transition-colors p-2"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 )}
               </div>
@@ -207,7 +207,7 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
             </Button>
 
             <div className="pt-4 border-t border-border">
-              <Label htmlFor="mvt" className="text-sm">
+              <Label htmlFor="mvt" className="text-base font-medium">
                 Minimum Velocity Threshold (m/s)
               </Label>
               <Input
@@ -215,7 +215,7 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
                 type="number"
                 value={mvt}
                 onChange={(e) => setMvt(e.target.value)}
-                className="mt-1.5 h-9"
+                className="mt-2 h-14 text-lg"
                 step="0.05"
                 placeholder="0.3"
               />
