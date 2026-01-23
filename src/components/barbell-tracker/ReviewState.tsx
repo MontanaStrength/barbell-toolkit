@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Gauge, Zap, Save, RotateCcw } from 'lucide-react';
+import { Gauge, Zap, Save, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -12,8 +12,8 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from 'recharts';
-import type { ProcessedFrame, AnalysisResult } from '@/lib/barbell-physics';
-import { calculateMetrics } from '@/lib/barbell-physics';
+import type { ProcessedFrame, AnalysisResult, RepMetrics } from '@/lib/barbell-physics';
+import { calculateMetrics, detectRepetitions, calculateRepMetrics } from '@/lib/barbell-physics';
 
 interface ReviewStateProps {
   processedData: ProcessedFrame[];
@@ -32,6 +32,7 @@ export function ReviewState({
   const [endTrim, setEndTrim] = useState(1);
   const [isDraggingStart, setIsDraggingStart] = useState(false);
   const [isDraggingEnd, setIsDraggingEnd] = useState(false);
+  const [showRepDetails, setShowRepDetails] = useState(true);
 
   // Calculate time range
   const timeRange = useMemo(() => {
@@ -48,9 +49,22 @@ export function ReviewState({
     end: timeRange.min + (timeRange.max - timeRange.min) * endTrim,
   }), [timeRange, startTrim, endTrim]);
 
-  // Calculate metrics for trimmed region
+  // Calculate overall metrics for trimmed region
   const metrics = useMemo(() => {
     return calculateMetrics(processedData, trimTimes.start, trimTimes.end);
+  }, [processedData, trimTimes]);
+
+  // Detect repetitions and calculate per-rep metrics
+  const repMetrics = useMemo((): RepMetrics[] => {
+    // Filter data to trimmed region first
+    const trimmedData = processedData.filter(
+      p => p.time >= trimTimes.start && p.time <= trimTimes.end
+    );
+    
+    if (trimmedData.length === 0) return [];
+    
+    const reps = detectRepetitions(trimmedData);
+    return calculateRepMetrics(trimmedData, reps);
   }, [processedData, trimTimes]);
 
   // Chart data
@@ -91,6 +105,7 @@ export function ReviewState({
       meanVelocity: metrics.meanVelocity,
       peakForce: metrics.peakForce,
       velocityDataArray: trimmedData,
+      reps: repMetrics,
     });
   };
 
@@ -260,8 +275,50 @@ export function ReviewState({
 
       {/* Info */}
       <p className="text-muted-foreground text-xs text-center">
-        Mass: {mass}kg • Duration: {(trimTimes.end - trimTimes.start).toFixed(2)}s
+        Mass: {mass}kg • Duration: {(trimTimes.end - trimTimes.start).toFixed(2)}s • {repMetrics.length} rep{repMetrics.length !== 1 ? 's' : ''} detected
       </p>
+
+      {/* Per-Rep Metrics */}
+      {repMetrics.length > 0 && (
+        <div className="bg-secondary/30 rounded-lg border border-border overflow-hidden">
+          <button
+            onClick={() => setShowRepDetails(!showRepDetails)}
+            className="w-full flex items-center justify-between p-3 text-sm font-medium text-foreground hover:bg-secondary/50 transition-colors"
+          >
+            <span>Rep-by-Rep Analysis</span>
+            {showRepDetails ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          
+          {showRepDetails && (
+            <div className="border-t border-border">
+              {/* Header */}
+              <div className="grid grid-cols-4 gap-2 px-3 py-2 text-xs text-muted-foreground bg-secondary/20">
+                <span>Rep</span>
+                <span className="text-center">Velocity</span>
+                <span className="text-center">Peak Force (N)</span>
+                <span className="text-center">Peak Force (lbf)</span>
+              </div>
+              
+              {/* Rep rows */}
+              {repMetrics.map((rep) => (
+                <div
+                  key={rep.repNumber}
+                  className="grid grid-cols-4 gap-2 px-3 py-2 text-sm border-t border-border/50 hover:bg-secondary/20 transition-colors"
+                >
+                  <span className="text-foreground font-medium">#{rep.repNumber}</span>
+                  <span className="text-center text-foreground">{rep.meanVelocity.toFixed(2)} m/s</span>
+                  <span className="text-center text-foreground font-semibold">{Math.round(rep.peakForce)}</span>
+                  <span className="text-center text-foreground font-semibold">{Math.round(rep.peakForce * 0.224809)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">
