@@ -60,14 +60,14 @@ const RPETool = ({ onBack }: RPEToolProps) => {
         <Button
           variant="ghost"
           onClick={onBack}
-          className="mb-6 text-tool-blue hover:text-tool-blue hover:bg-tool-blue/10"
+          className="mb-6 text-muted-foreground hover:text-tool-blue"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-tool-blue text-glow-blue mb-2">
+          <h1 className="text-2xl font-semibold text-foreground mb-2">
             RPE Tools
           </h1>
           <p className="text-muted-foreground">
@@ -76,24 +76,24 @@ const RPETool = ({ onBack }: RPEToolProps) => {
         </div>
 
         <Tabs defaultValue="estimator" className="space-y-6">
-          <TabsList className="bg-secondary border border-tool-blue/20">
+          <TabsList className="bg-secondary border border-border">
             <TabsTrigger
               value="estimator"
-              className="data-[state=active]:bg-tool-blue/20 data-[state=active]:text-tool-blue"
+              className="data-[state=active]:bg-tool-blue/10 data-[state=active]:text-tool-blue"
             >
               <Calculator className="w-4 h-4 mr-2" />
               Estimator
             </TabsTrigger>
             <TabsTrigger
               value="planner"
-              className="data-[state=active]:bg-tool-blue/20 data-[state=active]:text-tool-blue"
+              className="data-[state=active]:bg-tool-blue/10 data-[state=active]:text-tool-blue"
             >
               <Target className="w-4 h-4 mr-2" />
               Load Planner
             </TabsTrigger>
             <TabsTrigger
               value="table"
-              className="data-[state=active]:bg-tool-blue/20 data-[state=active]:text-tool-blue"
+              className="data-[state=active]:bg-tool-blue/10 data-[state=active]:text-tool-blue"
             >
               <TableIcon className="w-4 h-4 mr-2" />
               Reference Table
@@ -101,33 +101,33 @@ const RPETool = ({ onBack }: RPEToolProps) => {
           </TabsList>
 
           <TabsContent value="estimator" className="space-y-6">
-            <div className="bg-card border border-tool-blue/20 rounded-lg p-6 glow-blue">
-              <h2 className="text-xl font-semibold text-tool-blue mb-4">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-tool-blue">
+              <h2 className="text-lg font-medium text-foreground mb-4">
                 e1RM Estimator
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Weight (lbs/kg)</Label>
+                  <Label className="text-muted-foreground text-sm">Weight (lbs/kg)</Label>
                   <Input
                     type="number"
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder="225"
-                    className="bg-secondary border-tool-blue/30 focus:border-tool-blue"
+                    className="bg-secondary border-border focus:border-tool-blue"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Reps</Label>
+                  <Label className="text-muted-foreground text-sm">Reps</Label>
                   <Input
                     type="number"
                     value={reps}
                     onChange={(e) => setReps(e.target.value)}
                     placeholder="5"
-                    className="bg-secondary border-tool-blue/30 focus:border-tool-blue"
+                    className="bg-secondary border-border focus:border-tool-blue"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">RPE (6-10)</Label>
+                  <Label className="text-muted-foreground text-sm">RPE (6-10)</Label>
                   <Input
                     type="number"
                     step="0.5"
@@ -136,17 +136,17 @@ const RPETool = ({ onBack }: RPEToolProps) => {
                     value={rpe}
                     onChange={(e) => setRpe(e.target.value)}
                     placeholder="8"
-                    className="bg-secondary border-tool-blue/30 focus:border-tool-blue"
+                    className="bg-secondary border-border focus:border-tool-blue"
                   />
                 </div>
               </div>
 
               {e1rm && (
-                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
                   <p className="text-muted-foreground text-sm mb-1">
                     Estimated 1 Rep Max
                   </p>
-                  <p className="text-4xl font-bold text-tool-blue text-glow-blue">
+                  <p className="text-4xl font-semibold text-tool-blue">
                     {e1rm.toFixed(1)}
                   </p>
                 </div>
@@ -155,33 +155,33 @@ const RPETool = ({ onBack }: RPEToolProps) => {
           </TabsContent>
 
           <TabsContent value="planner" className="space-y-6">
-            <div className="bg-card border border-tool-blue/20 rounded-lg p-6 glow-blue">
-              <h2 className="text-xl font-semibold text-tool-blue mb-4">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-tool-blue">
+              <h2 className="text-lg font-medium text-foreground mb-4">
                 Load Planner
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Your Max</Label>
+                  <Label className="text-muted-foreground text-sm">Your Max</Label>
                   <Input
                     type="number"
                     value={maxWeight}
                     onChange={(e) => setMaxWeight(e.target.value)}
                     placeholder="315"
-                    className="bg-secondary border-tool-blue/30 focus:border-tool-blue"
+                    className="bg-secondary border-border focus:border-tool-blue"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Target Reps</Label>
+                  <Label className="text-muted-foreground text-sm">Target Reps</Label>
                   <Input
                     type="number"
                     value={targetReps}
                     onChange={(e) => setTargetReps(e.target.value)}
                     placeholder="5"
-                    className="bg-secondary border-tool-blue/30 focus:border-tool-blue"
+                    className="bg-secondary border-border focus:border-tool-blue"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Target RPE</Label>
+                  <Label className="text-muted-foreground text-sm">Target RPE</Label>
                   <Input
                     type="number"
                     step="0.5"
@@ -190,17 +190,17 @@ const RPETool = ({ onBack }: RPEToolProps) => {
                     value={targetRpe}
                     onChange={(e) => setTargetRpe(e.target.value)}
                     placeholder="8"
-                    className="bg-secondary border-tool-blue/30 focus:border-tool-blue"
+                    className="bg-secondary border-border focus:border-tool-blue"
                   />
                 </div>
               </div>
 
               {load && (
-                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
                   <p className="text-muted-foreground text-sm mb-1">
                     Recommended Load
                   </p>
-                  <p className="text-4xl font-bold text-tool-blue text-glow-blue">
+                  <p className="text-4xl font-semibold text-tool-blue">
                     {load.toFixed(1)}
                   </p>
                 </div>
@@ -209,16 +209,16 @@ const RPETool = ({ onBack }: RPEToolProps) => {
           </TabsContent>
 
           <TabsContent value="table" className="space-y-6">
-            <div className="bg-card border border-tool-blue/20 rounded-lg p-6 glow-blue overflow-x-auto">
-              <h2 className="text-xl font-semibold text-tool-blue mb-4">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-tool-blue overflow-x-auto">
+              <h2 className="text-lg font-medium text-foreground mb-4">
                 RPE Reference Table
               </h2>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-tool-blue/30">
-                    <th className="text-left p-2 text-tool-blue">RPE</th>
+                  <tr className="border-b border-border">
+                    <th className="text-left p-2 text-tool-blue font-medium">RPE</th>
                     {[...Array(12)].map((_, i) => (
-                      <th key={i} className="text-center p-2 text-muted-foreground">
+                      <th key={i} className="text-center p-2 text-muted-foreground font-medium">
                         {i + 1}
                       </th>
                     ))}
@@ -226,8 +226,8 @@ const RPETool = ({ onBack }: RPEToolProps) => {
                 </thead>
                 <tbody>
                   {Object.entries(rpeTable).reverse().map(([rpeVal, reps]) => (
-                    <tr key={rpeVal} className="border-b border-secondary hover:bg-secondary/50">
-                      <td className="p-2 font-semibold text-tool-blue">{rpeVal}</td>
+                    <tr key={rpeVal} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                      <td className="p-2 font-medium text-tool-blue">{rpeVal}</td>
                       {Object.values(reps).map((pct, i) => (
                         <td key={i} className="text-center p-2 text-foreground">
                           {pct}%

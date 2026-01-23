@@ -42,15 +42,12 @@ const Index = () => {
       {activeTool ? (
         renderTool()
       ) : (
-        <main className="container mx-auto px-4 py-8">
-          <div className="mb-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-              Your Training{" "}
-              <span className="bg-gradient-to-r from-tool-blue via-tool-purple to-tool-emerald bg-clip-text text-transparent">
-                Command Center
-              </span>
+        <main className="container mx-auto px-4 py-10">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl md:text-4xl font-semibold text-foreground mb-3 tracking-tight">
+              Your Training Command Center
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
               Five precision tools to optimize your barbell training. Calculate loads, 
               analyze fatigue, and program smarter.
             </p>

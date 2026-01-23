@@ -52,11 +52,11 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   }, 0);
 
   const getStressLevel = (score: number) => {
-    if (score < 300) return { label: "Low", color: "text-tool-blue", bg: "bg-tool-blue/20" };
-    if (score < 400) return { label: "Low-Moderate", color: "text-tool-emerald", bg: "bg-tool-emerald/20" };
-    if (score < 500) return { label: "Moderate", color: "text-tool-yellow", bg: "bg-tool-yellow/20" };
-    if (score < 600) return { label: "Mod-High", color: "text-orange-400", bg: "bg-orange-400/20" };
-    return { label: "High", color: "text-tool-red", bg: "bg-tool-red/20" };
+    if (score < 300) return { label: "Low", color: "text-tool-blue" };
+    if (score < 400) return { label: "Low-Moderate", color: "text-tool-emerald" };
+    if (score < 500) return { label: "Moderate", color: "text-tool-yellow" };
+    if (score < 600) return { label: "Mod-High", color: "text-orange-400" };
+    return { label: "High", color: "text-tool-red" };
   };
 
   // Reverse calculator: Reps = TargetScore / (100 / (100 - Intensity))^2
@@ -76,14 +76,14 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
         <Button
           variant="ghost"
           onClick={onBack}
-          className="mb-6 text-tool-purple hover:text-tool-purple hover:bg-tool-purple/10"
+          className="mb-6 text-muted-foreground hover:text-tool-purple"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-tool-purple text-glow-purple mb-2">
+          <h1 className="text-2xl font-semibold text-foreground mb-2">
             Hanley Fatigue Metric
           </h1>
           <p className="text-muted-foreground">
@@ -92,17 +92,17 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
         </div>
 
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="bg-secondary border border-tool-purple/20">
+          <TabsList className="bg-secondary border border-border">
             <TabsTrigger
               value="calculator"
-              className="data-[state=active]:bg-tool-purple/20 data-[state=active]:text-tool-purple"
+              className="data-[state=active]:bg-tool-purple/10 data-[state=active]:text-tool-purple"
             >
               <Calculator className="w-4 h-4 mr-2" />
               Calculator
             </TabsTrigger>
             <TabsTrigger
               value="reverse"
-              className="data-[state=active]:bg-tool-purple/20 data-[state=active]:text-tool-purple"
+              className="data-[state=active]:bg-tool-purple/10 data-[state=active]:text-tool-purple"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Reverse Calculator
@@ -110,15 +110,16 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
           </TabsList>
 
           <TabsContent value="calculator" className="space-y-6">
-            <div className="bg-card border border-tool-purple/20 rounded-lg p-6 glow-purple">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-tool-purple">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-tool-purple">
+                <h2 className="text-lg font-medium text-foreground">
                   Session Sets
                 </h2>
                 <Button
                   onClick={addSet}
                   size="sm"
-                  className="bg-tool-purple/20 text-tool-purple hover:bg-tool-purple/30 border border-tool-purple/30"
+                  variant="outline"
+                  className="border-border text-muted-foreground hover:text-tool-purple hover:border-tool-purple/50"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Set
@@ -129,9 +130,9 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                 {sets.map((set, index) => (
                   <div
                     key={set.id}
-                    className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-tool-purple/10"
+                    className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border"
                   >
-                    <span className="text-tool-purple font-medium w-16">
+                    <span className="text-muted-foreground font-medium w-14 text-sm">
                       Set {index + 1}
                     </span>
                     <div className="flex-1 grid grid-cols-2 gap-3">
@@ -142,7 +143,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                           value={set.reps}
                           onChange={(e) => updateSet(set.id, "reps", e.target.value)}
                           placeholder="8"
-                          className="bg-secondary border-tool-purple/30 focus:border-tool-purple h-9"
+                          className="bg-secondary border-border focus:border-tool-purple h-9"
                         />
                       </div>
                       <div className="space-y-1">
@@ -152,7 +153,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                           value={set.intensity}
                           onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
                           placeholder="75"
-                          className="bg-secondary border-tool-purple/30 focus:border-tool-purple h-9"
+                          className="bg-secondary border-border focus:border-tool-purple h-9"
                         />
                       </div>
                     </div>
@@ -160,7 +161,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                       variant="ghost"
                       size="icon"
                       onClick={() => removeSet(set.id)}
-                      className="text-muted-foreground hover:text-tool-red hover:bg-tool-red/10"
+                      className="text-muted-foreground hover:text-destructive"
                       disabled={sets.length === 1}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -170,18 +171,18 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
               </div>
 
               {totalScore > 0 && (
-                <div className="mt-6 p-4 bg-secondary/50 rounded-lg">
+                <div className="mt-6 p-5 bg-secondary/50 rounded-lg border border-border">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-muted-foreground text-sm mb-1">
                         Total Stress Score
                       </p>
-                      <p className="text-4xl font-bold text-tool-purple text-glow-purple">
+                      <p className="text-3xl font-semibold text-tool-purple">
                         {totalScore.toFixed(1)}
                       </p>
                     </div>
-                    <div className={`px-4 py-2 rounded-full ${stressLevel.bg} border border-current`}>
-                      <span className={`font-semibold ${stressLevel.color}`}>
+                    <div className={`px-4 py-2 rounded-full bg-secondary border border-border`}>
+                      <span className={`font-medium ${stressLevel.color}`}>
                         {stressLevel.label}
                       </span>
                     </div>
@@ -192,8 +193,8 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
           </TabsContent>
 
           <TabsContent value="reverse" className="space-y-6">
-            <div className="bg-card border border-tool-purple/20 rounded-lg p-6 glow-purple">
-              <h2 className="text-xl font-semibold text-tool-purple mb-4">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-tool-purple">
+              <h2 className="text-lg font-medium text-foreground mb-2">
                 Reverse Calculator
               </h2>
               <p className="text-muted-foreground text-sm mb-6">
@@ -202,33 +203,33 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Target Stress Score</Label>
+                  <Label className="text-muted-foreground text-sm">Target Stress Score</Label>
                   <Input
                     type="number"
                     value={targetStress}
                     onChange={(e) => setTargetStress(e.target.value)}
                     placeholder="400"
-                    className="bg-secondary border-tool-purple/30 focus:border-tool-purple"
+                    className="bg-secondary border-border focus:border-tool-purple"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Intensity %</Label>
+                  <Label className="text-muted-foreground text-sm">Intensity %</Label>
                   <Input
                     type="number"
                     value={reverseIntensity}
                     onChange={(e) => setReverseIntensity(e.target.value)}
                     placeholder="80"
-                    className="bg-secondary border-tool-purple/30 focus:border-tool-purple"
+                    className="bg-secondary border-border focus:border-tool-purple"
                   />
                 </div>
               </div>
 
               {reverseReps !== null && (
-                <div className="bg-secondary/50 rounded-lg p-4 text-center">
+                <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
                   <p className="text-muted-foreground text-sm mb-1">
                     Required Reps
                   </p>
-                  <p className="text-4xl font-bold text-tool-purple text-glow-purple">
+                  <p className="text-3xl font-semibold text-tool-purple">
                     {reverseReps.toFixed(1)}
                   </p>
                 </div>

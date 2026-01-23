@@ -64,14 +64,14 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
         <Button
           variant="ghost"
           onClick={onBack}
-          className="mb-6 text-tool-emerald hover:text-tool-emerald hover:bg-tool-emerald/10"
+          className="mb-6 text-muted-foreground hover:text-tool-emerald"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-tool-emerald text-glow-emerald mb-2">
+          <h1 className="text-2xl font-semibold text-foreground mb-2">
             Better Prilepin's Table
           </h1>
           <p className="text-muted-foreground">
@@ -79,13 +79,13 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
           </p>
         </div>
 
-        <div className="bg-card border border-tool-emerald/20 rounded-lg p-6 glow-emerald">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-tool-emerald">
           <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-tool-emerald">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-medium text-foreground">
                 Intensity Level
               </h2>
-              <span className="text-3xl font-bold text-tool-emerald text-glow-emerald">
+              <span className="text-3xl font-semibold text-tool-emerald">
                 {intensity[0]}%
               </span>
             </div>
@@ -101,7 +101,7 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
               />
             </div>
 
-            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+            <div className="flex justify-between text-xs text-muted-foreground mt-3">
               <span>50%</span>
               <span>70%</span>
               <span>80%</span>
@@ -111,8 +111,8 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
           </div>
 
           <div className="mb-6">
-            <div className={`inline-block px-4 py-2 rounded-full bg-tool-emerald/10 border border-tool-emerald/30 mb-4`}>
-              <span className={`font-semibold ${zoneColor}`}>
+            <div className={`inline-block px-4 py-2 rounded-full bg-secondary border border-border mb-3`}>
+              <span className={`font-medium ${zoneColor}`}>
                 {recommendation.zone}
               </span>
             </div>
@@ -121,37 +121,37 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-secondary/50 rounded-lg p-6 text-center border border-tool-emerald/20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
               <p className="text-muted-foreground text-sm mb-2">
                 Recommended Sets
               </p>
-              <p className="text-4xl font-bold text-tool-emerald">
+              <p className="text-3xl font-semibold text-foreground">
                 {recommendation.sets}
               </p>
             </div>
 
-            <div className="bg-secondary/50 rounded-lg p-6 text-center border border-tool-emerald/20">
+            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
               <p className="text-muted-foreground text-sm mb-2">
                 Reps per Set
               </p>
-              <p className="text-4xl font-bold text-tool-emerald">
+              <p className="text-3xl font-semibold text-foreground">
                 {recommendation.reps}
               </p>
             </div>
 
-            <div className="bg-secondary/50 rounded-lg p-6 text-center border border-tool-emerald/20">
+            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
               <p className="text-muted-foreground text-sm mb-2">
                 Total Volume Range
               </p>
-              <p className="text-4xl font-bold text-tool-emerald">
+              <p className="text-3xl font-semibold text-foreground">
                 {recommendation.totalVolume}
               </p>
             </div>
           </div>
 
-          <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-tool-emerald/10">
-            <h3 className="text-sm font-medium text-tool-emerald mb-3">Quick Reference</h3>
+          <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Reference</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="space-y-1">
                 <p className="text-tool-blue font-medium">&lt;70%</p>
