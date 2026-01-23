@@ -179,7 +179,7 @@ const VolumeLandmarksTool = ({ onBack }: VolumeLandmarksToolProps) => {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">
           <Card>
-            <CardContent className="pt-6 space-y-4">
+            <CardContent className="pt-6">
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-lg bg-tool-emerald/10 border border-tool-emerald/20">
                   <h4 className="font-semibold text-tool-emerald mb-2">MEV</h4>
@@ -199,12 +199,6 @@ const VolumeLandmarksTool = ({ onBack }: VolumeLandmarksToolProps) => {
                     <strong>Maximum Recoverable Volume</strong> — The upper limit before recovery suffers. Only approach during planned overreaching blocks.
                   </p>
                 </div>
-              </div>
-              <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                <h4 className="font-semibold text-foreground mb-2">Freq (Frequency per Week)</h4>
-                <p className="text-sm text-muted-foreground">
-                  How many times per week to train that muscle for optimal results. Higher frequency (3-6x) works well for small, fast-recovering muscles like side delts and calves. Lower frequency (2x) is better for large, fatiguing muscles like quads and back. Spreading your weekly volume across more sessions often improves recovery and performance.
-                </p>
               </div>
             </CardContent>
           </Card>
