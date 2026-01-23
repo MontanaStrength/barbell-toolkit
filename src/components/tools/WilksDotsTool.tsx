@@ -97,10 +97,16 @@ const WilksDotsTool = ({ onBack }: WilksDotsToolProps) => {
   const [useKg, setUseKg] = useState(true);
   const [showFormulas, setShowFormulas] = useState(false);
 
-  const bwNum = parseFloat(bodyweight) || 0;
-  const squatNum = parseFloat(squat) || 0;
-  const benchNum = parseFloat(bench) || 0;
-  const deadliftNum = parseFloat(deadlift) || 0;
+  // Default placeholder values
+  const defaultBw = useKg ? 83 : 183;
+  const defaultSquat = useKg ? 200 : 440;
+  const defaultBench = useKg ? 140 : 308;
+  const defaultDeadlift = useKg ? 230 : 507;
+
+  const bwNum = bodyweight ? parseFloat(bodyweight) : defaultBw;
+  const squatNum = squat ? parseFloat(squat) : defaultSquat;
+  const benchNum = bench ? parseFloat(bench) : defaultBench;
+  const deadliftNum = deadlift ? parseFloat(deadlift) : defaultDeadlift;
   
   // Convert to kg if needed
   const bwKg = useKg ? bwNum : bwNum * 0.453592;

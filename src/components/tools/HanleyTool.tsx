@@ -45,9 +45,13 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
     return reps * Math.pow(100 / (100 - intensity), 2);
   };
 
+  // Default placeholder values
+  const defaultReps = 8;
+  const defaultIntensity = 75;
+
   const totalScore = sets.reduce((acc, set) => {
-    const reps = parseFloat(set.reps);
-    const intensity = parseFloat(set.intensity);
+    const reps = set.reps ? parseFloat(set.reps) : defaultReps;
+    const intensity = set.intensity ? parseFloat(set.intensity) : defaultIntensity;
     if (isNaN(reps) || isNaN(intensity)) return acc;
     return acc + calculateSetScore(reps, intensity);
   }, 0);
@@ -61,9 +65,12 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   };
 
   // Reverse calculator: Reps = TargetScore / (100 / (100 - Intensity))^2
+  const defaultTargetStress = 400;
+  const defaultReverseIntensity = 80;
+
   const calculateReverseReps = () => {
-    const target = parseFloat(targetStress);
-    const intensity = parseFloat(reverseIntensity);
+    const target = targetStress ? parseFloat(targetStress) : defaultTargetStress;
+    const intensity = reverseIntensity ? parseFloat(reverseIntensity) : defaultReverseIntensity;
     if (isNaN(target) || isNaN(intensity) || intensity >= 100) return null;
     return target / Math.pow(100 / (100 - intensity), 2);
   };

@@ -38,8 +38,12 @@ const OneRepMaxTool = ({ onBack }: OneRepMaxToolProps) => {
   const [unitSystem, setUnitSystem] = useState<UnitSystem>("lbs");
   const [showFormulas, setShowFormulas] = useState(false);
 
-  const weightNum = parseFloat(weight) || 0;
-  const repsNum = parseInt(reps) || 0;
+  // Default placeholder values
+  const defaultWeight = 225;
+  const defaultReps = 5;
+
+  const weightNum = weight ? parseFloat(weight) : defaultWeight;
+  const repsNum = reps ? parseInt(reps) : defaultReps;
 
   const isValid = weightNum > 0 && repsNum >= 1 && repsNum <= 15;
 
