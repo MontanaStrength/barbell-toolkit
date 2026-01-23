@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Circle, Check } from 'lucide-react';
-
-type ReferenceType = 'sleeve' | 'plate';
+import { Check } from 'lucide-react';
 
 interface CalibrationStateProps {
   videoFile: File;
@@ -15,20 +13,17 @@ interface CalibrationStateProps {
   onBack: () => void;
 }
 
-const REFERENCE_DIAMETERS: Record<ReferenceType, number> = {
-  sleeve: 0.05, // 50mm in meters
-  plate: 0.45,  // 450mm in meters
-};
+// Sleeve cap diameter: 50mm = 0.05 meters
+const SLEEVE_DIAMETER_METERS = 0.05;
 
 export function CalibrationState({
   videoFile,
   onCalibrationComplete,
   onBack,
 }: CalibrationStateProps) {
-  const [referenceType, setReferenceType] = useState<ReferenceType>('plate');
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [circlePosition, setCirclePosition] = useState({ x: 150, y: 150 });
-  const [circleRadius, setCircleRadius] = useState(60);
+  const [circleRadius, setCircleRadius] = useState(30); // Smaller default for sleeve
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -119,7 +114,7 @@ export function CalibrationState({
       const newRadius = Math.sqrt(
         Math.pow(x - circlePosition.x, 2) + Math.pow(y - circlePosition.y, 2)
       );
-      setCircleRadius(Math.max(20, Math.min(200, newRadius)));
+      setCircleRadius(Math.max(10, Math.min(150, newRadius)));
     }
   }, [isDragging, isResizing, dragOffset, circlePosition]);
 
@@ -136,8 +131,7 @@ export function CalibrationState({
     const actualRadius = circleRadius * scale;
     const actualDiameter = actualRadius * 2;
     
-    const referenceDiameter = REFERENCE_DIAMETERS[referenceType];
-    const pixelsPerMeter = actualDiameter / referenceDiameter;
+    const pixelsPerMeter = actualDiameter / SLEEVE_DIAMETER_METERS;
 
     onCalibrationComplete(
       pixelsPerMeter,
@@ -155,34 +149,8 @@ export function CalibrationState({
       <div className="text-center mb-4">
         <h2 className="text-lg font-medium text-foreground mb-1">Calibrate Reference</h2>
         <p className="text-muted-foreground text-sm">
-          Select a reference object and match the circle to it
+          Match the circle to the barbell sleeve cap (50mm)
         </p>
-      </div>
-
-      {/* Reference Type Selection */}
-      <div className="flex gap-2 p-1 bg-secondary/50 rounded-lg">
-        <button
-          onClick={() => setReferenceType('plate')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            referenceType === 'plate'
-              ? 'bg-tool-red text-white'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Circle className="w-4 h-4 inline mr-2" />
-          Plate (450mm)
-        </button>
-        <button
-          onClick={() => setReferenceType('sleeve')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            referenceType === 'sleeve'
-              ? 'bg-tool-red text-white'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Circle className="w-3 h-3 inline mr-2" />
-          Sleeve (50mm)
-        </button>
       </div>
 
       {/* Video Frame with Circle Overlay */}
