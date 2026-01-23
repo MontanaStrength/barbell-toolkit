@@ -6,18 +6,29 @@ import { Label } from "@/components/ui/label";
 import { BarbellTracker } from "@/components/barbell-tracker/BarbellTracker";
 import type { AnalysisResult } from "@/lib/barbell-physics";
 import { Gauge, Zap, Ruler } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 
 interface BarSpeedToolProps {
   onBack: () => void;
 }
 
+// Conversion constants
+const LBS_TO_KG = 0.453592;
+const NEWTONS_TO_LBF = 0.224809;
+
+type UnitSystem = "kg" | "lbs";
+
 const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
-  const [mass, setMass] = useState<number>(100);
+  const [inputWeight, setInputWeight] = useState<number>(100);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>("kg");
   const [showMassInput, setShowMassInput] = useState(true);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
+  // Convert input weight to kg for physics calculations
+  const massInKg = unitSystem === "lbs" ? inputWeight * LBS_TO_KG : inputWeight;
+
   const handleStartAnalysis = () => {
-    if (mass > 0) {
+    if (inputWeight > 0) {
       setShowMassInput(false);
     }
   };
@@ -38,6 +49,17 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
         Math.min(...analysisResult.velocityDataArray.map((d) => d.y))
       )
     : 0;
+
+  // Convert force based on unit system
+  const displayForce = analysisResult
+    ? unitSystem === "lbs"
+      ? analysisResult.peakForce * NEWTONS_TO_LBF
+      : analysisResult.peakForce
+    : 0;
+
+  const forceUnit = unitSystem === "lbs" ? "lbf" : "N";
+  const weightUnit = unitSystem === "lbs" ? "lbs" : "kg";
+  const defaultBarWeight = unitSystem === "lbs" ? "45" : "20";
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 animate-slide-up">
@@ -80,28 +102,46 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
               </div>
 
               <div className="max-w-xs mx-auto space-y-4">
+                {/* Unit Toggle */}
+                <div className="flex justify-center gap-1 p-1 bg-secondary/50 rounded-lg border border-border">
+                  <Toggle
+                    pressed={unitSystem === "kg"}
+                    onPressedChange={() => setUnitSystem("kg")}
+                    className="flex-1 data-[state=on]:bg-tool-red data-[state=on]:text-white"
+                  >
+                    kg
+                  </Toggle>
+                  <Toggle
+                    pressed={unitSystem === "lbs"}
+                    onPressedChange={() => setUnitSystem("lbs")}
+                    className="flex-1 data-[state=on]:bg-tool-red data-[state=on]:text-white"
+                  >
+                    lbs
+                  </Toggle>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="mass" className="text-foreground">
-                    Bar Weight (kg)
+                    Bar Weight ({weightUnit})
                   </Label>
                   <Input
                     id="mass"
                     type="number"
                     min={1}
-                    max={500}
-                    value={mass}
-                    onChange={(e) => setMass(parseFloat(e.target.value) || 0)}
+                    max={unitSystem === "lbs" ? 1100 : 500}
+                    value={inputWeight}
+                    onChange={(e) => setInputWeight(parseFloat(e.target.value) || 0)}
                     className="text-center text-lg bg-secondary/50 border-border"
-                    placeholder="100"
+                    placeholder={unitSystem === "lbs" ? "225" : "100"}
                   />
                   <p className="text-muted-foreground text-xs text-center">
-                    Include bar weight (typically 20kg)
+                    Include bar weight (typically {defaultBarWeight}{weightUnit})
                   </p>
                 </div>
 
                 <Button
                   onClick={handleStartAnalysis}
-                  disabled={!mass || mass <= 0}
+                  disabled={!inputWeight || inputWeight <= 0}
                   className="w-full bg-tool-red hover:bg-tool-red/90 text-white"
                 >
                   Start Analysis
@@ -113,7 +153,7 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
           {/* Barbell Tracker Component */}
           {!showMassInput && !analysisResult && (
             <BarbellTracker
-              mass={mass}
+              mass={massInKg}
               onAnalysisComplete={handleAnalysisComplete}
             />
           )}
@@ -143,9 +183,9 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
                     Peak Force
                   </p>
                   <p className="text-2xl font-semibold text-foreground">
-                    {Math.round(analysisResult.peakForce)}
+                    {Math.round(displayForce)}
                   </p>
-                  <p className="text-muted-foreground text-xs">N</p>
+                  <p className="text-muted-foreground text-xs">{forceUnit}</p>
                 </div>
 
                 <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
@@ -162,7 +202,7 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
 
               <div className="text-center text-sm text-muted-foreground">
                 Analyzed {analysisResult.velocityDataArray.length} data points
-                from {mass}kg lift
+                from {inputWeight}{weightUnit} lift
               </div>
 
               <Button
