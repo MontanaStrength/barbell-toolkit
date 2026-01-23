@@ -94,32 +94,8 @@ export function ReviewState({
     });
   };
 
-  // Auto-detect concentric phase on mount
-  useEffect(() => {
-    if (processedData.length === 0) return;
-
-    // Find the first significant positive velocity section
-    let inPhase = false;
-    let phaseStart = 0;
-    let phaseEnd = processedData.length - 1;
-
-    for (let i = 0; i < processedData.length; i++) {
-      if (processedData[i].velocity > 0.05 && !inPhase) {
-        inPhase = true;
-        phaseStart = i;
-      } else if (processedData[i].velocity < 0.02 && inPhase) {
-        phaseEnd = i;
-        break;
-      }
-    }
-
-    // Set trims to detected phase
-    const startNorm = processedData[phaseStart].time / timeRange.max;
-    const endNorm = processedData[phaseEnd].time / timeRange.max;
-    
-    setStartTrim(Math.max(0, startNorm - 0.02));
-    setEndTrim(Math.min(1, endNorm + 0.02));
-  }, [processedData, timeRange.max]);
+  // Default to full video range (no auto-detection)
+  // Start and end trim are already initialized to 0 and 1 (0% to 100%)
 
   return (
     <div className="space-y-4">
