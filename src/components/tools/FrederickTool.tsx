@@ -34,9 +34,14 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
     setSets(sets.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
 
-  // Formula: Exertion Load = Reps * Intensity * e^(-0.215 * RIR)
+  // Correct formula: Loop through each rep, sum e^(-0.215 * (RIR + Reps - i)), multiply by mass
   const calculateSetLoad = (reps: number, intensity: number, rir: number): number => {
-    return reps * (intensity / 100) * Math.exp(-0.215 * rir);
+    let setLoad = 0;
+    for (let i = 1; i <= reps; i++) {
+      const repValue = Math.exp(-0.215 * (rir + reps - i));
+      setLoad += repValue;
+    }
+    return intensity * setLoad;
   };
 
   const totalLoad = sets.reduce((acc, set) => {
