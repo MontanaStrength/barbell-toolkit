@@ -45,7 +45,7 @@ const Index = () => {
         <main className="container mx-auto px-4 py-10">
           <div className="mb-10 text-center">
             <h2 className="text-3xl md:text-4xl font-semibold text-foreground mb-3 tracking-tight">
-              Your Training Command Center
+              Training Command Center
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
               Five precision tools to optimize your barbell training. Calculate loads, 
