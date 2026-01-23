@@ -22,7 +22,13 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
   ]);
 
   const addSet = () => {
-    setSets([...sets, { id: Date.now(), intensity: "", reps: "", rpe: "" }]);
+    const firstSet = sets[0];
+    setSets([...sets, { 
+      id: Date.now(), 
+      intensity: firstSet?.intensity || "", 
+      reps: firstSet?.reps || "", 
+      rpe: firstSet?.rpe || "" 
+    }]);
   };
 
   const removeSet = (id: number) => {
