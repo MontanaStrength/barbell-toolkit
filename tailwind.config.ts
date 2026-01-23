@@ -59,6 +59,8 @@ export default {
           emerald: "hsl(var(--tool-emerald))",
           "emerald-muted": "hsl(var(--tool-emerald-muted))",
           orange: "hsl(var(--tool-orange))",
+          cyan: "hsl(var(--tool-cyan))",
+          pink: "hsl(var(--tool-pink))",
           gold: "hsl(var(--tool-gold))",
           bronze: "hsl(var(--tool-bronze))",
         },

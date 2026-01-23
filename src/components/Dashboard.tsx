@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2, Sparkles, Target } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Sparkles, Target, Scale, Weight } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -71,6 +71,28 @@ const tools = [
     hoverBorder: "hover:border-tool-orange/50",
     textColor: "text-tool-orange",
     shadowClass: "hover:shadow-tool-orange",
+  },
+  {
+    id: "wilks-dots",
+    name: "Wilks / DOTS Calculator",
+    description: "Compare relative strength across weight classes",
+    icon: Scale,
+    accent: "cyan",
+    borderColor: "border-tool-cyan/20",
+    hoverBorder: "hover:border-tool-cyan/50",
+    textColor: "text-tool-cyan",
+    shadowClass: "hover:shadow-tool-cyan",
+  },
+  {
+    id: "tonnage",
+    name: "Tonnage Calculator",
+    description: "Track total volume load across your session",
+    icon: Weight,
+    accent: "pink",
+    borderColor: "border-tool-pink/20",
+    hoverBorder: "hover:border-tool-pink/50",
+    textColor: "text-tool-pink",
+    shadowClass: "hover:shadow-tool-pink",
   },
   {
     id: "coming-soon",

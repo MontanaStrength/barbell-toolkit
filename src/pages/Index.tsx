@@ -7,6 +7,8 @@ import HanleyTool from "@/components/tools/HanleyTool";
 import FrederickTool from "@/components/tools/FrederickTool";
 import PrelepinTool from "@/components/tools/PrelepinTool";
 import OneRepMaxTool from "@/components/tools/OneRepMaxTool";
+import WilksDotsTool from "@/components/tools/WilksDotsTool";
+import TonnageTool from "@/components/tools/TonnageTool";
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -33,6 +35,10 @@ const Index = () => {
         return <PrelepinTool onBack={handleBack} />;
       case "one-rep-max":
         return <OneRepMaxTool onBack={handleBack} />;
+      case "wilks-dots":
+        return <WilksDotsTool onBack={handleBack} />;
+      case "tonnage":
+        return <TonnageTool onBack={handleBack} />;
       default:
         return null;
     }

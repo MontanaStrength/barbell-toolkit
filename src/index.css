@@ -46,6 +46,8 @@
     --tool-emerald: 160 55% 45%;
     --tool-emerald-muted: 160 35% 38%;
     --tool-orange: 28 85% 55%;
+    --tool-cyan: 185 60% 50%;
+    --tool-pink: 330 65% 55%;
     --tool-gold: 45 80% 50%;
     --tool-bronze: 30 50% 40%;
 
@@ -122,6 +124,16 @@
   .shadow-tool-orange {
     box-shadow: 0 4px 24px hsl(28 85% 55% / 0.2),
                 0 1px 4px hsl(28 85% 55% / 0.12);
+  }
+
+  .shadow-tool-cyan {
+    box-shadow: 0 4px 24px hsl(185 60% 50% / 0.15),
+                0 1px 4px hsl(185 60% 50% / 0.1);
+  }
+
+  .shadow-tool-pink {
+    box-shadow: 0 4px 24px hsl(330 65% 55% / 0.15),
+                0 1px 4px hsl(330 65% 55% / 0.1);
   }
 
   /* Hover lift effect */
