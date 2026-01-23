@@ -1014,7 +1014,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
               <input type="number" step="0.01" value={forceScale} onChange={e => setForceScale(Number(e.target.value))} className="w-16 px-3 py-2 bg-secondary border border-border rounded-lg text-foreground font-mono text-sm outline-none focus:border-primary" />
             </div>
             {step !== 'upload' && (
-              <button onClick={() => { setStep('upload'); setVideoSrc(null); setIsTracking(false); }} className="text-sm text-destructive hover:text-destructive/80 font-semibold transition-colors">Reset</button>
+              <button onClick={() => { setStep('upload'); setVideoSrc(null); setIsTracking(false); }} className="text-base text-destructive hover:text-destructive/80 font-bold transition-colors px-3 py-1">Reset</button>
             )}
           </div>
         </div>
