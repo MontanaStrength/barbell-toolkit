@@ -66,7 +66,7 @@ const Index = () => {
               Training Command Center
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Six precision tools to optimize your barbell training. Calculate loads, 
+              Precision tools to optimize your barbell training. Calculate loads, 
               analyze fatigue, and program smarter.
             </p>
           </div>
