@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, Scale, Trophy, Info } from "lucide-react";
+import { Scale, Trophy, Info } from "lucide-react";
+import BackButton from "@/components/ui/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,13 +119,7 @@ const WilksDotsTool = ({ onBack }: WilksDotsToolProps) => {
 
   return (
     <main className="container mx-auto px-4 py-10 max-w-2xl">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Dashboard
-      </button>
+      <BackButton onClick={onBack} />
 
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

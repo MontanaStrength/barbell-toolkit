@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import BackButton from "@/components/ui/back-button";
 import { Slider } from "@/components/ui/slider";
 
 interface PrelepinToolProps {
@@ -61,14 +60,7 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 animate-slide-up">
       <div className="max-w-4xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="mb-6 text-muted-foreground hover:text-tool-emerald"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+        <BackButton onClick={onBack} />
 
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-foreground mb-2">

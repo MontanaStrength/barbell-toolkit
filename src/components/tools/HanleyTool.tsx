@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ArrowLeft, Plus, Trash2, Calculator, RotateCcw } from "lucide-react";
+import { Plus, Trash2, Calculator, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BackButton from "@/components/ui/back-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -73,14 +74,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 animate-slide-up">
       <div className="max-w-4xl mx-auto">
-        <Button
-          variant="ghost"
-          onClick={onBack}
-          className="mb-6 text-muted-foreground hover:text-tool-purple"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+        <BackButton onClick={onBack} />
 
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-foreground mb-2">
