@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2, Sparkles } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Sparkles, Target } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -62,9 +62,20 @@ const tools = [
     shadowClass: "hover:shadow-tool-emerald",
   },
   {
+    id: "one-rep-max",
+    name: "1RM Calculator",
+    description: "Estimate your one-rep max from submaximal lifts",
+    icon: Target,
+    accent: "orange",
+    borderColor: "border-tool-orange/20",
+    hoverBorder: "hover:border-tool-orange/50",
+    textColor: "text-tool-orange",
+    shadowClass: "hover:shadow-tool-orange",
+  },
+  {
     id: "coming-soon",
     name: "Coming Soon",
-    description: "A new tool is in development. Stay tuned!",
+    description: "More tools in development. Stay tuned!",
     icon: Sparkles,
     accent: "muted",
     borderColor: "border-muted-foreground/10",

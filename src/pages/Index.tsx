@@ -6,6 +6,7 @@ import BarSpeedTool from "@/components/tools/BarSpeedTool";
 import HanleyTool from "@/components/tools/HanleyTool";
 import FrederickTool from "@/components/tools/FrederickTool";
 import PrelepinTool from "@/components/tools/PrelepinTool";
+import OneRepMaxTool from "@/components/tools/OneRepMaxTool";
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -30,6 +31,8 @@ const Index = () => {
         return <FrederickTool onBack={handleBack} />;
       case "prelepin":
         return <PrelepinTool onBack={handleBack} />;
+      case "one-rep-max":
+        return <OneRepMaxTool onBack={handleBack} />;
       default:
         return null;
     }
@@ -48,7 +51,7 @@ const Index = () => {
               Training Command Center
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              Five precision tools to optimize your barbell training. Calculate loads, 
+              Six precision tools to optimize your barbell training. Calculate loads, 
               analyze fatigue, and program smarter.
             </p>
           </div>
