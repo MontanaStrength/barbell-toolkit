@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2 } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Sparkles } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -66,6 +66,20 @@ const tools = [
     glowClass: "hover:glow-emerald",
     bgGradient: "bg-gradient-to-br from-tool-emerald/5 to-transparent",
   },
+  {
+    id: "coming-soon",
+    name: "Coming Soon",
+    description: "A new tool is in development. Stay tuned!",
+    icon: Sparkles,
+    accent: "muted",
+    borderColor: "border-muted-foreground/20",
+    hoverBorder: "hover:border-muted-foreground/40",
+    textColor: "text-muted-foreground",
+    glowClass: "",
+    bgGradient: "bg-gradient-to-br from-muted/5 to-transparent",
+    badge: "Coming Soon",
+    disabled: true,
+  },
 ];
 
 const Dashboard = ({ onSelectTool }: DashboardProps) => {
@@ -73,16 +87,21 @@ const Dashboard = ({ onSelectTool }: DashboardProps) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {tools.map((tool) => {
         const Icon = tool.icon;
+        const isDisabled = 'disabled' in tool && tool.disabled;
         return (
           <button
             key={tool.id}
-            onClick={() => onSelectTool(tool.id)}
+            onClick={() => !isDisabled && onSelectTool(tool.id)}
+            disabled={isDisabled}
             className={`
               group relative p-6 rounded-xl border-2 text-left
               bg-card transition-all duration-300
               ${tool.borderColor} ${tool.hoverBorder} ${tool.glowClass}
               ${tool.bgGradient}
-              hover:scale-[1.02] active:scale-[0.98]
+              ${isDisabled 
+                ? 'cursor-not-allowed opacity-60' 
+                : 'hover:scale-[1.02] active:scale-[0.98]'
+              }
             `}
           >
             {tool.badge && (
