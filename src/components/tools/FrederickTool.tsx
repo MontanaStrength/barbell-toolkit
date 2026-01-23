@@ -53,10 +53,11 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
   }, 0);
 
   const getLoadLevel = (load: number) => {
-    if (load < 10) return { label: "Light", color: "text-tool-emerald" };
-    if (load < 25) return { label: "Moderate", color: "text-tool-yellow" };
-    if (load < 40) return { label: "Heavy", color: "text-orange-400" };
-    return { label: "Very Heavy", color: "text-tool-red" };
+    if (load < 500) return { label: "Light", color: "text-tool-emerald" };
+    if (load < 650) return { label: "Moderate", color: "text-tool-yellow" };
+    if (load < 800) return { label: "Moderate High", color: "text-orange-400" };
+    if (load < 1100) return { label: "High", color: "text-tool-red" };
+    return { label: "You sure about this?", color: "text-tool-purple" };
   };
 
   const loadLevel = getLoadLevel(totalLoad);
