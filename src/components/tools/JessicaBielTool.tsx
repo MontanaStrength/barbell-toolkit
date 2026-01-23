@@ -1,5 +1,6 @@
 import BackButton from "@/components/ui/back-button";
 import { Card, CardContent } from "@/components/ui/card";
+import heyLifterImage from "@/assets/hey-lifter.jpg";
 
 interface JessicaBielToolProps {
   onBack: () => void;
@@ -13,8 +14,8 @@ const JessicaBielTool = ({ onBack }: JessicaBielToolProps) => {
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <img
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Jessica_Biel_2013.jpg/440px-Jessica_Biel_2013.jpg"
-            alt="Jessica Biel"
+            src={heyLifterImage}
+            alt="Hey Lifter"
             className="w-full h-auto object-cover"
           />
         </CardContent>
