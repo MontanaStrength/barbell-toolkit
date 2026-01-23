@@ -154,7 +154,7 @@ export function TrackingState({
       canvas.height = video.videoHeight;
       
       video.currentTime = 0;
-      video.playbackRate = 2;
+      video.playbackRate = 1; // Normal speed for accurate tracking
       
       video.play().then(() => {
         processFrame();
