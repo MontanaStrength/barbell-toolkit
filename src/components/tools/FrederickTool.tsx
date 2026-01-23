@@ -173,6 +173,32 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
           )}
 
           <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
+            <h3 className="text-sm font-medium text-foreground mb-3">Zone Reference</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+              <div className="p-2 rounded bg-tool-emerald/10 border border-tool-emerald/20 text-center">
+                <p className="text-tool-emerald font-medium">Light</p>
+                <p className="text-muted-foreground text-xs">&lt; 500</p>
+              </div>
+              <div className="p-2 rounded bg-tool-yellow/10 border border-tool-yellow/20 text-center">
+                <p className="text-tool-yellow font-medium">Moderate</p>
+                <p className="text-muted-foreground text-xs">500–649</p>
+              </div>
+              <div className="p-2 rounded bg-orange-400/10 border border-orange-400/20 text-center">
+                <p className="text-orange-400 font-medium">Mod. High</p>
+                <p className="text-muted-foreground text-xs">650–799</p>
+              </div>
+              <div className="p-2 rounded bg-tool-red/10 border border-tool-red/20 text-center">
+                <p className="text-tool-red font-medium">High</p>
+                <p className="text-muted-foreground text-xs">800–1099</p>
+              </div>
+              <div className="p-2 rounded bg-tool-purple/10 border border-tool-purple/20 text-center">
+                <p className="text-tool-purple font-medium">Extreme</p>
+                <p className="text-muted-foreground text-xs">≥ 1100</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-secondary/30 rounded-lg border border-border">
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Formula</h3>
             <p className="text-muted-foreground text-sm font-mono">
               Load = Mass × Σ e<sup>(-0.215 × (RIR + Reps - i))</sup>
