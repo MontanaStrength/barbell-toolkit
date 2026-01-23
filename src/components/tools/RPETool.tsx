@@ -236,8 +236,8 @@ const RPETool = ({ onBack }: RPEToolProps) => {
                     .map(([rpeVal, reps], index) => (
                     <tr 
                       key={rpeVal} 
-                      className={`border-b border-border/50 hover:bg-tool-blue/10 transition-colors ${
-                        index % 2 === 0 ? 'bg-secondary/20' : 'bg-transparent'
+                      className={`border-b border-border/50 hover:bg-tool-blue/15 transition-colors ${
+                        index % 2 === 0 ? 'bg-secondary/60' : 'bg-transparent'
                       }`}
                     >
                       <td className="p-2 font-medium text-tool-blue">{rpeVal}</td>
