@@ -1,5 +1,20 @@
 // Physics calculations for barbell velocity and force analysis
 
+// ============================================
+// CONFIGURABLE CONSTANTS
+// ============================================
+
+/**
+ * Peak Force Window Size (in milliseconds)
+ * Used for rolling average when calculating peak force to avoid noise spikes.
+ * Recommended values: 50ms - 100ms
+ */
+export const PEAK_FORCE_WINDOW_MS = 100;
+
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
 export interface TrackingPoint {
   x: number;
   y: number;
@@ -12,6 +27,7 @@ export interface ProcessedFrame {
   velocity: number; // m/s
   acceleration: number; // m/s²
   force: number; // Newtons
+  smoothedForce?: number; // Newtons (time-windowed average)
 }
 
 export interface AnalysisResult {
@@ -138,6 +154,41 @@ export function calculateForce(
 }
 
 /**
+ * Apply time-based rolling average to force data
+ * This helps avoid noise spikes when calculating peak force
+ * @param forceData - Array of processed frames with force values
+ * @param windowMs - Window size in milliseconds (default: PEAK_FORCE_WINDOW_MS)
+ */
+export function applyForceRollingAverage(
+  forceData: ProcessedFrame[],
+  windowMs: number = PEAK_FORCE_WINDOW_MS
+): ProcessedFrame[] {
+  const windowSeconds = windowMs / 1000;
+  const halfWindow = windowSeconds / 2;
+  
+  return forceData.map((point, i) => {
+    // Find all points within the time window centered on current point
+    const windowStart = point.time - halfWindow;
+    const windowEnd = point.time + halfWindow;
+    
+    let sum = 0;
+    let count = 0;
+    
+    for (let j = 0; j < forceData.length; j++) {
+      if (forceData[j].time >= windowStart && forceData[j].time <= windowEnd) {
+        sum += forceData[j].force;
+        count++;
+      }
+    }
+    
+    return {
+      ...point,
+      smoothedForce: count > 0 ? sum / count : point.force,
+    };
+  });
+}
+
+/**
  * Detect concentric phase (upward movement with positive velocity)
  * Returns indices of frames that are part of the concentric phase
  */
@@ -185,7 +236,7 @@ export function processTrackingData(
   // Convert to meters
   const metersData = pixelsToMeters(trackingPoints, pixelsPerMeter);
   
-  // Smooth Y coordinates
+  // Smooth Y coordinates (position smoothing before deriving velocity)
   const smoothedY = movingAverageFilter(
     metersData.map(p => p.y),
     smoothingWindow
@@ -196,10 +247,10 @@ export function processTrackingData(
     y: smoothedY[i],
   }));
   
-  // Calculate derivatives
+  // Calculate velocity from smoothed position
   const velocityData = calculateVelocity(smoothedData);
   
-  // Smooth velocity
+  // Smooth velocity for cleaner acceleration calculation
   const smoothedVelocity = movingAverageFilter(
     velocityData.map(p => p.velocity),
     smoothingWindow
@@ -210,14 +261,19 @@ export function processTrackingData(
     velocity: smoothedVelocity[i],
   }));
   
+  // Calculate acceleration and instantaneous force
   const accelerationData = calculateAcceleration(smoothedVelocityData);
   const forceData = calculateForce(accelerationData, mass);
   
-  return forceData;
+  // Apply time-windowed rolling average to force for peak force calculation
+  const forceDataWithSmoothing = applyForceRollingAverage(forceData);
+  
+  return forceDataWithSmoothing;
 }
 
 /**
  * Calculate analysis metrics from processed data within a time range
+ * Peak force uses the smoothedForce (time-windowed rolling average) to avoid noise spikes
  */
 export function calculateMetrics(
   processedData: ProcessedFrame[],
@@ -233,7 +289,12 @@ export function calculateMetrics(
   }
   
   const meanVelocity = filteredData.reduce((sum, p) => sum + p.velocity, 0) / filteredData.length;
-  const peakForce = Math.max(...filteredData.map(p => p.force));
+  
+  // Use smoothedForce (rolling average) for peak force to avoid noise spikes
+  // Falls back to raw force if smoothedForce not available
+  const peakForce = Math.max(
+    ...filteredData.map(p => p.smoothedForce ?? p.force)
+  );
   
   return { meanVelocity, peakForce };
 }
