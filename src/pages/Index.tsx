@@ -11,6 +11,7 @@ import WilksDotsTool from "@/components/tools/WilksDotsTool";
 import TonnageTool from "@/components/tools/TonnageTool";
 import LoadVelocityTool from "@/components/tools/LoadVelocityTool";
 import VolumeLandmarksTool from "@/components/tools/VolumeLandmarksTool";
+import JessicaBielTool from "@/components/tools/JessicaBielTool";
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -45,6 +46,8 @@ const Index = () => {
         return <LoadVelocityTool onBack={handleBack} />;
       case "volume-landmarks":
         return <VolumeLandmarksTool onBack={handleBack} />;
+      case "jessica-biel":
+        return <JessicaBielTool onBack={handleBack} />;
       default:
         return null;
     }

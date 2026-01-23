@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown, Layers } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown, Layers, Smile } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -115,6 +115,17 @@ const tools = [
     hoverBorder: "hover:border-tool-teal/50",
     textColor: "text-tool-teal",
     shadowClass: "hover:shadow-tool-teal",
+  },
+  {
+    id: "jessica-biel",
+    name: "A Picture of Jessica Biel",
+    description: "Exactly what it says on the tin",
+    icon: Smile,
+    accent: "pink",
+    borderColor: "border-tool-pink/20",
+    hoverBorder: "hover:border-tool-pink/50",
+    textColor: "text-tool-pink",
+    shadowClass: "hover:shadow-tool-pink",
   },
 ];
 
