@@ -367,17 +367,26 @@ export function calculateMetrics(
 }
 
 /**
- * Detect individual repetitions in the data based on velocity zero-crossings.
- * A rep is the concentric phase: starts when velocity crosses from negative to positive,
- * ends when velocity crosses from positive to negative.
- * This properly handles multi-rep sets where the bar oscillates up/down continuously.
+ * Detect individual repetitions in the data based on velocity patterns.
+ * Uses a hybrid approach: 
+ * - If velocity goes negative (proper eccentric), use zero-crossing detection
+ * - If velocity only dips low (noisy tracking), use threshold-crossing detection
+ * This handles both high-quality and noisy tracking data.
  */
 export function detectRepetitions(
   processedData: ProcessedFrame[],
-  velocityThreshold: number = 0.02, // m/s - minimum peak velocity to count as a rep
+  velocityThreshold: number = 0.03, // m/s - threshold for detecting rep start/end
   minRepDurationMs: number = 150 // Minimum rep duration in ms
 ): { startIndex: number; endIndex: number }[] {
   if (processedData.length < 2) return [];
+  
+  // Check if data has significant negative velocities (good tracking)
+  const minVelocity = Math.min(...processedData.map(p => p.velocity));
+  const hasNegativeVelocity = minVelocity < -0.02;
+  
+  // Choose detection threshold based on data quality
+  const startThreshold = hasNegativeVelocity ? 0 : velocityThreshold;
+  const endThreshold = hasNegativeVelocity ? 0 : velocityThreshold * 0.5;
   
   const reps: { startIndex: number; endIndex: number }[] = [];
   let repStartIndex: number | null = null;
@@ -391,13 +400,13 @@ export function detectRepetitions(
     const prevVel = processedData[i - 1].velocity;
     const currVel = processedData[i].velocity;
     
-    // Detect zero-crossing from negative to positive (start of concentric)
-    if (prevVel <= 0 && currVel > 0 && repStartIndex === null) {
+    // Detect crossing from below threshold to above (start of concentric)
+    if (prevVel <= startThreshold && currVel > startThreshold && repStartIndex === null) {
       repStartIndex = i;
     }
     
-    // Detect zero-crossing from positive to negative (end of concentric)
-    if (prevVel > 0 && currVel <= 0 && repStartIndex !== null) {
+    // Detect crossing from above threshold to below (end of concentric)
+    if (prevVel > endThreshold && currVel <= endThreshold && repStartIndex !== null) {
       const duration = i - repStartIndex;
       
       // Check if rep is long enough and had meaningful velocity
@@ -405,7 +414,7 @@ export function detectRepetitions(
         const repData = processedData.slice(repStartIndex, i);
         const peakVel = Math.max(...repData.map(p => p.velocity));
         
-        // Only count if peak velocity exceeded threshold
+        // Only count if peak velocity exceeded a minimum
         if (peakVel >= velocityThreshold) {
           reps.push({ startIndex: repStartIndex, endIndex: i - 1 });
         }
