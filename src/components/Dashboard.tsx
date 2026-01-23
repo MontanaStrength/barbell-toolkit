@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2, Sparkles, Target, Scale, Weight } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -95,17 +95,15 @@ const tools = [
     shadowClass: "hover:shadow-tool-pink",
   },
   {
-    id: "coming-soon",
-    name: "Coming Soon",
-    description: "More tools in development. Stay tuned!",
-    icon: Sparkles,
-    accent: "muted",
-    borderColor: "border-muted-foreground/10",
-    hoverBorder: "hover:border-muted-foreground/20",
-    textColor: "text-muted-foreground",
-    shadowClass: "",
-    badge: "Coming Soon",
-    disabled: true,
+    id: "load-velocity",
+    name: "Load-Velocity Profile",
+    description: "Plot your L-V curve to predict 1RM and track readiness",
+    icon: TrendingDown,
+    accent: "indigo",
+    borderColor: "border-tool-indigo/20",
+    hoverBorder: "hover:border-tool-indigo/50",
+    textColor: "text-tool-indigo",
+    shadowClass: "hover:shadow-tool-indigo",
   },
 ];
 
@@ -114,7 +112,7 @@ const Dashboard = ({ onSelectTool }: DashboardProps) => {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
       {tools.map((tool) => {
         const Icon = tool.icon;
-        const isDisabled = 'disabled' in tool && tool.disabled;
+        const isDisabled = 'disabled' in tool && Boolean(tool.disabled);
         return (
           <button
             key={tool.id}
