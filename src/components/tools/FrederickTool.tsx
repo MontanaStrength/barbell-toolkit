@@ -135,7 +135,7 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                     <Label className="text-xs text-muted-foreground">RPE</Label>
                     <Input
                       type="number"
-                      min="6"
+                      min="4"
                       max="10"
                       step="0.5"
                       value={set.rpe}
