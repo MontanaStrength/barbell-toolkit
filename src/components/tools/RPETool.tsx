@@ -225,7 +225,9 @@ const RPETool = ({ onBack }: RPEToolProps) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(rpeTable).reverse().map(([rpeVal, reps]) => (
+                  {Object.entries(rpeTable)
+                    .sort(([a], [b]) => parseFloat(b) - parseFloat(a))
+                    .map(([rpeVal, reps]) => (
                     <tr key={rpeVal} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
                       <td className="p-2 font-medium text-tool-blue">{rpeVal}</td>
                       {Object.values(reps).map((pct, i) => (
