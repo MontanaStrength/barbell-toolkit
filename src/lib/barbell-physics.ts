@@ -7,29 +7,29 @@
 /**
  * Peak Force Window Size (in milliseconds)
  * Used for rolling average when calculating peak force to avoid noise spikes.
- * Recommended values: 50ms - 150ms
+ * This is the ONLY stage where we smooth force - keeps peaks accurate.
  */
-export const PEAK_FORCE_WINDOW_MS = 100;
+export const PEAK_FORCE_WINDOW_MS = 50;
 
 /**
  * Position Smoothing Window (in milliseconds)
- * Applied to raw position data before deriving velocity.
- * Larger values = smoother but less responsive.
+ * Minimal smoothing to reduce tracking jitter without dampening motion.
+ * Lower = more responsive, higher = smoother but loses peaks.
  */
-export const POSITION_SMOOTHING_MS = 100;
+export const POSITION_SMOOTHING_MS = 33; // ~1 frame at 30fps
 
 /**
  * Velocity Smoothing Window (in milliseconds)
- * Applied to velocity before deriving acceleration.
+ * Light smoothing before acceleration calculation.
  */
-export const VELOCITY_SMOOTHING_MS = 100;
+export const VELOCITY_SMOOTHING_MS = 50;
 
 /**
  * Acceleration Smoothing Window (in milliseconds)
- * Applied to acceleration before calculating force.
- * Critical for avoiding force spikes from tracking noise.
+ * Moderate smoothing to prevent noise spikes while preserving peaks.
+ * This is critical - too high loses peaks, too low creates noise.
  */
-export const ACCELERATION_SMOOTHING_MS = 100;
+export const ACCELERATION_SMOOTHING_MS = 66; // ~2 frames at 30fps
 
 // ============================================
 // TYPE DEFINITIONS
