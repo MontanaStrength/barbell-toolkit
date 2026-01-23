@@ -95,17 +95,22 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({
   const activeEndY = center + radius * Math.sin(activeAngleRad);
   const largeArcFlag = percentage > 50 ? 1 : 0;
 
+  // Needle color matches the current zone
+  const needleColor = getColor();
+
   return (
     <div className="relative" style={{ width: size, height: size }}>
-      <div className="absolute inset-0 bg-black/70 rounded-full backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/80 rounded-full backdrop-blur-sm" />
       <svg width={size} height={size} className="relative z-10">
+        {/* Background arc */}
         <path
           d={`M ${startX} ${startY} A ${radius} ${radius} 0 1 1 ${endX} ${endY}`}
           fill="none"
-          stroke="rgba(255,255,255,0.2)"
+          stroke="rgba(255,255,255,0.15)"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
+        {/* Active arc - no transition to prevent distortion */}
         {percentage > 0 && (
           <path
             d={`M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${activeEndX} ${activeEndY}`}
@@ -113,20 +118,35 @@ const VelocityGauge: React.FC<VelocityGaugeProps> = ({
             stroke={getColor()}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
-            className="transition-all duration-150"
           />
         )}
+        {/* Needle - colored to match zone */}
         <g transform={`rotate(${angle} ${center} ${center})`}>
-          <line x1={center} y1={center} x2={center} y2={center - radius + 15} stroke="white" strokeWidth={3} strokeLinecap="round" />
-          <circle cx={center} cy={center} r={6} fill="white" />
+          <line 
+            x1={center} 
+            y1={center} 
+            x2={center} 
+            y2={center - radius + 15} 
+            stroke={needleColor} 
+            strokeWidth={3} 
+            strokeLinecap="round" 
+          />
+          <circle cx={center} cy={center} r={6} fill={needleColor} />
         </g>
+        {/* Zone labels */}
         <text x={12} y={size - 12} className="text-[8px] font-bold" fill="#ef4444">STR</text>
         <text x={center - 8} y={18} className="text-[8px] font-bold" fill="#eab308">HYP</text>
         <text x={size - 28} y={size - 12} className="text-[8px] font-bold" fill="#22c55e">PWR</text>
       </svg>
+      {/* Velocity display - dark text on lighter background for readability */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pt-4 z-20">
-        <span className="text-xl font-bold font-mono text-white drop-shadow-lg">{velocity.toFixed(2)}</span>
-        <span className="text-[9px] text-white/70 uppercase">m/s</span>
+        <span 
+          className="text-xl font-bold font-mono drop-shadow-lg"
+          style={{ color: needleColor, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+        >
+          {velocity.toFixed(2)}
+        </span>
+        <span className="text-[9px] text-white/80 uppercase font-medium">m/s</span>
       </div>
     </div>
   );
