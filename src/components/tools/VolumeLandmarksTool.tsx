@@ -153,7 +153,7 @@ const muscleGroups: MuscleGroup[] = [
 ];
 
 const VolumeLandmarksTool = ({ onBack }: VolumeLandmarksToolProps) => {
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   return (
@@ -179,23 +179,31 @@ const VolumeLandmarksTool = ({ onBack }: VolumeLandmarksToolProps) => {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">
           <Card>
-            <CardContent className="pt-6 grid md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-lg bg-tool-emerald/10 border border-tool-emerald/20">
-                <h4 className="font-semibold text-tool-emerald mb-2">MEV</h4>
-                <p className="text-sm text-muted-foreground">
-                  <strong>Minimum Effective Volume</strong> — The lowest volume that produces measurable gains. Good for maintenance or when prioritizing other muscles.
-                </p>
+            <CardContent className="pt-6 space-y-4">
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg bg-tool-emerald/10 border border-tool-emerald/20">
+                  <h4 className="font-semibold text-tool-emerald mb-2">MEV</h4>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Minimum Effective Volume</strong> — The lowest weekly sets that produce measurable gains. Use for maintenance or non-priority muscles.
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-tool-blue/10 border border-tool-blue/20">
+                  <h4 className="font-semibold text-tool-blue mb-2">MAV</h4>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Maximum Adaptive Volume</strong> — The "sweet spot" where most hypertrophy occurs. Target this range for muscles you want to grow.
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-tool-red/10 border border-tool-red/20">
+                  <h4 className="font-semibold text-tool-red mb-2">MRV</h4>
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Maximum Recoverable Volume</strong> — The upper limit before recovery suffers. Only approach during planned overreaching blocks.
+                  </p>
+                </div>
               </div>
-              <div className="p-4 rounded-lg bg-tool-blue/10 border border-tool-blue/20">
-                <h4 className="font-semibold text-tool-blue mb-2">MAV</h4>
+              <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                <h4 className="font-semibold text-foreground mb-2">Freq (Frequency per Week)</h4>
                 <p className="text-sm text-muted-foreground">
-                  <strong>Maximum Adaptive Volume</strong> — The "sweet spot" range where most gains occur. Target this for muscles you want to grow.
-                </p>
-              </div>
-              <div className="p-4 rounded-lg bg-tool-red/10 border border-tool-red/20">
-                <h4 className="font-semibold text-tool-red mb-2">MRV</h4>
-                <p className="text-sm text-muted-foreground">
-                  <strong>Maximum Recoverable Volume</strong> — The upper limit before recovery suffers. Only approach this in overreaching phases.
+                  How many times per week to train that muscle for optimal results. Higher frequency (3-6x) works well for small, fast-recovering muscles like side delts and calves. Lower frequency (2x) is better for large, fatiguing muscles like quads and back. Spreading your weekly volume across more sessions often improves recovery and performance.
                 </p>
               </div>
             </CardContent>
