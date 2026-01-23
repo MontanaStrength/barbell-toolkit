@@ -99,14 +99,16 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
 
   // Calculate predicted 1RM at MVT
   const mvtValue = parseFloat(mvt) || 0.3;
-  const predicted1RM = regression
+  const predicted1RMRaw = regression
     ? (mvtValue - regression.intercept) / regression.slope
     : null;
+  const predicted1RM = predicted1RMRaw && predicted1RMRaw > 0 ? predicted1RMRaw : null;
 
-  // Calculate load at various velocities
+  // Calculate load at various velocities (returns null if load would be negative)
   const getLoadAtVelocity = (velocity: number) => {
     if (!regression) return null;
-    return (velocity - regression.intercept) / regression.slope;
+    const load = (velocity - regression.intercept) / regression.slope;
+    return load > 0 ? load : null;
   };
 
   // Chart data
