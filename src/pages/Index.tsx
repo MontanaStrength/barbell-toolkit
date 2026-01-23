@@ -10,6 +10,7 @@ import OneRepMaxTool from "@/components/tools/OneRepMaxTool";
 import WilksDotsTool from "@/components/tools/WilksDotsTool";
 import TonnageTool from "@/components/tools/TonnageTool";
 import LoadVelocityTool from "@/components/tools/LoadVelocityTool";
+import VolumeLandmarksTool from "@/components/tools/VolumeLandmarksTool";
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -42,6 +43,8 @@ const Index = () => {
         return <TonnageTool onBack={handleBack} />;
       case "load-velocity":
         return <LoadVelocityTool onBack={handleBack} />;
+      case "volume-landmarks":
+        return <VolumeLandmarksTool onBack={handleBack} />;
       default:
         return null;
     }

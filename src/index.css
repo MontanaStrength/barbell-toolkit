@@ -49,6 +49,7 @@
     --tool-cyan: 185 60% 50%;
     --tool-pink: 330 65% 55%;
     --tool-indigo: 240 60% 60%;
+    --tool-teal: 170 50% 45%;
     --tool-gold: 45 80% 50%;
     --tool-bronze: 30 50% 40%;
 
@@ -140,6 +141,11 @@
   .shadow-tool-indigo {
     box-shadow: 0 4px 24px hsl(240 60% 60% / 0.15),
                 0 1px 4px hsl(240 60% 60% / 0.1);
+  }
+
+  .shadow-tool-teal {
+    box-shadow: 0 4px 24px hsl(170 50% 45% / 0.15),
+                0 1px 4px hsl(170 50% 45% / 0.1);
   }
 
   /* Hover lift effect */
