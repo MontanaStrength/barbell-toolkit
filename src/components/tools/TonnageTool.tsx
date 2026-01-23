@@ -46,10 +46,15 @@ const TonnageTool = ({ onBack }: TonnageToolProps) => {
     );
   };
 
+  // Default placeholder values
+  const defaultSets = 4;
+  const defaultReps = 8;
+  const defaultWeight = useKg ? 100 : 225;
+
   const calculateExerciseTonnage = (exercise: Exercise): number => {
-    const sets = parseFloat(exercise.sets) || 0;
-    const reps = parseFloat(exercise.reps) || 0;
-    const weight = parseFloat(exercise.weight) || 0;
+    const sets = exercise.sets ? parseFloat(exercise.sets) : defaultSets;
+    const reps = exercise.reps ? parseFloat(exercise.reps) : defaultReps;
+    const weight = exercise.weight ? parseFloat(exercise.weight) : defaultWeight;
     return sets * reps * weight;
   };
 
@@ -59,13 +64,13 @@ const TonnageTool = ({ onBack }: TonnageToolProps) => {
   );
 
   const totalReps = exercises.reduce((sum, ex) => {
-    const sets = parseFloat(ex.sets) || 0;
-    const reps = parseFloat(ex.reps) || 0;
+    const sets = ex.sets ? parseFloat(ex.sets) : defaultSets;
+    const reps = ex.reps ? parseFloat(ex.reps) : defaultReps;
     return sum + sets * reps;
   }, 0);
 
   const totalSets = exercises.reduce((sum, ex) => {
-    return sum + (parseFloat(ex.sets) || 0);
+    return sum + (ex.sets ? parseFloat(ex.sets) : defaultSets);
   }, 0);
 
   const averageIntensity = totalReps > 0 ? totalTonnage / totalReps : 0;

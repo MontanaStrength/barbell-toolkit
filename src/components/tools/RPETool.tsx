@@ -33,20 +33,26 @@ const RPETool = ({ onBack }: RPEToolProps) => {
   const [targetReps, setTargetReps] = useState("");
   const [targetRpe, setTargetRpe] = useState("");
 
+  // Default placeholder values
+  const defaultWeight = 225;
+  const defaultReps = 5;
+  const defaultRpe = 8;
+  const defaultMaxWeight = 315;
+
   // Calculate e1RM
   const calculateE1RM = () => {
-    const w = parseFloat(weight);
-    const r = parseFloat(reps);
-    const e = parseFloat(rpe);
+    const w = weight ? parseFloat(weight) : defaultWeight;
+    const r = reps ? parseFloat(reps) : defaultReps;
+    const e = rpe ? parseFloat(rpe) : defaultRpe;
     if (isNaN(w) || isNaN(r) || isNaN(e)) return null;
     return w * (1 + (r + (10 - e) * 0.5) / 30);
   };
 
   // Calculate Load (reverse e1RM formula)
   const calculateLoad = () => {
-    const max = parseFloat(maxWeight);
-    const r = parseFloat(targetReps);
-    const e = parseFloat(targetRpe);
+    const max = maxWeight ? parseFloat(maxWeight) : defaultMaxWeight;
+    const r = targetReps ? parseFloat(targetReps) : defaultReps;
+    const e = targetRpe ? parseFloat(targetRpe) : defaultRpe;
     if (isNaN(max) || isNaN(r) || isNaN(e)) return null;
     return max / (1 + (r + (10 - e) * 0.5) / 30);
   };

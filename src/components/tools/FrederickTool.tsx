@@ -51,10 +51,15 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
     return intensity * setLoad;
   };
 
+  // Default placeholder values
+  const defaultIntensity = 75;
+  const defaultReps = 8;
+  const defaultRpe = 8;
+
   const totalLoad = sets.reduce((acc, set) => {
-    const reps = parseFloat(set.reps);
-    const intensity = parseFloat(set.intensity);
-    const rpe = parseFloat(set.rpe);
+    const reps = set.reps ? parseFloat(set.reps) : defaultReps;
+    const intensity = set.intensity ? parseFloat(set.intensity) : defaultIntensity;
+    const rpe = set.rpe ? parseFloat(set.rpe) : defaultRpe;
     if (isNaN(reps) || isNaN(intensity) || isNaN(rpe)) return acc;
     // Convert RPE to RIR for calculation: RIR = 10 - RPE
     const rir = 10 - rpe;
