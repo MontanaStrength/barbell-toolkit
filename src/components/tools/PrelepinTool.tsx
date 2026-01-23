@@ -89,7 +89,7 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
                 min={50}
                 max={100}
                 step={1}
-                className="[&>span:first-child]:bg-secondary [&>span:first-child>span]:bg-tool-emerald [&>span:last-child]:bg-tool-emerald [&>span:last-child]:border-tool-emerald"
+                className="[&_[data-orientation=horizontal]]:h-2 [&>span:first-child]:bg-secondary [&>span:first-child>span]:bg-tool-emerald [&_[role=slider]]:bg-tool-emerald [&_[role=slider]]:border-tool-emerald"
               />
             </div>
 
