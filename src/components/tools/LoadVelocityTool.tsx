@@ -7,11 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   LineChart,
   Line,
   XAxis,
@@ -35,7 +30,6 @@ interface DataPoint {
 const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
   const [useKg, setUseKg] = useState(true);
   const [mvt, setMvt] = useState("0.3"); // Minimum velocity threshold
-  const [showFormulas, setShowFormulas] = useState(false);
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([
     { id: crypto.randomUUID(), load: "", velocity: "" },
     { id: crypto.randomUUID(), load: "", velocity: "" },
@@ -178,7 +172,7 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
                     placeholder={`Load (${unitLabel})`}
                     value={point.load}
                     onChange={(e) => updateDataPoint(point.id, "load", e.target.value)}
-                    className="h-9"
+                    className="h-11 text-base"
                   />
                 </div>
                 <div className="flex-1">
@@ -187,7 +181,7 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
                     placeholder="Velocity (m/s)"
                     value={point.velocity}
                     onChange={(e) => updateDataPoint(point.id, "velocity", e.target.value)}
-                    className="h-9"
+                    className="h-11 text-base"
                     step="0.01"
                   />
                 </div>
@@ -310,7 +304,7 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
             <CardTitle className="text-lg">Load-Velocity Curve</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -367,40 +361,38 @@ const LoadVelocityTool = ({ onBack }: LoadVelocityToolProps) => {
         </Card>
       )}
 
-      <Collapsible open={showFormulas} onOpenChange={setShowFormulas} className="mt-6">
-        <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <Info className="w-4 h-4" />
-          {showFormulas ? "Hide" : "Show"} methodology
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-4 text-sm">
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Load-Velocity Profiling</h4>
-                <p className="text-muted-foreground">
-                  The load-velocity (L-V) relationship is highly linear and individual. By plotting 
-                  bar velocity against load, we can predict your 1RM as the load where velocity 
-                  equals your minimum velocity threshold (MVT).
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">How to Use</h4>
-                <p className="text-muted-foreground">
-                  Perform 2-5 sets at different loads (e.g., 50%, 70%, 85%, 95% of estimated max) 
-                  and record the mean concentric velocity. More data points = better accuracy.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Applications</h4>
-                <p className="text-muted-foreground">
-                  Track readiness (profile shifts indicate fatigue), auto-regulate training 
-                  (stop when velocity drops), and predict daily 1RM without maximal attempts.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </CollapsibleContent>
-      </Collapsible>
+      <Card className="mt-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Info className="w-4 h-4" />
+            Methodology
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div>
+            <h4 className="font-semibold text-foreground mb-2">Load-Velocity Profiling</h4>
+            <p className="text-muted-foreground">
+              The load-velocity (L-V) relationship is highly linear and individual. By plotting 
+              bar velocity against load, we can predict your 1RM as the load where velocity 
+              equals your minimum velocity threshold (MVT).
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-2">How to Use</h4>
+            <p className="text-muted-foreground">
+              Perform 2-5 sets at different loads (e.g., 50%, 70%, 85%, 95% of estimated max) 
+              and record the mean concentric velocity. More data points = better accuracy.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-2">Applications</h4>
+            <p className="text-muted-foreground">
+              Track readiness (profile shifts indicate fatigue), auto-regulate training 
+              (stop when velocity drops), and predict daily 1RM without maximal attempts.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   );
 };
