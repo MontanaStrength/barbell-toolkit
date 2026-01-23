@@ -192,7 +192,7 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                 <p className="text-muted-foreground text-xs">800–1099</p>
               </div>
               <div className="p-2 rounded bg-tool-purple/10 border border-tool-purple/20 text-center">
-                <p className="text-tool-purple font-medium">Extreme</p>
+                <p className="text-tool-purple font-medium text-xs">Tread Carefully</p>
                 <p className="text-muted-foreground text-xs">≥ 1100</p>
               </div>
             </div>
