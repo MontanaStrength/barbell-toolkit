@@ -50,10 +50,20 @@ export interface ProcessedFrame {
   smoothedForce?: number; // Newtons (time-windowed average)
 }
 
+export interface RepMetrics {
+  repNumber: number;
+  startTime: number;
+  endTime: number;
+  meanVelocity: number;
+  peakVelocity: number;
+  peakForce: number; // in Newtons
+}
+
 export interface AnalysisResult {
   meanVelocity: number;
   peakForce: number;
   velocityDataArray: ProcessedFrame[];
+  reps: RepMetrics[];
 }
 
 /**
@@ -354,4 +364,100 @@ export function calculateMetrics(
   );
   
   return { meanVelocity, peakForce };
+}
+
+/**
+ * Detect individual repetitions in the data based on velocity patterns.
+ * A rep is defined as a concentric phase (positive velocity) that:
+ * - Starts when velocity crosses above threshold
+ * - Ends when velocity drops below threshold
+ * - Has a minimum duration to filter noise
+ */
+export function detectRepetitions(
+  processedData: ProcessedFrame[],
+  velocityThreshold: number = 0.03, // m/s - lower threshold for rep detection
+  minRepDurationMs: number = 200 // Minimum rep duration in ms
+): { startIndex: number; endIndex: number }[] {
+  const reps: { startIndex: number; endIndex: number }[] = [];
+  let inRep = false;
+  let startIndex = 0;
+  
+  const minFrames = Math.ceil((minRepDurationMs / 1000) * 30); // Approximate for 30fps
+  
+  for (let i = 0; i < processedData.length; i++) {
+    const velocity = processedData[i].velocity;
+    
+    if (velocity > velocityThreshold && !inRep) {
+      // Starting a new rep
+      inRep = true;
+      startIndex = i;
+    } else if (velocity <= velocityThreshold && inRep) {
+      // Ending current rep
+      inRep = false;
+      const duration = i - startIndex;
+      
+      // Only count if long enough to be a real rep
+      if (duration >= minFrames) {
+        reps.push({ startIndex, endIndex: i - 1 });
+      }
+    }
+  }
+  
+  // Handle case where last rep extends to end of data
+  if (inRep) {
+    const duration = processedData.length - 1 - startIndex;
+    if (duration >= minFrames) {
+      reps.push({ startIndex, endIndex: processedData.length - 1 });
+    }
+  }
+  
+  return reps;
+}
+
+/**
+ * Calculate metrics for each detected repetition
+ */
+export function calculateRepMetrics(
+  processedData: ProcessedFrame[],
+  reps: { startIndex: number; endIndex: number }[]
+): RepMetrics[] {
+  return reps.map((rep, index) => {
+    const repData = processedData.slice(rep.startIndex, rep.endIndex + 1);
+    
+    if (repData.length === 0) {
+      return {
+        repNumber: index + 1,
+        startTime: 0,
+        endTime: 0,
+        meanVelocity: 0,
+        peakVelocity: 0,
+        peakForce: 0,
+      };
+    }
+    
+    const startTime = repData[0].time;
+    const endTime = repData[repData.length - 1].time;
+    
+    // Filter to positive velocity only for mean calculation
+    const positiveVelData = repData.filter(p => p.velocity > 0);
+    const meanVelocity = positiveVelData.length > 0
+      ? positiveVelData.reduce((sum, p) => sum + p.velocity, 0) / positiveVelData.length
+      : 0;
+    
+    const peakVelocity = Math.max(...repData.map(p => p.velocity));
+    
+    // Use smoothedForce for peak force
+    const peakForce = Math.max(
+      ...repData.map(p => p.smoothedForce ?? p.force)
+    );
+    
+    return {
+      repNumber: index + 1,
+      startTime,
+      endTime,
+      meanVelocity,
+      peakVelocity,
+      peakForce,
+    };
+  });
 }
