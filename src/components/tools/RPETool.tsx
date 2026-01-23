@@ -217,8 +217,14 @@ const RPETool = ({ onBack }: RPEToolProps) => {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left p-2 text-tool-blue font-medium">RPE</th>
+                    <th colSpan={12} className="text-center p-2 text-muted-foreground font-medium text-xs uppercase tracking-wide">
+                      Reps
+                    </th>
+                  </tr>
+                  <tr className="border-b border-border bg-secondary/30">
+                    <th className="p-2"></th>
                     {[...Array(12)].map((_, i) => (
-                      <th key={i} className="text-center p-2 text-muted-foreground font-medium">
+                      <th key={i} className="text-center p-2 text-foreground font-semibold">
                         {i + 1}
                       </th>
                     ))}
