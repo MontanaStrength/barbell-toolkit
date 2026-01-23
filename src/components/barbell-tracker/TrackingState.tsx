@@ -29,6 +29,7 @@ export function TrackingState({
   const trackingPointsRef = useRef<TrackingPoint[]>([]);
   const animationRef = useRef<number | null>(null);
   const videoUrlRef = useRef<string | null>(null);
+  const lastSampleTimeRef = useRef<number>(-1);
 
   // Simple tracking using template matching simulation
   const trackFrame = useCallback((
@@ -119,34 +120,69 @@ export function TrackingState({
     const canvas = canvasRef.current;
     let lastPosition = { ...circleCenter };
     trackingPointsRef.current = [];
+    lastSampleTimeRef.current = -1;
 
-    const processFrame = () => {
-      if (video.ended || video.paused) {
-        setStatus('complete');
-        onTrackingComplete(trackingPointsRef.current);
-        return;
-      }
+    let isCancelled = false;
 
-      const currentTime = video.currentTime;
+    const handleComplete = () => {
+      if (isCancelled) return;
+      setStatus('complete');
+      onTrackingComplete(trackingPointsRef.current);
+    };
+
+    const sampleFrame = (currentTime: number) => {
       const duration = video.duration;
-      const progressPercent = (currentTime / duration) * 100;
-      
-      setProgress(progressPercent);
+
+      if (!Number.isFinite(duration) || duration <= 0) {
+        // Can't compute progress reliably yet
+      } else {
+        setProgress((currentTime / duration) * 100);
+      }
       setStatus('tracking');
 
-      // Track this frame
+      // Only sample once per *video frame*.
+      // requestAnimationFrame can run faster than the video frame rate, and video.currentTime
+      // may not advance each tick. Sampling duplicates causes jitter-driven spikes (force)
+      // and breaks rep detection.
+      if (currentTime === lastSampleTimeRef.current) return;
+      lastSampleTimeRef.current = currentTime;
+
       const newPosition = trackFrame(video, canvas, lastPosition, currentTime);
       lastPosition = newPosition;
       setCurrentPosition(newPosition);
 
-      // Store tracking point
       trackingPointsRef.current.push({
         x: newPosition.x,
         y: newPosition.y,
         time: currentTime,
       });
+    };
 
+    const useVideoFrameCallback = typeof (video as any).requestVideoFrameCallback === 'function';
+
+    const processFrame = () => {
+      if (isCancelled) return;
+      if (video.ended) {
+        handleComplete();
+        return;
+      }
+
+      sampleFrame(video.currentTime);
       animationRef.current = requestAnimationFrame(processFrame);
+    };
+
+    const onVideoFrame = (_now: number, metadata: any) => {
+      if (isCancelled) return;
+      if (video.ended) {
+        handleComplete();
+        return;
+      }
+
+      // metadata.mediaTime is tied to decoded frames (best for frame-accurate sampling)
+      const mediaTime = typeof metadata?.mediaTime === 'number' ? metadata.mediaTime : video.currentTime;
+      sampleFrame(mediaTime);
+
+      (video as any).requestVideoFrameCallback(onVideoFrame);
     };
 
     const startTracking = () => {
@@ -157,7 +193,14 @@ export function TrackingState({
       video.playbackRate = 1; // Normal speed for accurate tracking
       
       video.play().then(() => {
-        processFrame();
+        // Complete when the video ends (RVFC does not fire after end)
+        video.onended = handleComplete;
+
+        if (useVideoFrameCallback) {
+          (video as any).requestVideoFrameCallback(onVideoFrame);
+        } else {
+          processFrame();
+        }
       }).catch((err) => {
         setStatus('error');
         setErrorMessage('Failed to play video for tracking. Please try again.');
@@ -176,6 +219,7 @@ export function TrackingState({
     video.load();
 
     return () => {
+      isCancelled = true;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
