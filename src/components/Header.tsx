@@ -31,11 +31,11 @@ const Header = () => {
           <DialogTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-tool-red hover:bg-tool-red/10"
+              size="default"
+              className="text-muted-foreground hover:text-tool-red hover:bg-tool-red/10 px-4 py-2"
             >
-              <Heart className="w-4 h-4 mr-2" />
-              Support
+              <Heart className="w-5 h-5 mr-2" />
+              <span className="text-sm font-medium">Support</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
