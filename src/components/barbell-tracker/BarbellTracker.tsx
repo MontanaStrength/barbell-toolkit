@@ -20,7 +20,6 @@ interface BarbellTrackerProps {
 export function BarbellTracker({ mass, onAnalysisComplete }: BarbellTrackerProps) {
   const [state, setState] = useState<TrackerState>('upload');
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const [calibration, setCalibration] = useState<{
     pixelsPerMeter: number;
     circleCenter: { x: number; y: number };
@@ -34,15 +33,14 @@ export function BarbellTracker({ mass, onAnalysisComplete }: BarbellTrackerProps
     setState('calibration');
   }, []);
 
-  // Handle calibration complete
+  // Handle calibration complete (no longer needs video element)
   const handleCalibrationComplete = useCallback((
     pixelsPerMeter: number,
     circleCenter: { x: number; y: number },
     circleRadius: number,
-    video: HTMLVideoElement
+    _video: HTMLVideoElement // Ignored, we create fresh video in TrackingState
   ) => {
     setCalibration({ pixelsPerMeter, circleCenter, circleRadius });
-    setVideoElement(video);
     setState('tracking');
   }, []);
 
@@ -70,7 +68,6 @@ export function BarbellTracker({ mass, onAnalysisComplete }: BarbellTrackerProps
   // Handle reset
   const handleReset = useCallback(() => {
     setVideoFile(null);
-    setVideoElement(null);
     setCalibration(null);
     setProcessedData([]);
     setState('upload');
@@ -95,9 +92,9 @@ export function BarbellTracker({ mass, onAnalysisComplete }: BarbellTrackerProps
         />
       )}
 
-      {state === 'tracking' && videoElement && calibration && (
+      {state === 'tracking' && videoFile && calibration && (
         <TrackingState
-          videoElement={videoElement}
+          videoFile={videoFile}
           circleCenter={calibration.circleCenter}
           circleRadius={calibration.circleRadius}
           onTrackingComplete={handleTrackingComplete}

@@ -5,7 +5,7 @@ import { AlertCircle } from 'lucide-react';
 import type { TrackingPoint } from '@/lib/barbell-physics';
 
 interface TrackingStateProps {
-  videoElement: HTMLVideoElement;
+  videoFile: File;
   circleCenter: { x: number; y: number };
   circleRadius: number;
   onTrackingComplete: (trackingPoints: TrackingPoint[]) => void;
@@ -13,7 +13,7 @@ interface TrackingStateProps {
 }
 
 export function TrackingState({
-  videoElement,
+  videoFile,
   circleCenter,
   circleRadius,
   onTrackingComplete,
@@ -25,11 +25,12 @@ export function TrackingState({
   const [currentPosition, setCurrentPosition] = useState(circleCenter);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const trackingPointsRef = useRef<TrackingPoint[]>([]);
   const animationRef = useRef<number | null>(null);
+  const videoUrlRef = useRef<string | null>(null);
 
   // Simple tracking using template matching simulation
-  // In production, this would use OpenCV's actual tracking
   const trackFrame = useCallback((
     video: HTMLVideoElement,
     canvas: HTMLCanvasElement,
@@ -43,7 +44,6 @@ export function TrackingState({
     ctx.drawImage(video, 0, 0);
 
     // Simulate tracking with slight movement detection
-    // In real implementation, this would analyze pixel changes
     const searchRadius = circleRadius * 0.5;
     
     // Get image data around last position
@@ -63,7 +63,6 @@ export function TrackingState({
           const i = (y * searchW + x) * 4;
           const brightness = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
           
-          // Weight by brightness (assuming tracking bright object)
           if (brightness > 100) {
             sumX += x * brightness;
             sumY += y * brightness;
@@ -76,13 +75,12 @@ export function TrackingState({
         const newX = searchX + sumX / count;
         const newY = searchY + sumY / count;
         
-        // Limit movement to prevent jumps
         const maxMove = circleRadius * 0.3;
         const dx = Math.max(-maxMove, Math.min(maxMove, newX - lastPos.x));
         const dy = Math.max(-maxMove, Math.min(maxMove, newY - lastPos.y));
         
         return {
-          x: lastPos.x + dx * 0.3, // Smooth movement
+          x: lastPos.x + dx * 0.3,
           y: lastPos.y + dy * 0.3,
         };
       }
@@ -93,16 +91,32 @@ export function TrackingState({
     return lastPos;
   }, [circleRadius]);
 
+  // Initialize video element
+  useEffect(() => {
+    if (!videoFile) return;
+
+    const url = URL.createObjectURL(videoFile);
+    videoUrlRef.current = url;
+
+    return () => {
+      if (videoUrlRef.current) {
+        URL.revokeObjectURL(videoUrlRef.current);
+        videoUrlRef.current = null;
+      }
+    };
+  }, [videoFile]);
+
   // Run tracking
   useEffect(() => {
-    if (!videoElement || !canvasRef.current) return;
+    if (!videoFile || !canvasRef.current || !videoUrlRef.current) return;
+
+    const video = document.createElement('video');
+    video.playsInline = true;
+    video.muted = true;
+    video.src = videoUrlRef.current;
+    videoRef.current = video;
 
     const canvas = canvasRef.current;
-    const video = videoElement;
-    
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
     let lastPosition = { ...circleCenter };
     trackingPointsRef.current = [];
 
@@ -135,18 +149,31 @@ export function TrackingState({
       animationRef.current = requestAnimationFrame(processFrame);
     };
 
-    // Start video playback for tracking
-    video.currentTime = 0;
-    video.playbackRate = 2; // Process faster
-    video.muted = true;
+    const startTracking = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      video.currentTime = 0;
+      video.playbackRate = 2;
+      
+      video.play().then(() => {
+        processFrame();
+      }).catch((err) => {
+        setStatus('error');
+        setErrorMessage('Failed to play video for tracking. Please try again.');
+        console.error('Video play error:', err);
+      });
+    };
+
+    video.onloadedmetadata = startTracking;
     
-    video.play().then(() => {
-      processFrame();
-    }).catch((err) => {
+    video.onerror = () => {
       setStatus('error');
-      setErrorMessage('Failed to play video for tracking');
-      console.error(err);
-    });
+      setErrorMessage('Failed to load video. Please try uploading again.');
+    };
+
+    // Trigger load
+    video.load();
 
     return () => {
       if (animationRef.current) {
@@ -154,8 +181,9 @@ export function TrackingState({
       }
       video.pause();
       video.playbackRate = 1;
+      video.src = '';
     };
-  }, [videoElement, circleCenter, onTrackingComplete, trackFrame]);
+  }, [videoFile, circleCenter, onTrackingComplete, trackFrame]);
 
   // Draw tracking overlay
   useEffect(() => {
