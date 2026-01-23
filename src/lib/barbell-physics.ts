@@ -367,47 +367,64 @@ export function calculateMetrics(
 }
 
 /**
- * Detect individual repetitions in the data based on velocity patterns.
- * A rep is defined as a concentric phase (positive velocity) that:
- * - Starts when velocity crosses above threshold
- * - Ends when velocity drops below threshold
- * - Has a minimum duration to filter noise
+ * Detect individual repetitions in the data based on velocity zero-crossings.
+ * A rep is the concentric phase: starts when velocity crosses from negative to positive,
+ * ends when velocity crosses from positive to negative.
+ * This properly handles multi-rep sets where the bar oscillates up/down continuously.
  */
 export function detectRepetitions(
   processedData: ProcessedFrame[],
-  velocityThreshold: number = 0.03, // m/s - lower threshold for rep detection
-  minRepDurationMs: number = 200 // Minimum rep duration in ms
+  velocityThreshold: number = 0.02, // m/s - minimum peak velocity to count as a rep
+  minRepDurationMs: number = 150 // Minimum rep duration in ms
 ): { startIndex: number; endIndex: number }[] {
+  if (processedData.length < 2) return [];
+  
   const reps: { startIndex: number; endIndex: number }[] = [];
-  let inRep = false;
-  let startIndex = 0;
+  let repStartIndex: number | null = null;
   
-  const minFrames = Math.ceil((minRepDurationMs / 1000) * 30); // Approximate for 30fps
+  // Calculate approximate frame rate from data
+  const avgDt = (processedData[processedData.length - 1].time - processedData[0].time) / (processedData.length - 1);
+  const fps = 1 / avgDt;
+  const minFrames = Math.ceil((minRepDurationMs / 1000) * fps);
   
-  for (let i = 0; i < processedData.length; i++) {
-    const velocity = processedData[i].velocity;
+  for (let i = 1; i < processedData.length; i++) {
+    const prevVel = processedData[i - 1].velocity;
+    const currVel = processedData[i].velocity;
     
-    if (velocity > velocityThreshold && !inRep) {
-      // Starting a new rep
-      inRep = true;
-      startIndex = i;
-    } else if (velocity <= velocityThreshold && inRep) {
-      // Ending current rep
-      inRep = false;
-      const duration = i - startIndex;
+    // Detect zero-crossing from negative to positive (start of concentric)
+    if (prevVel <= 0 && currVel > 0 && repStartIndex === null) {
+      repStartIndex = i;
+    }
+    
+    // Detect zero-crossing from positive to negative (end of concentric)
+    if (prevVel > 0 && currVel <= 0 && repStartIndex !== null) {
+      const duration = i - repStartIndex;
       
-      // Only count if long enough to be a real rep
+      // Check if rep is long enough and had meaningful velocity
       if (duration >= minFrames) {
-        reps.push({ startIndex, endIndex: i - 1 });
+        const repData = processedData.slice(repStartIndex, i);
+        const peakVel = Math.max(...repData.map(p => p.velocity));
+        
+        // Only count if peak velocity exceeded threshold
+        if (peakVel >= velocityThreshold) {
+          reps.push({ startIndex: repStartIndex, endIndex: i - 1 });
+        }
       }
+      
+      repStartIndex = null;
     }
   }
   
   // Handle case where last rep extends to end of data
-  if (inRep) {
-    const duration = processedData.length - 1 - startIndex;
+  if (repStartIndex !== null) {
+    const duration = processedData.length - 1 - repStartIndex;
     if (duration >= minFrames) {
-      reps.push({ startIndex, endIndex: processedData.length - 1 });
+      const repData = processedData.slice(repStartIndex);
+      const peakVel = Math.max(...repData.map(p => p.velocity));
+      
+      if (peakVel >= velocityThreshold) {
+        reps.push({ startIndex: repStartIndex, endIndex: processedData.length - 1 });
+      }
     }
   }
   
