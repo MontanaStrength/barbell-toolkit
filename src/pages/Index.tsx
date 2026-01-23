@@ -12,6 +12,7 @@ import TonnageTool from "@/components/tools/TonnageTool";
 import LoadVelocityTool from "@/components/tools/LoadVelocityTool";
 import VolumeLandmarksTool from "@/components/tools/VolumeLandmarksTool";
 import JessicaBielTool from "@/components/tools/JessicaBielTool";
+import Bench405Tool from "@/components/tools/Bench405Tool";
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -48,6 +49,8 @@ const Index = () => {
         return <VolumeLandmarksTool onBack={handleBack} />;
       case "jessica-biel":
         return <JessicaBielTool onBack={handleBack} />;
+      case "bench-405":
+        return <Bench405Tool onBack={handleBack} />;
       default:
         return null;
     }

@@ -65,6 +65,7 @@ export default {
           teal: "hsl(var(--tool-teal))",
           gold: "hsl(var(--tool-gold))",
           bronze: "hsl(var(--tool-bronze))",
+          amber: "hsl(var(--tool-amber))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",

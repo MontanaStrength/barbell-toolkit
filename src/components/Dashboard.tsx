@@ -1,4 +1,4 @@
-import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown, Layers, Smile } from "lucide-react";
+import { Dumbbell, Gauge, Brain, Flame, Table2, Target, Scale, Weight, TrendingDown, Layers, Smile, Timer } from "lucide-react";
 
 interface DashboardProps {
   onSelectTool: (tool: string) => void;
@@ -126,6 +126,18 @@ const tools = [
     hoverBorder: "hover:border-tool-pink/50",
     textColor: "text-tool-pink",
     shadowClass: "hover:shadow-tool-pink",
+  },
+  {
+    id: "bench-405",
+    name: "How Long Until I Bench 405?",
+    description: "Estimate your timeline to a 405 lb bench press",
+    icon: Timer,
+    accent: "amber",
+    borderColor: "border-tool-amber/20",
+    hoverBorder: "hover:border-tool-amber/50",
+    textColor: "text-tool-amber",
+    shadowClass: "hover:shadow-tool-amber",
+    badge: "Coming Soon",
   },
 ];
 
