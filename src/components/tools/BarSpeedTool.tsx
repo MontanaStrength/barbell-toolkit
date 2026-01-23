@@ -129,8 +129,12 @@ const BarSpeedTool = ({ onBack }: BarSpeedToolProps) => {
                     type="number"
                     min={1}
                     max={unitSystem === "lbs" ? 1100 : 500}
-                    value={inputWeight}
-                    onChange={(e) => setInputWeight(parseFloat(e.target.value) || 0)}
+                    value={inputWeight || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Parse and set, avoiding leading zeros
+                      setInputWeight(val === "" ? 0 : Number(val));
+                    }}
                     className="text-center text-lg bg-secondary/50 border-border"
                     placeholder={unitSystem === "lbs" ? "225" : "100"}
                   />
