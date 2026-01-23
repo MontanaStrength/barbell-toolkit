@@ -9,6 +9,7 @@ import PrelepinTool from "@/components/tools/PrelepinTool";
 import OneRepMaxTool from "@/components/tools/OneRepMaxTool";
 import WilksDotsTool from "@/components/tools/WilksDotsTool";
 import TonnageTool from "@/components/tools/TonnageTool";
+import LoadVelocityTool from "@/components/tools/LoadVelocityTool";
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -39,6 +40,8 @@ const Index = () => {
         return <WilksDotsTool onBack={handleBack} />;
       case "tonnage":
         return <TonnageTool onBack={handleBack} />;
+      case "load-velocity":
+        return <LoadVelocityTool onBack={handleBack} />;
       default:
         return null;
     }
