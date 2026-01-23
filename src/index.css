@@ -4,78 +4,78 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
+    --background: 220 20% 7%;
+    --foreground: 220 15% 95%;
 
-    --card: 222 47% 6%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 20% 10%;
+    --card-foreground: 220 15% 95%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 220 15% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 4%;
+    --primary: 220 15% 95%;
+    --primary-foreground: 220 20% 7%;
 
-    --secondary: 217 33% 12%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 220 15% 95%;
 
-    --muted: 217 33% 15%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 15% 20%;
+    --accent-foreground: 220 15% 95%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 55% 50%;
+    --destructive-foreground: 220 15% 95%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 192 95% 68%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 200 25% 55%;
 
     --radius: 0.75rem;
 
-    /* Tool accent colors */
-    --tool-blue: 192 95% 68%;
-    --tool-blue-glow: 192 95% 50%;
-    --tool-red: 350 89% 60%;
-    --tool-red-glow: 350 89% 45%;
-    --tool-purple: 270 95% 70%;
-    --tool-purple-glow: 270 95% 55%;
-    --tool-yellow: 45 96% 64%;
-    --tool-yellow-glow: 45 96% 50%;
-    --tool-emerald: 160 84% 50%;
-    --tool-emerald-glow: 160 84% 40%;
+    /* Sophisticated tool accent colors - Cool Minimalist */
+    --tool-blue: 200 35% 60%;
+    --tool-blue-muted: 200 20% 45%;
+    --tool-red: 0 30% 55%;
+    --tool-red-muted: 0 20% 42%;
+    --tool-purple: 260 25% 58%;
+    --tool-purple-muted: 260 15% 45%;
+    --tool-yellow: 40 35% 55%;
+    --tool-yellow-muted: 40 20% 42%;
+    --tool-emerald: 170 30% 50%;
+    --tool-emerald-muted: 170 20% 40%;
 
-    --sidebar-background: 222 47% 4%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 192 95% 68%;
-    --sidebar-primary-foreground: 222 47% 4%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 192 95% 68%;
+    --sidebar-background: 220 20% 7%;
+    --sidebar-foreground: 220 15% 95%;
+    --sidebar-primary: 200 35% 60%;
+    --sidebar-primary-foreground: 220 20% 7%;
+    --sidebar-accent: 220 15% 20%;
+    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 200 25% 55%;
   }
 
   .dark {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 6%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222 47% 4%;
-    --secondary: 217 33% 12%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 15%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 192 95% 68%;
+    --background: 220 20% 7%;
+    --foreground: 220 15% 95%;
+    --card: 220 20% 10%;
+    --card-foreground: 220 15% 95%;
+    --popover: 220 20% 12%;
+    --popover-foreground: 220 15% 95%;
+    --primary: 220 15% 95%;
+    --primary-foreground: 220 20% 7%;
+    --secondary: 220 15% 15%;
+    --secondary-foreground: 220 15% 95%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 220 15% 20%;
+    --accent-foreground: 220 15% 95%;
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 220 15% 95%;
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 200 25% 55%;
   }
 }
 
@@ -90,50 +90,38 @@
 }
 
 @layer utilities {
-  /* Glow effects for each tool */
-  .glow-blue {
-    box-shadow: 0 0 20px hsl(192 95% 50% / 0.3), 
-                0 0 40px hsl(192 95% 50% / 0.1);
+  /* Subtle refined shadow effects for each tool */
+  .shadow-tool-blue {
+    box-shadow: 0 4px 20px hsl(200 35% 60% / 0.08),
+                0 1px 3px hsl(200 35% 60% / 0.05);
   }
   
-  .glow-red {
-    box-shadow: 0 0 20px hsl(350 89% 45% / 0.3), 
-                0 0 40px hsl(350 89% 45% / 0.1);
+  .shadow-tool-red {
+    box-shadow: 0 4px 20px hsl(0 30% 55% / 0.08),
+                0 1px 3px hsl(0 30% 55% / 0.05);
   }
   
-  .glow-purple {
-    box-shadow: 0 0 20px hsl(270 95% 55% / 0.3), 
-                0 0 40px hsl(270 95% 55% / 0.1);
+  .shadow-tool-purple {
+    box-shadow: 0 4px 20px hsl(260 25% 58% / 0.08),
+                0 1px 3px hsl(260 25% 58% / 0.05);
   }
   
-  .glow-yellow {
-    box-shadow: 0 0 20px hsl(45 96% 50% / 0.3), 
-                0 0 40px hsl(45 96% 50% / 0.1);
+  .shadow-tool-yellow {
+    box-shadow: 0 4px 20px hsl(40 35% 55% / 0.08),
+                0 1px 3px hsl(40 35% 55% / 0.05);
   }
   
-  .glow-emerald {
-    box-shadow: 0 0 20px hsl(160 84% 40% / 0.3), 
-                0 0 40px hsl(160 84% 40% / 0.1);
+  .shadow-tool-emerald {
+    box-shadow: 0 4px 20px hsl(170 30% 50% / 0.08),
+                0 1px 3px hsl(170 30% 50% / 0.05);
   }
 
-  /* Text glow effects */
-  .text-glow-blue {
-    text-shadow: 0 0 10px hsl(192 95% 50% / 0.5);
+  /* Hover lift effect */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   
-  .text-glow-red {
-    text-shadow: 0 0 10px hsl(350 89% 45% / 0.5);
-  }
-  
-  .text-glow-purple {
-    text-shadow: 0 0 10px hsl(270 95% 55% / 0.5);
-  }
-  
-  .text-glow-yellow {
-    text-shadow: 0 0 10px hsl(45 96% 50% / 0.5);
-  }
-  
-  .text-glow-emerald {
-    text-shadow: 0 0 10px hsl(160 84% 40% / 0.5);
+  .hover-lift:hover {
+    transform: translateY(-2px);
   }
 }

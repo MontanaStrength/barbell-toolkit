@@ -68,14 +68,14 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
         <Button
           variant="ghost"
           onClick={onBack}
-          className="mb-6 text-tool-yellow hover:text-tool-yellow hover:bg-tool-yellow/10"
+          className="mb-6 text-muted-foreground hover:text-tool-yellow"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-tool-yellow text-glow-yellow mb-2">
+          <h1 className="text-2xl font-semibold text-foreground mb-2">
             Frederick Metabolic Stress
           </h1>
           <p className="text-muted-foreground">
@@ -83,15 +83,16 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
           </p>
         </div>
 
-        <div className="bg-card border border-tool-yellow/20 rounded-lg p-6 glow-yellow">
+        <div className="bg-card border border-border rounded-xl p-6 shadow-tool-yellow">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-tool-yellow">
+            <h2 className="text-lg font-medium text-foreground">
               Session Sets
             </h2>
             <Button
               onClick={addSet}
               size="sm"
-              className="bg-tool-yellow/20 text-tool-yellow hover:bg-tool-yellow/30 border border-tool-yellow/30"
+              variant="outline"
+              className="border-border text-muted-foreground hover:text-tool-yellow hover:border-tool-yellow/50"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add Set
@@ -102,20 +103,20 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
             {sets.map((set, index) => (
               <div
                 key={set.id}
-                className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-tool-yellow/10"
+                className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border"
               >
-                <span className="text-tool-yellow font-medium w-16">
+                <span className="text-muted-foreground font-medium w-14 text-sm">
                   Set {index + 1}
                 </span>
                 <div className="flex-1 grid grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Intensity %</Label>
+                    <Label className="text-xs text-muted-foreground">Mass</Label>
                     <Input
                       type="number"
                       value={set.intensity}
                       onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
                       placeholder="75"
-                      className="bg-secondary border-tool-yellow/30 focus:border-tool-yellow h-9"
+                      className="bg-secondary border-border focus:border-tool-yellow h-9"
                     />
                   </div>
                   <div className="space-y-1">
@@ -125,7 +126,7 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                       value={set.reps}
                       onChange={(e) => updateSet(set.id, "reps", e.target.value)}
                       placeholder="8"
-                      className="bg-secondary border-tool-yellow/30 focus:border-tool-yellow h-9"
+                      className="bg-secondary border-border focus:border-tool-yellow h-9"
                     />
                   </div>
                   <div className="space-y-1">
@@ -135,7 +136,7 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                       value={set.rir}
                       onChange={(e) => updateSet(set.id, "rir", e.target.value)}
                       placeholder="2"
-                      className="bg-secondary border-tool-yellow/30 focus:border-tool-yellow h-9"
+                      className="bg-secondary border-border focus:border-tool-yellow h-9"
                     />
                   </div>
                 </div>
@@ -143,7 +144,7 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                   variant="ghost"
                   size="icon"
                   onClick={() => removeSet(set.id)}
-                  className="text-muted-foreground hover:text-tool-red hover:bg-tool-red/10"
+                  className="text-muted-foreground hover:text-destructive"
                   disabled={sets.length === 1}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -153,18 +154,18 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
           </div>
 
           {totalLoad > 0 && (
-            <div className="mt-6 p-4 bg-secondary/50 rounded-lg">
+            <div className="mt-6 p-5 bg-secondary/50 rounded-lg border border-border">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-muted-foreground text-sm mb-1">
                     Total Session Load
                   </p>
-                  <p className="text-4xl font-bold text-tool-yellow text-glow-yellow">
+                  <p className="text-3xl font-semibold text-tool-yellow">
                     {totalLoad.toFixed(2)}
                   </p>
                 </div>
-                <div className={`px-4 py-2 rounded-full bg-tool-yellow/10 border border-tool-yellow/30`}>
-                  <span className={`font-semibold ${loadLevel.color}`}>
+                <div className={`px-4 py-2 rounded-full bg-secondary border border-border`}>
+                  <span className={`font-medium ${loadLevel.color}`}>
                     {loadLevel.label}
                   </span>
                 </div>
@@ -172,10 +173,10 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
             </div>
           )}
 
-          <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-tool-yellow/10">
-            <h3 className="text-sm font-medium text-tool-yellow mb-2">Formula</h3>
+          <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">Formula</h3>
             <p className="text-muted-foreground text-sm font-mono">
-              Exertion Load = Reps × Intensity × e<sup>(-0.215 × RIR)</sup>
+              Load = Mass × Σ e<sup>(-0.215 × (RIR + Reps - i))</sup>
             </p>
           </div>
         </div>
