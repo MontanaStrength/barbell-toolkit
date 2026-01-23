@@ -254,21 +254,34 @@ export function calculateMetrics(
   startTime: number,
   endTime: number
 ): { meanVelocity: number; peakForce: number } {
-  const filteredData = processedData.filter(
-    p => p.time >= startTime && p.time <= endTime && p.velocity > 0
+  const trimmedData = processedData.filter(
+    (p) => p.time >= startTime && p.time <= endTime
   );
-  
-  if (filteredData.length === 0) {
-    return { meanVelocity: 0, peakForce: 0 };
+
+  if (trimmedData.length === 0) return { meanVelocity: 0, peakForce: 0 };
+
+  // Match the provided algorithm's intent:
+  // - define the "analysis" region by detected reps (velocity > 0.1 m/s, ends < 0.05)
+  // - peak force should be the rolling-window sustained peak *within reps*, not across
+  //   arbitrary positive-velocity noise (e.g. unrack/settle spikes)
+  const reps = detectRepetitions(trimmedData);
+  if (reps.length === 0) return { meanVelocity: 0, peakForce: 0 };
+
+  const repMetrics = calculateRepMetrics(trimmedData, reps);
+
+  // Mean velocity across all rep samples (weighted by rep duration)
+  let velSum = 0;
+  let velCount = 0;
+  for (const rep of reps) {
+    for (let i = rep.startIndex; i <= rep.endIndex; i++) {
+      velSum += trimmedData[i]?.velocity ?? 0;
+      velCount++;
+    }
   }
-  
-  const meanVelocity = filteredData.reduce((sum, p) => sum + p.velocity, 0) / filteredData.length;
-  
-  // Use smoothedForce for peak force
-  const peakForce = Math.max(
-    ...filteredData.map(p => p.smoothedForce ?? p.force)
-  );
-  
+
+  const meanVelocity = velCount > 0 ? velSum / velCount : 0;
+  const peakForce = Math.max(...repMetrics.map((r) => r.peakForce));
+
   return { meanVelocity, peakForce };
 }
 
