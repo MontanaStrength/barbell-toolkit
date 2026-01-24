@@ -90,7 +90,7 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
               <h2 className="text-lg font-medium text-foreground">
                 Intensity Level
               </h2>
-              <span className="text-3xl font-semibold text-tool-emerald">
+              <span className={`text-3xl font-semibold ${zoneColor} transition-colors`}>
                 {intensity[0]}%
               </span>
             </div>
