@@ -69,19 +69,23 @@ export function TrackingState({
     const isMovingFast = speed > circleRadius * 0.3;
 
     // Predict next position based on velocity (helps with fast movements)
+    // If we've been "lost" for a few frames, push further ahead so we can catch up.
+    const lead = 0.8 + Math.min(2, consecutiveLossCountRef.current * 0.4);
     const predictedPos = {
-      x: lastPos.x + velocityRef.current.vx * 0.8,
-      y: lastPos.y + velocityRef.current.vy * 0.8,
+      x: lastPos.x + velocityRef.current.vx * lead,
+      y: lastPos.y + velocityRef.current.vy * lead,
     };
 
     // Adaptive search radius - larger when moving fast or tracking lost
     const baseSearchRadius = circleRadius * 2;
     const speedMultiplier = 1 + Math.min(2, speed / circleRadius);
-    const lossMultiplier = Math.min(3, 1 + consecutiveLossCountRef.current * 0.5);
+    // Allow search to expand more than before for brief occlusions (e.g. bottom of a rep)
+    const lossMultiplier = Math.min(6, 1 + consecutiveLossCountRef.current * 0.9);
     const searchRadius = baseSearchRadius * Math.max(speedMultiplier, lossMultiplier);
     
-    // Search around predicted position instead of last position
-    const searchCenter = consecutiveLossCountRef.current > 0 ? lastPos : predictedPos;
+    // Search around predicted position (even when "lost" we should keep searching forward,
+    // otherwise we can never catch up after a brief occlusion).
+    const searchCenter = predictedPos;
     const searchX = Math.max(0, Math.floor(searchCenter.x - searchRadius));
     const searchY = Math.max(0, Math.floor(searchCenter.y - searchRadius));
     const searchW = Math.min(Math.floor(searchRadius * 2), canvas.width - searchX);
@@ -195,6 +199,38 @@ export function TrackingState({
         const smoothing = isMovingFast ? 0.85 : (0.6 + 0.3 * bestMatchWeight);
         
         consecutiveLossCountRef.current = 0; // Reset loss counter
+
+        // Adapt reference color slowly to handle lighting/motion-blur changes.
+        // Only update when we're reasonably confident.
+        if (bestMatchWeight > 0.55) {
+          const sampleRadius = Math.max(2, Math.floor(circleRadius * 0.25));
+          const sx0 = Math.max(0, Math.floor(newX) - sampleRadius);
+          const sy0 = Math.max(0, Math.floor(newY) - sampleRadius);
+          const sx1 = Math.min(canvas.width - 1, Math.floor(newX) + sampleRadius);
+          const sy1 = Math.min(canvas.height - 1, Math.floor(newY) + sampleRadius);
+          const sw = Math.max(1, sx1 - sx0);
+          const sh = Math.max(1, sy1 - sy0);
+          const sampleData = ctx.getImageData(sx0, sy0, sw, sh);
+
+          let rSum = 0, gSum = 0, bSum = 0, n = 0;
+          for (let i = 0; i < sampleData.data.length; i += 4) {
+            rSum += sampleData.data[i];
+            gSum += sampleData.data[i + 1];
+            bSum += sampleData.data[i + 2];
+            n++;
+          }
+
+          if (n > 0 && referenceColorRef.current) {
+            const next = { r: rSum / n, g: gSum / n, b: bSum / n };
+            // 90/10 EMA
+            referenceColorRef.current = {
+              r: referenceColorRef.current.r * 0.9 + next.r * 0.1,
+              g: referenceColorRef.current.g * 0.9 + next.g * 0.1,
+              b: referenceColorRef.current.b * 0.9 + next.b * 0.1,
+            };
+          }
+        }
+
         prevPositionRef.current = { ...lastPos };
         
         return {
@@ -205,13 +241,60 @@ export function TrackingState({
       } else {
         // Tracking lost - increment counter for adaptive search
         consecutiveLossCountRef.current = Math.min(5, consecutiveLossCountRef.current + 1);
+
+        // If we've been lost for a couple frames, do a coarse re-acquisition scan over
+        // the full frame (downsampled). This helps when the sleeve exits the local window.
+        if (consecutiveLossCountRef.current >= 2) {
+          const full = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const ref = referenceColorRef.current;
+          if (ref) {
+            const step = Math.max(3, Math.floor(circleRadius * 0.2));
+            let best = { w: 0, x: lastPos.x, y: lastPos.y };
+            const refBrightness = (ref.r + ref.g + ref.b) / 3;
+            const tol = Math.max(70, refBrightness * 0.7);
+
+            for (let y = 0; y < canvas.height; y += step) {
+              for (let x = 0; x < canvas.width; x += step) {
+                const idx = (y * canvas.width + x) * 4;
+                const r = full.data[idx];
+                const g = full.data[idx + 1];
+                const b = full.data[idx + 2];
+
+                const d = Math.sqrt(
+                  Math.pow(r - ref.r, 2) + Math.pow(g - ref.g, 2) + Math.pow(b - ref.b, 2)
+                );
+                const cw = Math.exp(-(d * d) / (2 * tol * tol));
+
+                // Prefer candidates near the predicted position, but still allow global jumps.
+                const pd = Math.sqrt(Math.pow(x - predictedPos.x, 2) + Math.pow(y - predictedPos.y, 2));
+                const pw = Math.exp(-(pd * pd) / (2 * Math.pow(circleRadius * 10, 2)));
+                const w = cw * (0.75 + 0.25 * pw);
+
+                if (w > best.w) best = { w, x, y };
+              }
+            }
+
+            const reacquireThreshold = isMovingFast ? 0.25 : 0.35;
+            if (best.w > reacquireThreshold) {
+              consecutiveLossCountRef.current = 0;
+              prevPositionRef.current = { ...lastPos };
+              return { x: best.x, y: best.y, confidence: best.w };
+            }
+          }
+        }
       }
     } catch (e) {
       // Canvas security errors, etc.
       console.error('Tracking frame error:', e);
     }
-    
-    return { ...lastPos, confidence: 0 };
+
+    // When lost, don't freeze in place—advance using prediction so the local window can catch up.
+    prevPositionRef.current = { ...lastPos };
+    const fallbackX = Math.max(0, Math.min(canvas.width, predictedPos.x));
+    const fallbackY = Math.max(0, Math.min(canvas.height, predictedPos.y));
+    // Slightly decay velocity when we don't have a confident match.
+    velocityRef.current = { vx: velocityRef.current.vx * 0.9, vy: velocityRef.current.vy * 0.9 };
+    return { x: fallbackX, y: fallbackY, confidence: 0 };
   }, [circleRadius]);
 
   // Initialize video element
