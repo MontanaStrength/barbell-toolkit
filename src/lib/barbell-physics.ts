@@ -1,12 +1,12 @@
 // Physics calculations for barbell velocity and force analysis
-// Using Top Percentage method for peak force calculation
+// Using Rolling Window smoothing algorithm for LDT-matching accuracy
 
 // ============================================
 // PHYSICS ENGINE CONSTANTS
 // ============================================
 const GRAVITY = 9.81; // m/s²
 const SMOOTHING_WINDOW = 5; // Frames to smooth position (removes camera jitter)
-const TOP_FORCE_PERCENTAGE = 0.10; // Top 10% of force readings for peak force calculation
+const FORCE_WINDOW_MS = 100; // ms window to find "Peak Force" (prevents spikes)
 
 // ============================================
 // TYPE DEFINITIONS
@@ -119,9 +119,11 @@ export function processTrackingData(
     };
   });
 
-  // Apply smoothing to force for smoothedForce (using position smoothing window)
+  // Apply rolling average to force for smoothedForce
+  const framesInWindow = Math.max(1, Math.floor(FORCE_WINDOW_MS / 33)); // approx 3 frames at 30fps
+  
   for (let i = 0; i < physicsData.length; i++) {
-    const start = Math.max(0, i - SMOOTHING_WINDOW + 1);
+    const start = Math.max(0, i - framesInWindow + 1);
     const window = physicsData.slice(start, i + 1);
     const avgForce = window.reduce((sum, f) => sum + f.force, 0) / window.length;
     physicsData[i].smoothedForce = avgForce;
@@ -177,12 +179,14 @@ export function detectRepetitions(
 
 /**
  * Calculate metrics for each detected repetition
- * Uses top percentage of force readings for peak force calculation
+ * Uses rolling peak force calculation (LDT simulation)
  */
 export function calculateRepMetrics(
   processedData: ProcessedFrame[],
   reps: { startIndex: number; endIndex: number }[]
 ): RepMetrics[] {
+  const framesInWindow = Math.max(1, Math.floor(FORCE_WINDOW_MS / 33)); // approx 3 frames at 30fps
+  
   return reps.map((rep, index) => {
     const repData = processedData.slice(rep.startIndex, rep.endIndex + 1);
     
@@ -205,17 +209,27 @@ export function calculateRepMetrics(
     const meanVelocity = velSamples.reduce((a, b) => a + b, 0) / velSamples.length;
     const peakVelocity = Math.max(...velSamples);
     
-    // CALCULATE PEAK FORCE USING TOP PERCENTAGE METHOD
-    // Sort force readings descending and average the top 10%
-    const forceSamples = repData.map(p => p.force);
-    const sortedForces = [...forceSamples].sort((a, b) => b - a);
+    // CALCULATE ROLLING PEAK FORCE (The LDT Simulation)
+    // Look at the last N frames to find a sustained peak, not a spike
+    let maxForce = 0;
+    const forceSamples: number[] = [];
     
-    // Calculate how many samples represent the top percentage
-    const topCount = Math.max(1, Math.ceil(sortedForces.length * TOP_FORCE_PERCENTAGE));
-    const topForces = sortedForces.slice(0, topCount);
+    for (const frame of repData) {
+      forceSamples.push(frame.force);
+      
+      if (forceSamples.length >= framesInWindow) {
+        const recentForce = forceSamples.slice(-framesInWindow);
+        const avgRecentForce = recentForce.reduce((a, b) => a + b, 0) / recentForce.length;
+        if (avgRecentForce > maxForce) {
+          maxForce = avgRecentForce;
+        }
+      }
+    }
     
-    // Average the top force readings
-    const peakForce = topForces.reduce((a, b) => a + b, 0) / topForces.length;
+    // Fallback if we didn't have enough frames for the rolling window
+    if (maxForce === 0 && forceSamples.length > 0) {
+      maxForce = forceSamples.reduce((a, b) => a + b, 0) / forceSamples.length;
+    }
     
     return {
       repNumber: index + 1,
@@ -223,7 +237,7 @@ export function calculateRepMetrics(
       endTime,
       meanVelocity,
       peakVelocity,
-      peakForce,
+      peakForce: maxForce,
     };
   });
 }
