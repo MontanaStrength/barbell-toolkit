@@ -382,6 +382,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
   // keep the search window large enough to survive that reversal and avoid permanently freezing.
   const lostFramesRef = useRef(0);
   const lastGoodSpeedRef = useRef(0);
+  const lostLogCounterRef = useRef(0);
   
   const templateDataRef = useRef<ImageData | null>(null);
   const initialTemplateRef = useRef<ImageData | null>(null);
@@ -617,10 +618,11 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
 
     const speed = Math.sqrt(vx * vx + vy * vy);
     // Use recent "good" speed to keep search radius large during reversals (speed briefly dips).
-    const effectiveSpeed = Math.max(speed, lastGoodSpeedRef.current * (lostFramesRef.current > 0 ? 0.9 : 0.6));
-    const reversalBoost = speed < 8 && lastGoodSpeedRef.current > 25 ? 1.8 : 1;
+    const effectiveSpeed = Math.max(speed, lastGoodSpeedRef.current * (lostFramesRef.current > 0 ? 0.95 : 0.75));
+    // Boost search during *any* reversal (top or bottom): current speed small, but recent speed was high.
+    const reversalBoost = speed < 10 && lastGoodSpeedRef.current > 25 ? 1.9 : 1;
     const lostBoost = lostFramesRef.current > 0 ? 1.5 : 1;
-    const searchRadius = Math.max(45, Math.min(160, effectiveSpeed * 2.8 * reversalBoost * lostBoost));
+    const searchRadius = Math.max(55, Math.min(180, effectiveSpeed * 2.9 * reversalBoost * lostBoost));
 
     const tWidth = adaptiveTemplate.width;
     const tHeight = adaptiveTemplate.height;
@@ -740,18 +742,34 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     const avgDiff = bestDiff / (pixelsChecked * 3);
     
     // Dynamic loss threshold: tolerate higher diff during fast movement / reversal.
-    const lostThreshold = 90 + Math.min(90, effectiveSpeed * 0.8) + (reversalBoost > 1 ? 20 : 0);
+    // (Motion blur at the top/bottom can inflate avgDiff significantly.)
+    const lostThreshold = 95 + Math.min(110, effectiveSpeed * 0.9) + (reversalBoost > 1 ? 25 : 0);
     const isLost = avgDiff > lostThreshold;
     if (isLost) {
       lostFramesRef.current = Math.min(10, lostFramesRef.current + 1);
       setTrackingStatus('lost');
-      // IMPORTANT: don't freeze on loss; keep moving so we can re-acquire.
-      return { pos: { x: foundX, y: foundY }, matchImg: matchData, diff: avgDiff, isLost: true };
+      // IMPORTANT: don't freeze on loss; keep moving via prediction.
+      // Also: do NOT jump to the "best" match when it's above the loss threshold—
+      // that's how we drift to a wrong feature (often at the top of reps).
+      if (lostLogCounterRef.current < 5) {
+        lostLogCounterRef.current += 1;
+        console.info('[BarSpeed] tracking lost', {
+          avgDiff: Number(avgDiff.toFixed(1)),
+          lostThreshold: Number(lostThreshold.toFixed(1)),
+          speed: Number(speed.toFixed(1)),
+          effectiveSpeed: Number(effectiveSpeed.toFixed(1)),
+          reversalBoost,
+          searchRadius: Number(searchRadius.toFixed(1)),
+          lostFrames: lostFramesRef.current,
+        });
+      }
+      return { pos: { x: predX, y: predY }, matchImg: matchData, diff: avgDiff, isLost: true };
     }
 
     // Good lock
     lostFramesRef.current = 0;
     lastGoodSpeedRef.current = speed;
+    lostLogCounterRef.current = 0;
     setTrackingStatus('ok');
 
     if (avgDiff > 5 && avgDiff < 65 && speed > 2) {
