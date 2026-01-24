@@ -655,25 +655,60 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     let bestY = 0;
     let bestDiff = 0;
 
+    // When there's recent blur (high recent speed), use a coarser sample step to tolerate smeared edges.
+    const blurAdjust = lastGoodSpeedRef.current > 30 || reversalBoost > 1;
+    const sampleStep = blurAdjust ? 6 : 4;
+
+    // Helper: compute mean brightness for a patch (used for normalization).
+    const patchMeanBrightness = (data: Uint8ClampedArray, w: number, h: number, step: number): number => {
+      let sum = 0, n = 0;
+      for (let py = 0; py < h; py += step) {
+        for (let px = 0; px < w; px += step) {
+          const idx = (py * w + px) * 4;
+          sum += data[idx] + data[idx + 1] + data[idx + 2];
+          n += 3;
+        }
+      }
+      return n > 0 ? sum / n : 128;
+    };
+
+    // Precompute template means for normalization.
+    const adaptiveMean = patchMeanBrightness(adaptiveTemplate.data, tWidth, tHeight, sampleStep);
+    const initialMean = initialTemplate ? patchMeanBrightness(initialTemplate.data, tWidth, tHeight, sampleStep) : 128;
+
     for (let y = 0; y <= searchHeight - tHeight; y += 2) {
       for (let x = 0; x <= searchWidth - tWidth; x += 2) {
+        // Compute search patch mean brightness for normalization.
+        let pSum = 0, pN = 0;
+        for (let ty = 0; ty < tHeight; ty += sampleStep) {
+          for (let tx = 0; tx < tWidth; tx += sampleStep) {
+            const sIndex = ((y + ty) * searchWidth + (x + tx)) * 4;
+            pSum += searchData.data[sIndex] + searchData.data[sIndex + 1] + searchData.data[sIndex + 2];
+            pN += 3;
+          }
+        }
+        const patchMean = pN > 0 ? pSum / pN : 128;
+        const adaptiveOffset = patchMean - adaptiveMean;
+        const initialOffset = patchMean - initialMean;
+
         let diffAdaptive = 0;
         let diffInitial = 0;
 
-        for (let ty = 0; ty < tHeight; ty += 4) {
-          for (let tx = 0; tx < tWidth; tx += 4) {
+        for (let ty = 0; ty < tHeight; ty += sampleStep) {
+          for (let tx = 0; tx < tWidth; tx += sampleStep) {
             const tIndex = (ty * tWidth + tx) * 4;
             const sIndex = ((y + ty) * searchWidth + (x + tx)) * 4;
 
-            const rA = Math.abs(searchData.data[sIndex] - adaptiveTemplate.data[tIndex]);
-            const gA = Math.abs(searchData.data[sIndex + 1] - adaptiveTemplate.data[tIndex + 1]);
-            const bA = Math.abs(searchData.data[sIndex + 2] - adaptiveTemplate.data[tIndex + 2]);
+            // Brightness-normalized comparison.
+            const rA = Math.abs(searchData.data[sIndex] - (adaptiveTemplate.data[tIndex] + adaptiveOffset));
+            const gA = Math.abs(searchData.data[sIndex + 1] - (adaptiveTemplate.data[tIndex + 1] + adaptiveOffset));
+            const bA = Math.abs(searchData.data[sIndex + 2] - (adaptiveTemplate.data[tIndex + 2] + adaptiveOffset));
             diffAdaptive += rA + gA + bA;
 
             if (initialTemplate) {
-              const rI = Math.abs(searchData.data[sIndex] - initialTemplate.data[tIndex]);
-              const gI = Math.abs(searchData.data[sIndex + 1] - initialTemplate.data[tIndex + 1]);
-              const bI = Math.abs(searchData.data[sIndex + 2] - initialTemplate.data[tIndex + 2]);
+              const rI = Math.abs(searchData.data[sIndex] - (initialTemplate.data[tIndex] + initialOffset));
+              const gI = Math.abs(searchData.data[sIndex + 1] - (initialTemplate.data[tIndex + 1] + initialOffset));
+              const bI = Math.abs(searchData.data[sIndex + 2] - (initialTemplate.data[tIndex + 2] + initialOffset));
               diffInitial += rI + gI + bI;
             }
           }
@@ -687,8 +722,8 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
         const offX = candidateX - cx;
         const offY = candidateY - cy;
         const perpDist = Math.abs(offX * trajectory.y - offY * trajectory.x);
-        // When reacquiring, be less strict about staying on the prior rail.
-        const pathPenalty = perpDist * (lostFramesRef.current > 0 ? 7.5 : 25.0);
+        // When reacquiring or during blur, be less strict about staying on the prior rail.
+        const pathPenalty = perpDist * (lostFramesRef.current > 0 || blurAdjust ? 7.5 : 25.0);
 
         const centerX = x + Math.floor(tWidth / 2);
         const centerY = y + Math.floor(tHeight / 2);
@@ -698,7 +733,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
         const bC = searchData.data[scIdx + 2];
         const centerDiff = Math.abs(rC - rRef) + Math.abs(gC - gRef) + Math.abs(bC - bRef);
         // Center color can shift with motion blur/lighting; reduce its influence during reversals/loss.
-        const centerPenaltyMultiplier = (lostFramesRef.current > 0 || reversalBoost > 1) ? 12 : 50;
+        const centerPenaltyMultiplier = (lostFramesRef.current > 0 || reversalBoost > 1 || blurAdjust) ? 8 : 50;
         const centerPenalty = centerDiff * centerPenaltyMultiplier;
 
         const edgeThreshold = 15;
