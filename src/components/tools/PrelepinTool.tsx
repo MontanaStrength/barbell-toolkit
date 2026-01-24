@@ -9,6 +9,10 @@ interface PrelepinToolProps {
 const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
   const [intensity, setIntensity] = useState([75]);
 
+  const minIntensity = 50;
+  const maxIntensity = 100;
+  const intensityTicks = [50, 70, 80, 90, 100] as const;
+
   const getRecommendation = (value: number) => {
     if (value < 70) {
       return {
@@ -82,23 +86,26 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
               </span>
             </div>
 
-            <div className="px-2">
+            <div className="px-2 [--primary:var(--tool-emerald)] [--ring:var(--tool-emerald)]">
               <Slider
                 value={intensity}
                 onValueChange={setIntensity}
-                min={50}
-                max={100}
+                min={minIntensity}
+                max={maxIntensity}
                 step={1}
-                className="[&_[data-orientation=horizontal]]:h-2 [&>span:first-child]:bg-secondary [&>span:first-child>span]:bg-tool-emerald [&_[role=slider]]:bg-tool-emerald [&_[role=slider]]:border-tool-emerald"
               />
             </div>
 
-            <div className="flex justify-between text-xs text-muted-foreground mt-3">
-              <span>50%</span>
-              <span>70%</span>
-              <span>80%</span>
-              <span>90%</span>
-              <span>100%</span>
+            <div className="relative mt-3 h-4 text-xs text-muted-foreground">
+              {intensityTicks.map((t) => (
+                <span
+                  key={t}
+                  className="absolute -translate-x-1/2"
+                  style={{ left: `${((t - minIntensity) / (maxIntensity - minIntensity)) * 100}%` }}
+                >
+                  {t}%
+                </span>
+              ))}
             </div>
           </div>
 
