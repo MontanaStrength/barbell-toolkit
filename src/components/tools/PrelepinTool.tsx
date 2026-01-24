@@ -11,7 +11,7 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
 
   const minIntensity = 50;
   const maxIntensity = 100;
-  const intensityTicks = [50, 70, 80, 90, 100] as const;
+  const intensityTicks = [50, 60, 70, 80, 90, 100] as const;
   const zoneBoundaries = [70, 80, 90] as const;
   
   // Zone segments for color-coded track (percentages of slider width)
