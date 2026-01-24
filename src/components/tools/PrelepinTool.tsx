@@ -12,6 +12,7 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
   const minIntensity = 50;
   const maxIntensity = 100;
   const intensityTicks = [50, 70, 80, 90, 100] as const;
+  const zoneBoundaries = [70, 80, 90] as const;
 
   const getRecommendation = (value: number) => {
     if (value < 70) {
@@ -86,7 +87,15 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
               </span>
             </div>
 
-            <div className="px-2 [--primary:var(--tool-emerald)] [--ring:var(--tool-emerald)]">
+            <div className="px-2 [--primary:var(--tool-emerald)] [--ring:var(--tool-emerald)] relative">
+              {/* Zone boundary tick marks */}
+              {zoneBoundaries.map((boundary) => (
+                <div
+                  key={boundary}
+                  className="absolute top-1/2 -translate-y-1/2 w-px h-4 bg-muted-foreground/40 pointer-events-none z-10"
+                  style={{ left: `${((boundary - minIntensity) / (maxIntensity - minIntensity)) * 100}%` }}
+                />
+              ))}
               <Slider
                 value={intensity}
                 onValueChange={setIntensity}
