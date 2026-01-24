@@ -35,7 +35,7 @@ const Header = () => {
               className="border-tool-red/50 bg-tool-red/10 text-tool-red hover:bg-tool-red/20 hover:border-tool-red px-4 py-2"
             >
               <Heart className="w-5 h-5 mr-2 fill-tool-red" />
-              <span className="text-sm font-semibold">Support</span>
+              <span className="text-sm font-semibold">Support this Project</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-card border-border">
