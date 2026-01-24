@@ -376,6 +376,12 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
   const trackerPosRef = useRef<Position | null>(null);
   const velocityRef = useRef<Velocity>({ x: 0, y: 0 });
   const trajectoryRef = useRef<Velocity>({ x: 0, y: 1 });
+
+  // When the sleeve reverses direction at the bottom of a rep, instantaneous velocity can be ~0
+  // while displacement between frames is still large (high acceleration). These refs let us
+  // keep the search window large enough to survive that reversal and avoid permanently freezing.
+  const lostFramesRef = useRef(0);
+  const lastGoodSpeedRef = useRef(0);
   
   const templateDataRef = useRef<ImageData | null>(null);
   const initialTemplateRef = useRef<ImageData | null>(null);
@@ -593,18 +599,28 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     setTrackingStatus('ok');
   };
 
-  const findTemplate = (cx: number, cy: number, vx: number, vy: number, trajectory: Velocity): { pos: Position; matchImg: ImageData | null; diff: number } => {
+  const findTemplate = (
+    cx: number,
+    cy: number,
+    vx: number,
+    vy: number,
+    trajectory: Velocity
+  ): { pos: Position; matchImg: ImageData | null; diff: number; isLost: boolean } => {
     const adaptiveTemplate = templateDataRef.current;
     const initialTemplate = initialTemplateRef.current;
-    if (!adaptiveTemplate || !videoRef.current) return { pos: { x: cx, y: cy }, matchImg: null, diff: 0 };
+    if (!adaptiveTemplate || !videoRef.current) return { pos: { x: cx, y: cy }, matchImg: null, diff: 0, isLost: false };
     
     const video = videoRef.current;
     const pCanvas = processingCanvasRef.current;
     const pCtx = pCanvas.getContext('2d');
-    if (!pCtx) return { pos: { x: cx, y: cy }, matchImg: null, diff: 0 };
+    if (!pCtx) return { pos: { x: cx, y: cy }, matchImg: null, diff: 0, isLost: false };
 
     const speed = Math.sqrt(vx * vx + vy * vy);
-    const searchRadius = Math.max(35, Math.min(80, speed * 2.5));
+    // Use recent "good" speed to keep search radius large during reversals (speed briefly dips).
+    const effectiveSpeed = Math.max(speed, lastGoodSpeedRef.current * (lostFramesRef.current > 0 ? 0.9 : 0.6));
+    const reversalBoost = speed < 8 && lastGoodSpeedRef.current > 25 ? 1.8 : 1;
+    const lostBoost = lostFramesRef.current > 0 ? 1.5 : 1;
+    const searchRadius = Math.max(45, Math.min(160, effectiveSpeed * 2.8 * reversalBoost * lostBoost));
 
     const tWidth = adaptiveTemplate.width;
     const tHeight = adaptiveTemplate.height;
@@ -614,6 +630,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     const gRef = initialTemplate ? initialTemplate.data[cIdx + 1] : 0;
     const bRef = initialTemplate ? initialTemplate.data[cIdx + 2] : 0;
 
+    // Keep prediction simple, but allow the larger search window to handle high acceleration.
     const predX = cx + vx;
     const predY = cy + vy;
 
@@ -624,7 +641,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     const searchWidth = endX - startX;
     const searchHeight = endY - startY;
 
-    if (searchWidth <= 0 || searchHeight <= 0) return { pos: { x: cx, y: cy }, matchImg: null, diff: 0 };
+     if (searchWidth <= 0 || searchHeight <= 0) return { pos: { x: cx, y: cy }, matchImg: null, diff: 0, isLost: false };
 
     pCanvas.width = searchWidth;
     pCanvas.height = searchHeight;
@@ -668,7 +685,8 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
         const offX = candidateX - cx;
         const offY = candidateY - cy;
         const perpDist = Math.abs(offX * trajectory.y - offY * trajectory.x);
-        const pathPenalty = perpDist * 25.0;
+        // When reacquiring, be less strict about staying on the prior rail.
+        const pathPenalty = perpDist * (lostFramesRef.current > 0 ? 7.5 : 25.0);
 
         const centerX = x + Math.floor(tWidth / 2);
         const centerY = y + Math.floor(tHeight / 2);
@@ -677,7 +695,9 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
         const gC = searchData.data[scIdx + 1];
         const bC = searchData.data[scIdx + 2];
         const centerDiff = Math.abs(rC - rRef) + Math.abs(gC - gRef) + Math.abs(bC - bRef);
-        const centerPenalty = centerDiff * 50;
+        // Center color can shift with motion blur/lighting; reduce its influence during reversals/loss.
+        const centerPenaltyMultiplier = (lostFramesRef.current > 0 || reversalBoost > 1) ? 12 : 50;
+        const centerPenalty = centerDiff * centerPenaltyMultiplier;
 
         const edgeThreshold = 15;
         const distL = candidateX - (tWidth / 2);
@@ -707,7 +727,8 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     const dx = foundX - predX;
     const dy = foundY - predY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const maxStep = 40;
+    // Allow larger corrections when the search window is large (typical at the bottom reversal).
+    const maxStep = Math.max(40, Math.min(120, searchRadius * 0.7));
 
     if (dist > maxStep) {
       const ratio = maxStep / dist;
@@ -718,12 +739,20 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
     const pixelsChecked = (tWidth * tHeight) / 16;
     const avgDiff = bestDiff / (pixelsChecked * 3);
     
-    if (avgDiff > 90) {
+    // Dynamic loss threshold: tolerate higher diff during fast movement / reversal.
+    const lostThreshold = 90 + Math.min(90, effectiveSpeed * 0.8) + (reversalBoost > 1 ? 20 : 0);
+    const isLost = avgDiff > lostThreshold;
+    if (isLost) {
+      lostFramesRef.current = Math.min(10, lostFramesRef.current + 1);
       setTrackingStatus('lost');
-      return { pos: { x: cx, y: cy }, matchImg: matchData, diff: avgDiff };
-    } else {
-      setTrackingStatus('ok');
+      // IMPORTANT: don't freeze on loss; keep moving so we can re-acquire.
+      return { pos: { x: foundX, y: foundY }, matchImg: matchData, diff: avgDiff, isLost: true };
     }
+
+    // Good lock
+    lostFramesRef.current = 0;
+    lastGoodSpeedRef.current = speed;
+    setTrackingStatus('ok');
 
     if (avgDiff > 5 && avgDiff < 65 && speed > 2) {
       const initialDiff = calculateDiff(matchData, initialTemplateRef.current);
@@ -733,7 +762,7 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
       }
     }
 
-    return { pos: { x: foundX, y: foundY }, matchImg: matchData, diff: avgDiff };
+    return { pos: { x: foundX, y: foundY }, matchImg: matchData, diff: avgDiff, isLost: false };
   };
 
   const calculateDiff = (img1: ImageData | null, img2: ImageData | null): number => {
@@ -772,8 +801,11 @@ export default function BarbellVelocityTracker({ onBack }: BarbellVelocityTracke
           safeVy *= ratio;
         }
 
-        const newVx = (prevVel.x * 0.3) + (safeVx * 0.7);
-        const newVy = (prevVel.y * 0.3) + (safeVy * 0.7);
+        // If we're in a "lost" frame, avoid collapsing velocity to ~0 (which shrinks the
+        // search window next frame and can cause permanent loss).
+        const blend = result.isLost ? 0.25 : 0.7;
+        const newVx = (prevVel.x * (1 - blend)) + (safeVx * blend);
+        const newVy = (prevVel.y * (1 - blend)) + (safeVy * blend);
         velocityRef.current = { x: newVx, y: newVy };
         
         if (pixelsPerMeter) {
