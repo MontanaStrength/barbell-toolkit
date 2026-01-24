@@ -14,12 +14,22 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
   const intensityTicks = [50, 60, 70, 80, 90, 100] as const;
   const zoneBoundaries = [70, 80, 90] as const;
   
+  // Determine which zone index is active (0-3)
+  const getActiveZoneIndex = (value: number) => {
+    if (value < 70) return 0;
+    if (value < 80) return 1;
+    if (value < 90) return 2;
+    return 3;
+  };
+  
+  const activeZoneIndex = getActiveZoneIndex(intensity[0]);
+  
   // Zone segments for color-coded track (percentages of slider width)
   const zoneSegments = [
-    { start: 0, end: 40, color: "bg-tool-blue/30" },      // 50-70% = 0-40% of track
-    { start: 40, end: 60, color: "bg-tool-emerald/30" },  // 70-80% = 40-60% of track
-    { start: 60, end: 80, color: "bg-tool-yellow/30" },   // 80-90% = 60-80% of track
-    { start: 80, end: 100, color: "bg-tool-red/30" },     // 90-100% = 80-100% of track
+    { start: 0, end: 40, baseColor: "bg-tool-blue", glowColor: "shadow-[0_0_8px_hsl(var(--tool-blue))]" },      // 50-70%
+    { start: 40, end: 60, baseColor: "bg-tool-emerald", glowColor: "shadow-[0_0_8px_hsl(var(--tool-emerald))]" },  // 70-80%
+    { start: 60, end: 80, baseColor: "bg-tool-yellow", glowColor: "shadow-[0_0_8px_hsl(var(--tool-yellow))]" },   // 80-90%
+    { start: 80, end: 100, baseColor: "bg-tool-red", glowColor: "shadow-[0_0_8px_hsl(var(--tool-red))]" },     // 90-100%
   ];
 
   const getRecommendation = (value: number) => {
@@ -99,16 +109,19 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
               {/* Color-coded zone segments */}
               <div className="absolute inset-0 flex items-center pointer-events-none">
                 <div className="relative w-full h-2 rounded-full overflow-hidden">
-                  {zoneSegments.map((segment, i) => (
-                    <div
-                      key={i}
-                      className={`absolute top-0 h-full ${segment.color}`}
-                      style={{
-                        left: `${segment.start}%`,
-                        width: `${segment.end - segment.start}%`,
-                      }}
-                    />
-                  ))}
+                  {zoneSegments.map((segment, i) => {
+                    const isActive = i === activeZoneIndex;
+                    return (
+                      <div
+                        key={i}
+                        className={`absolute top-0 h-full transition-all duration-200 ${segment.baseColor} ${isActive ? "opacity-70" : "opacity-30"} ${isActive ? segment.glowColor : ""}`}
+                        style={{
+                          left: `${segment.start}%`,
+                          width: `${segment.end - segment.start}%`,
+                        }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
               
