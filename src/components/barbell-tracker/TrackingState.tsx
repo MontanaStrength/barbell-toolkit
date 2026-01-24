@@ -32,8 +32,11 @@ export function TrackingState({
   // Reference color from initial calibration (set on first frame)
   const referenceColorRef = useRef<{ r: number; g: number; b: number } | null>(null);
   const consecutiveLossCountRef = useRef(0);
+  // Velocity tracking for prediction
+  const velocityRef = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
+  const prevPositionRef = useRef<{ x: number; y: number } | null>(null);
 
-  // Enhanced tracking with color matching and adaptive search
+  // Enhanced tracking with color matching, velocity prediction, and adaptive search
   const trackFrame = useCallback((
     video: HTMLVideoElement,
     canvas: HTMLCanvasElement,
@@ -47,14 +50,40 @@ export function TrackingState({
     // Draw current frame
     ctx.drawImage(video, 0, 0);
 
-    // Adaptive search radius - expands when tracking is lost
-    const baseSearchRadius = circleRadius * 1.5;
-    const lossMultiplier = Math.min(3, 1 + consecutiveLossCountRef.current * 0.5);
-    const searchRadius = baseSearchRadius * lossMultiplier;
+    // Calculate current velocity from previous positions
+    let velocity = velocityRef.current;
+    if (prevPositionRef.current && !isFirstFrame) {
+      velocity = {
+        vx: lastPos.x - prevPositionRef.current.x,
+        vy: lastPos.y - prevPositionRef.current.y,
+      };
+      // Smooth velocity with exponential moving average
+      velocityRef.current = {
+        vx: velocity.vx * 0.7 + velocityRef.current.vx * 0.3,
+        vy: velocity.vy * 0.7 + velocityRef.current.vy * 0.3,
+      };
+    }
     
-    // Get image data around last position
-    const searchX = Math.max(0, Math.floor(lastPos.x - searchRadius));
-    const searchY = Math.max(0, Math.floor(lastPos.y - searchRadius));
+    // Calculate speed for adaptive parameters
+    const speed = Math.sqrt(velocity.vx * velocity.vx + velocity.vy * velocity.vy);
+    const isMovingFast = speed > circleRadius * 0.3;
+
+    // Predict next position based on velocity (helps with fast movements)
+    const predictedPos = {
+      x: lastPos.x + velocityRef.current.vx * 0.8,
+      y: lastPos.y + velocityRef.current.vy * 0.8,
+    };
+
+    // Adaptive search radius - larger when moving fast or tracking lost
+    const baseSearchRadius = circleRadius * 2;
+    const speedMultiplier = 1 + Math.min(2, speed / circleRadius);
+    const lossMultiplier = Math.min(3, 1 + consecutiveLossCountRef.current * 0.5);
+    const searchRadius = baseSearchRadius * Math.max(speedMultiplier, lossMultiplier);
+    
+    // Search around predicted position instead of last position
+    const searchCenter = consecutiveLossCountRef.current > 0 ? lastPos : predictedPos;
+    const searchX = Math.max(0, Math.floor(searchCenter.x - searchRadius));
+    const searchY = Math.max(0, Math.floor(searchCenter.y - searchRadius));
     const searchW = Math.min(Math.floor(searchRadius * 2), canvas.width - searchX);
     const searchH = Math.min(Math.floor(searchRadius * 2), canvas.height - searchY);
     
@@ -67,7 +96,7 @@ export function TrackingState({
       if (isFirstFrame || !referenceColorRef.current) {
         const centerX = Math.floor(searchW / 2);
         const centerY = Math.floor(searchH / 2);
-        const sampleRadius = Math.floor(circleRadius * 0.3);
+        const sampleRadius = Math.floor(circleRadius * 0.4);
         let rSum = 0, gSum = 0, bSum = 0, samples = 0;
         
         for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
@@ -91,6 +120,7 @@ export function TrackingState({
             b: bSum / samples,
           };
         }
+        prevPositionRef.current = { ...lastPos };
       }
 
       const refColor = referenceColorRef.current;
@@ -100,9 +130,10 @@ export function TrackingState({
       let sumX = 0, sumY = 0, totalWeight = 0;
       let bestMatchWeight = 0;
       
-      // Calculate color similarity threshold based on reference brightness
+      // Loosen color tolerance when moving fast (motion blur changes appearance)
       const refBrightness = (refColor.r + refColor.g + refColor.b) / 3;
-      const colorTolerance = Math.max(40, refBrightness * 0.4);
+      const baseColorTolerance = Math.max(50, refBrightness * 0.5);
+      const colorTolerance = isMovingFast ? baseColorTolerance * 1.5 : baseColorTolerance;
       
       for (let y = 0; y < searchH; y++) {
         for (let x = 0; x < searchW; x++) {
@@ -121,19 +152,24 @@ export function TrackingState({
           // Weight based on color similarity (Gaussian falloff)
           const colorWeight = Math.exp(-colorDist * colorDist / (2 * colorTolerance * colorTolerance));
           
-          // Distance from last position (prefer nearby matches)
+          // Distance from predicted position (not last position)
           const posX = searchX + x;
           const posY = searchY + y;
           const posDist = Math.sqrt(
-            Math.pow(posX - lastPos.x, 2) +
-            Math.pow(posY - lastPos.y, 2)
+            Math.pow(posX - predictedPos.x, 2) +
+            Math.pow(posY - predictedPos.y, 2)
           );
-          const posWeight = Math.exp(-posDist * posDist / (2 * baseSearchRadius * baseSearchRadius));
+          // Wider position tolerance when moving fast
+          const posRadius = isMovingFast ? searchRadius : baseSearchRadius;
+          const posWeight = Math.exp(-posDist * posDist / (2 * posRadius * posRadius));
           
-          // Combined weight
-          const weight = colorWeight * (0.7 + 0.3 * posWeight);
+          // Combined weight - prioritize color when moving fast
+          const colorPriority = isMovingFast ? 0.85 : 0.7;
+          const weight = colorWeight * (colorPriority + (1 - colorPriority) * posWeight);
           
-          if (colorWeight > 0.3) { // Only consider good color matches
+          // Lower threshold when moving fast to catch motion-blurred object
+          const matchThreshold = isMovingFast ? 0.2 : 0.3;
+          if (colorWeight > matchThreshold) {
             sumX += x * weight;
             sumY += y * weight;
             totalWeight += weight;
@@ -142,19 +178,24 @@ export function TrackingState({
         }
       }
       
-      if (totalWeight > 0 && bestMatchWeight > 0.4) {
+      // Lower confidence threshold when moving fast
+      const confidenceThreshold = isMovingFast ? 0.25 : 0.4;
+      
+      if (totalWeight > 0 && bestMatchWeight > confidenceThreshold) {
         const newX = searchX + sumX / totalWeight;
-        const newY = searchY + totalWeight > 0 ? searchY + sumY / totalWeight : lastPos.y;
+        const newY = searchY + sumY / totalWeight;
         
-        // Allow faster movement when tracking is confident
-        const maxMove = circleRadius * (0.8 + consecutiveLossCountRef.current * 0.3);
+        // Allow much faster movement - no artificial clamping
+        // Trust the color matching instead
+        const maxMove = circleRadius * (3 + speed / circleRadius);
         const dx = Math.max(-maxMove, Math.min(maxMove, newX - lastPos.x));
         const dy = Math.max(-maxMove, Math.min(maxMove, newY - lastPos.y));
         
-        // Smoothing factor based on confidence
-        const smoothing = 0.6 + 0.3 * bestMatchWeight;
+        // Less smoothing when moving fast (need to keep up with rapid changes)
+        const smoothing = isMovingFast ? 0.85 : (0.6 + 0.3 * bestMatchWeight);
         
         consecutiveLossCountRef.current = 0; // Reset loss counter
+        prevPositionRef.current = { ...lastPos };
         
         return {
           x: lastPos.x + dx * smoothing,
