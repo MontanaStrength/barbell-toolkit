@@ -158,40 +158,40 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
           </div>
 
           <div className="mb-6">
-            <div className={`inline-block px-4 py-2 rounded-full bg-secondary border border-border mb-3`}>
-              <span className={`font-medium ${zoneColor}`}>
+            <div className={`inline-block px-4 py-2 rounded-full bg-secondary border border-border mb-3 transition-all duration-300`}>
+              <span className={`font-medium ${zoneColor} transition-colors duration-300`}>
                 {recommendation.zone}
               </span>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground transition-opacity duration-300">
               {recommendation.description}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
+            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border transition-all duration-300">
               <p className="text-muted-foreground text-sm mb-2">
                 Recommended Sets
               </p>
-              <p className="text-3xl font-semibold text-foreground">
+              <p className={`text-3xl font-semibold ${zoneColor} transition-colors duration-300`}>
                 {recommendation.sets}
               </p>
             </div>
 
-            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
+            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border transition-all duration-300">
               <p className="text-muted-foreground text-sm mb-2">
                 Reps per Set
               </p>
-              <p className="text-3xl font-semibold text-foreground">
+              <p className={`text-3xl font-semibold ${zoneColor} transition-colors duration-300`}>
                 {recommendation.reps}
               </p>
             </div>
 
-            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
+            <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border transition-all duration-300">
               <p className="text-muted-foreground text-sm mb-2">
                 Total Volume Range
               </p>
-              <p className="text-3xl font-semibold text-foreground">
+              <p className={`text-3xl font-semibold ${zoneColor} transition-colors duration-300`}>
                 {recommendation.totalVolume}
               </p>
             </div>
