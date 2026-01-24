@@ -13,6 +13,14 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
   const maxIntensity = 100;
   const intensityTicks = [50, 70, 80, 90, 100] as const;
   const zoneBoundaries = [70, 80, 90] as const;
+  
+  // Zone segments for color-coded track (percentages of slider width)
+  const zoneSegments = [
+    { start: 0, end: 40, color: "bg-tool-blue/30" },      // 50-70% = 0-40% of track
+    { start: 40, end: 60, color: "bg-tool-emerald/30" },  // 70-80% = 40-60% of track
+    { start: 60, end: 80, color: "bg-tool-yellow/30" },   // 80-90% = 60-80% of track
+    { start: 80, end: 100, color: "bg-tool-red/30" },     // 90-100% = 80-100% of track
+  ];
 
   const getRecommendation = (value: number) => {
     if (value < 70) {
@@ -87,21 +95,39 @@ const PrelepinTool = ({ onBack }: PrelepinToolProps) => {
               </span>
             </div>
 
-            <div className="px-2 [--primary:var(--tool-emerald)] [--ring:var(--tool-emerald)] relative">
+            <div className="px-2 relative">
+              {/* Color-coded zone segments */}
+              <div className="absolute inset-0 flex items-center pointer-events-none">
+                <div className="relative w-full h-2 rounded-full overflow-hidden">
+                  {zoneSegments.map((segment, i) => (
+                    <div
+                      key={i}
+                      className={`absolute top-0 h-full ${segment.color}`}
+                      style={{
+                        left: `${segment.start}%`,
+                        width: `${segment.end - segment.start}%`,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              
               {/* Zone boundary tick marks */}
               {zoneBoundaries.map((boundary) => (
                 <div
                   key={boundary}
-                  className="absolute top-1/2 -translate-y-1/2 w-px h-4 bg-muted-foreground/40 pointer-events-none z-10"
+                  className="absolute top-1/2 -translate-y-1/2 w-px h-4 bg-muted-foreground/50 pointer-events-none z-10"
                   style={{ left: `${((boundary - minIntensity) / (maxIntensity - minIntensity)) * 100}%` }}
                 />
               ))}
+              
               <Slider
                 value={intensity}
                 onValueChange={setIntensity}
                 min={minIntensity}
                 max={maxIntensity}
                 step={1}
+                className="relative z-0 [&>span:first-child]:bg-transparent [&>span:first-child>span]:bg-foreground/80 [&_[role=slider]]:bg-foreground [&_[role=slider]]:border-foreground"
               />
             </div>
 
