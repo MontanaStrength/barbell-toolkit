@@ -117,9 +117,11 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                 </span>
                 <div className="flex-1 grid grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Mass</Label>
+                    <Label className="text-xs text-muted-foreground">Intensity %</Label>
                     <Input
                       type="number"
+                      min="0"
+                      max="100"
                       value={set.intensity}
                       onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
                       placeholder="75"
