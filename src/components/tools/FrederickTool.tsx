@@ -20,6 +20,7 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
   const [sets, setSets] = useState<Set[]>([
     { id: 1, intensity: "", reps: "", rpe: "" },
   ]);
+  const [shakingSetId, setShakingSetId] = useState<number | null>(null);
 
   const addSet = () => {
     const firstSet = sets[0];
@@ -39,10 +40,14 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
 
   const updateSet = (id: number, field: keyof Omit<Set, "id">, value: string) => {
     let newValue = value;
-    // Clamp intensity to 0-100
+    // Clamp intensity to 0-100 with visual feedback
     if (field === "intensity" && value !== "") {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
+        if (numValue > 100) {
+          setShakingSetId(id);
+          setTimeout(() => setShakingSetId(null), 500);
+        }
         newValue = String(Math.min(100, Math.max(0, numValue)));
       }
     }
@@ -133,7 +138,9 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                       value={set.intensity}
                       onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
                       placeholder="75"
-                      className="bg-secondary border-border focus:border-tool-yellow h-9"
+                      className={`bg-secondary border-border focus:border-tool-yellow h-9 transition-all ${
+                        shakingSetId === set.id ? "animate-shake border-destructive" : ""
+                      }`}
                     />
                   </div>
                   <div className="space-y-1">
