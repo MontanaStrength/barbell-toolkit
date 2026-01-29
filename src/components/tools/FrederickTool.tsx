@@ -38,7 +38,15 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
   };
 
   const updateSet = (id: number, field: keyof Omit<Set, "id">, value: string) => {
-    setSets(sets.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+    let newValue = value;
+    // Clamp intensity to 0-100
+    if (field === "intensity" && value !== "") {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        newValue = String(Math.min(100, Math.max(0, numValue)));
+      }
+    }
+    setSets(sets.map((s) => (s.id === id ? { ...s, [field]: newValue } : s)));
   };
 
   // Correct formula: Loop through each rep, sum e^(-0.215 * (RIR + Reps - i)), multiply by mass
