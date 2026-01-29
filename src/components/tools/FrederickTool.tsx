@@ -134,7 +134,6 @@ const FrederickTool = ({ onBack }: FrederickToolProps) => {
                     <Input
                       type="number"
                       min="0"
-                      max="100"
                       value={set.intensity}
                       onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
                       placeholder="75"
