@@ -5,20 +5,28 @@ import BackButton from "@/components/ui/back-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getIntensityFromRPE } from "@/lib/rpe-table";
 
 interface HanleyToolProps {
   onBack: () => void;
 }
 
+type InputMode = "intensity" | "rpe";
+
 interface Set {
   id: number;
   reps: string;
   intensity: string;
+  rpe: string;
+  inputMode: InputMode;
 }
+
+const RPE_VALUES = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
 
 const HanleyTool = ({ onBack }: HanleyToolProps) => {
   const [sets, setSets] = useState<Set[]>([
-    { id: 1, reps: "", intensity: "" },
+    { id: 1, reps: "", intensity: "", rpe: "", inputMode: "intensity" },
   ]);
 
   // Reverse calculator state
@@ -26,7 +34,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   const [reverseIntensity, setReverseIntensity] = useState("");
 
   const addSet = () => {
-    setSets([...sets, { id: Date.now(), reps: "", intensity: "" }]);
+    setSets([...sets, { id: Date.now(), reps: "", intensity: "", rpe: "", inputMode: "intensity" }]);
   };
 
   const removeSet = (id: number) => {
@@ -35,8 +43,32 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
     }
   };
 
-  const updateSet = (id: number, field: "reps" | "intensity", value: string) => {
-    setSets(sets.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+  const updateSet = (id: number, field: "reps" | "intensity" | "rpe", value: string) => {
+    setSets(sets.map((s) => {
+      if (s.id !== id) return s;
+      const updated = { ...s, [field]: value };
+
+      // When in RPE mode and reps or RPE changes, auto-compute intensity
+      if (updated.inputMode === "rpe") {
+        const reps = parseInt(updated.reps);
+        const rpe = parseFloat(updated.rpe);
+        if (!isNaN(reps) && !isNaN(rpe)) {
+          const intensity = getIntensityFromRPE(reps, rpe);
+          updated.intensity = intensity !== null ? String(intensity) : "";
+        } else {
+          updated.intensity = "";
+        }
+      }
+
+      return updated;
+    }));
+  };
+
+  const toggleInputMode = (id: number, mode: InputMode) => {
+    setSets(sets.map((s) => {
+      if (s.id !== id) return s;
+      return { ...s, inputMode: mode, intensity: "", rpe: "" };
+    }));
   };
 
   // Formula: Score = Reps * (100 / (100 - Intensity))^2
@@ -49,10 +81,22 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   const defaultReps = 8;
   const defaultIntensity = 75;
 
+  const getEffectiveIntensity = (set: Set): number | null => {
+    if (set.inputMode === "rpe") {
+      const reps = parseInt(set.reps || String(defaultReps));
+      const rpe = parseFloat(set.rpe);
+      if (!isNaN(reps) && !isNaN(rpe)) {
+        return getIntensityFromRPE(reps, rpe);
+      }
+      return defaultIntensity;
+    }
+    return set.intensity ? parseFloat(set.intensity) : defaultIntensity;
+  };
+
   const totalScore = sets.reduce((acc, set) => {
     const reps = set.reps ? parseFloat(set.reps) : defaultReps;
-    const intensity = set.intensity ? parseFloat(set.intensity) : defaultIntensity;
-    if (isNaN(reps) || isNaN(intensity)) return acc;
+    const intensity = getEffectiveIntensity(set);
+    if (isNaN(reps) || intensity === null || isNaN(intensity)) return acc;
     return acc + calculateSetScore(reps, intensity);
   }, 0);
 
@@ -64,7 +108,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
     return { label: "You sure about this?", color: "text-tool-purple" };
   };
 
-  // Reverse calculator: Reps = TargetScore / (100 / (100 - Intensity))^2
+  // Reverse calculator
   const defaultTargetStress = 400;
   const defaultReverseIntensity = 80;
 
@@ -77,6 +121,34 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
 
   const reverseReps = calculateReverseReps();
   const stressLevel = getStressLevel(totalScore);
+
+  const ZoneReference = () => (
+    <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
+      <h3 className="text-sm font-medium text-foreground mb-3">Zone Reference</h3>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="p-4 rounded-lg bg-tool-emerald/10 border border-tool-emerald/20 text-center">
+          <p className="text-tool-emerald font-semibold text-base">Light</p>
+          <p className="text-muted-foreground text-sm mt-1">&lt; 400</p>
+        </div>
+        <div className="p-4 rounded-lg bg-tool-yellow/10 border border-tool-yellow/20 text-center">
+          <p className="text-tool-yellow font-semibold text-base">Moderate</p>
+          <p className="text-muted-foreground text-sm mt-1">400–499</p>
+        </div>
+        <div className="p-4 rounded-lg bg-orange-400/10 border border-orange-400/20 text-center">
+          <p className="text-orange-400 font-semibold text-base">Mod. High</p>
+          <p className="text-muted-foreground text-sm mt-1">500–599</p>
+        </div>
+        <div className="p-4 rounded-lg bg-tool-red/10 border border-tool-red/20 text-center">
+          <p className="text-tool-red font-semibold text-base">High</p>
+          <p className="text-muted-foreground text-sm mt-1">600–699</p>
+        </div>
+        <div className="p-4 rounded-lg bg-tool-purple/10 border border-tool-purple/20 text-center">
+          <p className="text-tool-purple font-semibold text-sm">Tread Carefully</p>
+          <p className="text-muted-foreground text-sm mt-1">≥ 700</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6 animate-slide-up">
@@ -128,47 +200,99 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
               </div>
 
               <div className="space-y-3">
-                {sets.map((set, index) => (
-                  <div
-                    key={set.id}
-                    className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border"
-                  >
-                    <span className="text-muted-foreground font-medium w-14 text-sm">
-                      Set {index + 1}
-                    </span>
-                    <div className="flex-1 grid grid-cols-2 gap-3">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Reps</Label>
-                        <Input
-                          type="number"
-                          value={set.reps}
-                          onChange={(e) => updateSet(set.id, "reps", e.target.value)}
-                          placeholder="8"
-                          className="bg-secondary border-border focus:border-tool-purple h-9"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Intensity %</Label>
-                        <Input
-                          type="number"
-                          value={set.intensity}
-                          onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
-                          placeholder="75"
-                          className="bg-secondary border-border focus:border-tool-purple h-9"
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeSet(set.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                      disabled={sets.length === 1}
+                {sets.map((set, index) => {
+                  const effectiveIntensity = getEffectiveIntensity(set);
+                  return (
+                    <div
+                      key={set.id}
+                      className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg border border-border"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+                      <span className="text-muted-foreground font-medium w-14 text-sm mt-7">
+                        Set {index + 1}
+                      </span>
+                      <div className="flex-1 space-y-2">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Reps</Label>
+                            <Input
+                              type="number"
+                              value={set.reps}
+                              onChange={(e) => updateSet(set.id, "reps", e.target.value)}
+                              placeholder="8"
+                              min="1"
+                              max="12"
+                              className="bg-secondary border-border focus:border-tool-purple h-9"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => toggleInputMode(set.id, "intensity")}
+                                className={`text-xs px-2 py-0.5 rounded-l-md border transition-colors ${
+                                  set.inputMode === "intensity"
+                                    ? "bg-tool-purple/15 text-tool-purple border-tool-purple/30 font-medium"
+                                    : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                                }`}
+                              >
+                                Intensity %
+                              </button>
+                              <button
+                                onClick={() => toggleInputMode(set.id, "rpe")}
+                                className={`text-xs px-2 py-0.5 rounded-r-md border transition-colors ${
+                                  set.inputMode === "rpe"
+                                    ? "bg-tool-purple/15 text-tool-purple border-tool-purple/30 font-medium"
+                                    : "bg-secondary text-muted-foreground border-border hover:text-foreground"
+                                }`}
+                              >
+                                RPE
+                              </button>
+                            </div>
+                            {set.inputMode === "intensity" ? (
+                              <Input
+                                type="number"
+                                value={set.intensity}
+                                onChange={(e) => updateSet(set.id, "intensity", e.target.value)}
+                                placeholder="75"
+                                className="bg-secondary border-border focus:border-tool-purple h-9"
+                              />
+                            ) : (
+                              <Select
+                                value={set.rpe}
+                                onValueChange={(val) => updateSet(set.id, "rpe", val)}
+                              >
+                                <SelectTrigger className="bg-secondary border-border focus:border-tool-purple h-9">
+                                  <SelectValue placeholder="Select RPE" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {RPE_VALUES.map((val) => (
+                                    <SelectItem key={val} value={String(val)}>
+                                      RPE {val}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        </div>
+                        {/* Show computed intensity when in RPE mode */}
+                        {set.inputMode === "rpe" && effectiveIntensity !== null && effectiveIntensity !== defaultIntensity && (
+                          <p className="text-xs text-muted-foreground">
+                            → Intensity: <span className="text-tool-purple font-medium">{effectiveIntensity}%</span>
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeSet(set.id)}
+                        className="text-muted-foreground hover:text-destructive mt-5"
+                        disabled={sets.length === 1}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
               </div>
 
               {totalScore > 0 && (
@@ -191,31 +315,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                 </div>
               )}
 
-              <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
-                <h3 className="text-sm font-medium text-foreground mb-3">Zone Reference</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div className="p-4 rounded-lg bg-tool-emerald/10 border border-tool-emerald/20 text-center">
-                    <p className="text-tool-emerald font-semibold text-base">Light</p>
-                    <p className="text-muted-foreground text-sm mt-1">&lt; 400</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-tool-yellow/10 border border-tool-yellow/20 text-center">
-                    <p className="text-tool-yellow font-semibold text-base">Moderate</p>
-                    <p className="text-muted-foreground text-sm mt-1">400–499</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-orange-400/10 border border-orange-400/20 text-center">
-                    <p className="text-orange-400 font-semibold text-base">Mod. High</p>
-                    <p className="text-muted-foreground text-sm mt-1">500–599</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-tool-red/10 border border-tool-red/20 text-center">
-                    <p className="text-tool-red font-semibold text-base">High</p>
-                    <p className="text-muted-foreground text-sm mt-1">600–699</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-tool-purple/10 border border-tool-purple/20 text-center">
-                    <p className="text-tool-purple font-semibold text-sm">Tread Carefully</p>
-                    <p className="text-muted-foreground text-sm mt-1">≥ 700</p>
-                  </div>
-                </div>
-              </div>
+              <ZoneReference />
             </div>
           </TabsContent>
 
@@ -262,31 +362,7 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
                 </div>
               )}
 
-              <div className="mt-6 p-4 bg-secondary/30 rounded-lg border border-border">
-                <h3 className="text-sm font-medium text-foreground mb-3">Zone Reference</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  <div className="p-4 rounded-lg bg-tool-emerald/10 border border-tool-emerald/20 text-center">
-                    <p className="text-tool-emerald font-semibold text-base">Light</p>
-                    <p className="text-muted-foreground text-sm mt-1">&lt; 400</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-tool-yellow/10 border border-tool-yellow/20 text-center">
-                    <p className="text-tool-yellow font-semibold text-base">Moderate</p>
-                    <p className="text-muted-foreground text-sm mt-1">400–499</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-orange-400/10 border border-orange-400/20 text-center">
-                    <p className="text-orange-400 font-semibold text-base">Mod. High</p>
-                    <p className="text-muted-foreground text-sm mt-1">500–599</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-tool-red/10 border border-tool-red/20 text-center">
-                    <p className="text-tool-red font-semibold text-base">High</p>
-                    <p className="text-muted-foreground text-sm mt-1">600–699</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-tool-purple/10 border border-tool-purple/20 text-center">
-                    <p className="text-tool-purple font-semibold text-sm">Tread Carefully</p>
-                    <p className="text-muted-foreground text-sm mt-1">≥ 700</p>
-                  </div>
-                </div>
-              </div>
+              <ZoneReference />
             </div>
           </TabsContent>
         </Tabs>
