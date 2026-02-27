@@ -32,7 +32,6 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   // Reverse calculator state
   const [targetStress, setTargetStress] = useState("");
   const [reverseIntensity, setReverseIntensity] = useState("");
-  const [reverseMode, setReverseMode] = useState<"intensity" | "rpe">("intensity");
 
   const addSet = () => {
     setSets([...sets, { id: Date.now(), reps: "", intensity: "", rpe: "", inputMode: "intensity" }]);
@@ -325,147 +324,42 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
               <h2 className="text-lg font-medium text-foreground mb-2">
                 Reverse Calculator
               </h2>
-              <p className="text-muted-foreground text-sm mb-4">
-                Enter a target stress score to find the required volume
+              <p className="text-muted-foreground text-sm mb-6">
+                Enter your target stress score and intensity to calculate required reps
               </p>
 
-              <div className="flex items-center gap-1.5 mb-6">
-                <button
-                  onClick={() => setReverseMode("intensity")}
-                  className={`text-xs px-3 py-1 rounded-l-md border transition-colors ${
-                    reverseMode === "intensity"
-                      ? "bg-tool-purple/15 text-tool-purple border-tool-purple/30 font-medium"
-                      : "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                  }`}
-                >
-                  By Intensity %
-                </button>
-                <button
-                  onClick={() => setReverseMode("rpe")}
-                  className={`text-xs px-3 py-1 rounded-r-md border transition-colors ${
-                    reverseMode === "rpe"
-                      ? "bg-tool-purple/15 text-tool-purple border-tool-purple/30 font-medium"
-                      : "bg-secondary text-muted-foreground border-border hover:text-foreground"
-                  }`}
-                >
-                  By RPE Range
-                </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm">Target Stress Score</Label>
+                  <Input
+                    type="number"
+                    value={targetStress}
+                    onChange={(e) => setTargetStress(e.target.value)}
+                    placeholder="400"
+                    className="bg-secondary border-border focus:border-tool-purple"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-sm">Intensity %</Label>
+                  <Input
+                    type="number"
+                    value={reverseIntensity}
+                    onChange={(e) => setReverseIntensity(e.target.value)}
+                    placeholder="80"
+                    className="bg-secondary border-border focus:border-tool-purple"
+                  />
+                </div>
               </div>
 
-              {reverseMode === "intensity" ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-sm">Target Stress Score</Label>
-                      <Input
-                        type="number"
-                        value={targetStress}
-                        onChange={(e) => setTargetStress(e.target.value)}
-                        placeholder="400"
-                        className="bg-secondary border-border focus:border-tool-purple"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-muted-foreground text-sm">Intensity %</Label>
-                      <Input
-                        type="number"
-                        value={reverseIntensity}
-                        onChange={(e) => setReverseIntensity(e.target.value)}
-                        placeholder="80"
-                        className="bg-secondary border-border focus:border-tool-purple"
-                      />
-                    </div>
-                  </div>
-
-                  {reverseReps !== null && (
-                    <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
-                      <p className="text-muted-foreground text-sm mb-1">
-                        Required Reps
-                      </p>
-                      <p className="text-3xl font-semibold text-tool-purple">
-                        {reverseReps.toFixed(1)}
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2 mb-6 max-w-xs">
-                    <Label className="text-muted-foreground text-sm">Target Stress Score</Label>
-                    <Input
-                      type="number"
-                      value={targetStress}
-                      onChange={(e) => setTargetStress(e.target.value)}
-                      placeholder="400"
-                      className="bg-secondary border-border focus:border-tool-purple"
-                    />
-                  </div>
-
-                  {(() => {
-                    const target = targetStress ? parseFloat(targetStress) : defaultTargetStress;
-                    if (isNaN(target) || target <= 0) return null;
-
-                    // For each RPE, find the best integer rep count (1-12) that gets closest to target
-                    const results = RPE_VALUES.map((rpe) => {
-                      let bestReps: number | null = null;
-                      let bestScore = 0;
-                      let bestIntensity = 0;
-
-                      for (let r = 1; r <= 12; r++) {
-                        const intensity = getIntensityFromRPE(r, rpe);
-                        if (intensity === null) continue;
-                        const score = calculateSetScore(r, intensity);
-                        if (bestReps === null || Math.abs(score - target) < Math.abs(bestScore - target)) {
-                          bestReps = r;
-                          bestScore = score;
-                          bestIntensity = intensity;
-                        }
-                      }
-
-                      return { rpe, reps: bestReps, score: bestScore, intensity: bestIntensity };
-                    });
-
-                    return (
-                      <div className="overflow-x-auto rounded-lg border border-border">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-border bg-secondary/50">
-                              <th className="text-left p-3 text-tool-purple font-medium">RPE</th>
-                              <th className="text-center p-3 text-muted-foreground font-medium">Reps</th>
-                              <th className="text-center p-3 text-muted-foreground font-medium">Intensity %</th>
-                              <th className="text-center p-3 text-muted-foreground font-medium">Actual Score</th>
-                              <th className="text-center p-3 text-muted-foreground font-medium">Δ</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {results.map(({ rpe, reps, score, intensity }, index) => {
-                              if (reps === null) return null;
-                              const delta = score - target;
-                              return (
-                                <tr
-                                  key={rpe}
-                                  className={`border-b border-border/50 transition-colors hover:bg-tool-purple/5 ${
-                                    index % 2 === 0 ? "bg-secondary/30" : ""
-                                  }`}
-                                >
-                                  <td className="p-3 font-medium text-tool-purple">{rpe}</td>
-                                  <td className="text-center p-3 text-foreground font-semibold">{reps}</td>
-                                  <td className="text-center p-3 text-muted-foreground">{intensity}%</td>
-                                  <td className="text-center p-3 text-foreground">{score.toFixed(1)}</td>
-                                  <td className={`text-center p-3 font-medium ${
-                                    Math.abs(delta) < 20 ? "text-tool-emerald" : Math.abs(delta) < 50 ? "text-tool-yellow" : "text-orange-400"
-                                  }`}>
-                                    {delta >= 0 ? "+" : ""}{delta.toFixed(1)}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })()}
-                </>
+              {reverseReps !== null && (
+                <div className="bg-secondary/50 rounded-lg p-5 text-center border border-border">
+                  <p className="text-muted-foreground text-sm mb-1">
+                    Required Reps
+                  </p>
+                  <p className="text-3xl font-semibold text-tool-purple">
+                    {reverseReps.toFixed(1)}
+                  </p>
+                </div>
               )}
 
               <ZoneReference />
