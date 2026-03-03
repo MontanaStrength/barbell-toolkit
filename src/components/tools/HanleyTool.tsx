@@ -34,7 +34,8 @@ const HanleyTool = ({ onBack }: HanleyToolProps) => {
   const [reverseIntensity, setReverseIntensity] = useState("");
 
   const addSet = () => {
-    setSets([...sets, { id: Date.now(), reps: "", intensity: "", rpe: "", inputMode: "intensity" }]);
+    const lastSet = sets[sets.length - 1];
+    setSets([...sets, { id: Date.now(), reps: lastSet.reps, intensity: lastSet.intensity, rpe: lastSet.rpe, inputMode: lastSet.inputMode }]);
   };
 
   const removeSet = (id: number) => {
