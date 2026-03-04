@@ -1,6 +1,6 @@
 import BackButton from "@/components/ui/back-button";
 import { Card, CardContent } from "@/components/ui/card";
-import heyLifterImage from "@/assets/hey-lifter.jpg";
+import sydSpaceImage from "@/assets/syd-space.png";
 
 interface JessicaBielToolProps {
   onBack: () => void;
@@ -14,8 +14,8 @@ const JessicaBielTool = ({ onBack }: JessicaBielToolProps) => {
       <Card className="overflow-hidden">
         <CardContent className="p-0">
           <img
-            src={heyLifterImage}
-            alt="Hey Lifter"
+            src={sydSpaceImage}
+            alt="Syd floating in space"
             className="w-full h-auto object-cover"
           />
         </CardContent>

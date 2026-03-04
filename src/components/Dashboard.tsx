@@ -118,8 +118,8 @@ const tools = [
   },
   {
     id: "jessica-biel",
-    name: "A Picture of Jessica Biel",
-    description: "Stylized to avoid cease and desist letters",
+    name: "Syd",
+    description: "Floating in space",
     icon: Smile,
     accent: "pink",
     borderColor: "border-tool-pink/20",
