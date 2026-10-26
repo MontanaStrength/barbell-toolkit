@@ -1,6 +1,6 @@
 import type { Phase, Rep } from "./analyze";
 
-// Probe-log CSV, the same columns the Performance Lab exports:
+// Probe-log CSV columns:
 // round,date,phase,load_pct,load_lb,set,rep,peak_force_n,mean_vel,peak_vel
 export const CSV_HEADER = "round,date,phase,load_pct,load_lb,set,rep,peak_force_n,mean_vel,peak_vel";
 
@@ -14,7 +14,7 @@ export function toCsv(reps: Rep[]): string {
 }
 
 // Header names accepted on import, so a CSV saved from the probe-log
-// spreadsheet ("Load (lb)", "Peak Force (N)" …) works as well as the Lab's.
+// spreadsheet ("Load (lb)", "Peak Force (N)" …) works too.
 const ALIASES: Record<string, keyof Rep> = {
   round: "round",
   date: "date",

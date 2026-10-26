@@ -7,13 +7,12 @@ Effective Intensity crosses the lift's recruitment line), within-set decay,
 reliability across rounds, and session bands with velocity stops.
 
 Everything runs in the browser. A probe is saved to `localStorage` and can be
-exported and imported as probe-log CSV (the Performance Lab's format; the
-probe-log spreadsheet's own headers import too).
+exported and imported as probe-log CSV (the probe-log spreadsheet's own
+headers import too).
 
 ## Engine
 
-`src/engine/` is a TypeScript port of the Performance Lab engine
-(StrengthArchitect `src/lab/engine/compute.mjs`), with three changes:
+`src/engine/` is pure TypeScript with no dependencies. Design decisions:
 
 1. Velocity stops scale by goal: `v_stop = (1 − f)·v_fresh + f·MVT`, with
    f = 0.2 power, 0.3 strength, 0.5 hypertrophy (provisional; see
@@ -22,9 +21,9 @@ probe-log spreadsheet's own headers import too).
 3. Loads are plotted as the bar actually lifted ÷ the current e1RM, not the
    planned percentage.
 
-`engine.test.ts` pins the Lab's reference numbers and the v4 probe-log
-spreadsheet's numbers (Force–Load fit, L*, decoupling) so the port can't
-drift silently.
+`engine.test.ts` pins a hand-validated reference report and the v4
+probe-log spreadsheet's numbers (Force–Load fit, L*, decoupling), so a change
+to the math can't drift silently.
 
 ## Content
 

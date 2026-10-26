@@ -45,7 +45,7 @@ export default function Home() {
         <div className="section-head">
           <h2>One session, about forty minutes</h2>
           <p className="muted">
-            The probe is the Performance Lab's protocol. Rest the day before; the singles only count if they're fresh.
+            Rest the day before; the singles only count if they're fresh.
           </p>
         </div>
         <ol className="steps">
@@ -76,8 +76,8 @@ export default function Home() {
             for and the conditions that break it, the way an instrument ships with its operating limits.
           </p>
           <p>
-            Here's the card for L*. The same engine runs the in-person Performance Lab, and its math is checked against
-            the original probe spreadsheet to six decimal places.
+            Here's the card for L*. The math behind it is tested against the original probe spreadsheet to six
+            decimal places.
           </p>
         </div>
         <QualCard id="l-star" />

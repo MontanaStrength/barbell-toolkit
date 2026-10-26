@@ -51,7 +51,7 @@ export default function Layout() {
       </main>
       <footer className="site-footer">
         <div className="page site-footer-inner">
-          <p>Built by Montana Strength in Bozeman. The analysis is the same engine as the Performance Lab.</p>
+          <p>Built by Montana Strength in Bozeman, Montana.</p>
           <p>Free to use. Your probe stays in this browser; nothing is uploaded.</p>
         </div>
       </footer>

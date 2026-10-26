@@ -197,7 +197,7 @@ export function buildDecaySets(probe: Probe): DecaySet[] {
   return sets.sort((a, b) => a.round - b.round || a.lb - b.lb || a.set - b.set);
 }
 
-/** The Lab's default: the longest AMRAP in the latest round that has one. */
+/** Default set to show: the longest AMRAP in the latest round that has one. */
 export function defaultDecaySet(sets: DecaySet[]): string | null {
   if (!sets.length) return null;
   const latest = Math.max(...sets.map((s) => s.round));

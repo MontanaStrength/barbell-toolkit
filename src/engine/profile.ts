@@ -1,5 +1,5 @@
-// Port of the Performance Lab engine (StrengthArchitect src/lab/engine/compute.mjs).
-// Same math, with three changes decided Oct 2026:
+// Force–velocity profile: Force–Load fit, velocity cross-check, L*, drive
+// compression and prescription bands. Design decisions (Oct 2026):
 //   1. velocity stops scale by goal: v_stop = (1 − f)·v_fresh + f·MVT
 //   2. the recruitment line is set per lift
 //   3. the load axis is the actual bar weight as % of e1RM (handled by the caller)

@@ -15,9 +15,8 @@ export interface LiftSpec {
   mvt: number;
 }
 
-// Per-lift recruitment lines follow the Performance Lab's rule: presses 85,
-// squat and deadlift 90. The StrengthArchitect training engine uses 87 for
-// upper presses; which press line is right is still open.
+// Per-lift recruitment lines: presses 85, squat and deadlift 90.
+// Open question: whether presses should sit at 87.
 export const LIFTS: Record<LiftKey, LiftSpec> = {
   bench: { key: "bench", name: "Bench press", recruitLine: 85, mvt: 0.15 },
   squat: { key: "squat", name: "Back squat", recruitLine: 90, mvt: 0.3 },
@@ -26,7 +25,7 @@ export const LIFTS: Record<LiftKey, LiftSpec> = {
 
 export const LIFT_KEYS = Object.keys(LIFTS) as LiftKey[];
 
-/** Population Force–Load line, Multiple = m·load% + b (StrengthArchitect recruitmentCurve.ts). */
+/** Population Force–Load line, Multiple = m·load% + b (probe-log spreadsheet, Models tab). */
 export const POPULATION_FL = { m: -0.0114, b: 2.09 };
 
 export type Goal = "power" | "strength" | "hypertrophy";

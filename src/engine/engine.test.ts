@@ -7,9 +7,10 @@ import { neuralLoad, readRep, stopVelocity } from "./metrics";
 import { computeProfile } from "./profile";
 import { solveLstar } from "./stats";
 
-// 1. Parity with the Performance Lab engine (compute.test.mjs, "Calder" fixture).
-describe("Lab engine parity", () => {
-  const calder = computeProfile({
+// 1. Reference report: bench ladder at a 350 lb e1RM. These numbers were
+//    validated by hand before the toolkit existed; the math must keep them.
+describe("reference report", () => {
+  const ref = computeProfile({
     e1rm: 350,
     mvt: 0.15,
     recruitLine: 85,
@@ -22,28 +23,28 @@ describe("Lab engine parity", () => {
   });
 
   it("reproduces the Force–Load fit", () => {
-    expect(calder.fl.m!).toBeCloseTo(-0.00782, 4);
-    expect(calder.fl.b!).toBeCloseTo(1.851, 2);
-    expect(calder.fl.r2!).toBeCloseTo(0.964, 2);
-    expect(calder.cleanSlope!).toBeCloseTo(-0.0119, 3);
+    expect(ref.fl.m!).toBeCloseTo(-0.00782, 4);
+    expect(ref.fl.b!).toBeCloseTo(1.851, 2);
+    expect(ref.fl.r2!).toBeCloseTo(0.964, 2);
+    expect(ref.cleanSlope!).toBeCloseTo(-0.0119, 3);
   });
 
   it("reproduces L*, drive compression and EI", () => {
-    expect(Math.abs(calder.lstar! - 62.3)).toBeLessThan(0.3);
-    expect(Math.abs(calder.lstarLb! - 218)).toBeLessThan(2);
-    expect(Math.abs(calder.alpha! - 64.2)).toBeLessThan(0.5);
-    expect(Math.abs(calder.beta! - 0.625)).toBeLessThan(0.01);
-    expect(Math.abs(calder.eiTop! - 104.5)).toBeLessThan(0.2);
+    expect(Math.abs(ref.lstar! - 62.3)).toBeLessThan(0.3);
+    expect(Math.abs(ref.lstarLb! - 218)).toBeLessThan(2);
+    expect(Math.abs(ref.alpha! - 64.2)).toBeLessThan(0.5);
+    expect(Math.abs(ref.beta! - 0.625)).toBeLessThan(0.01);
+    expect(Math.abs(ref.eiTop! - 104.5)).toBeLessThan(0.2);
   });
 
   it("keeps the Hanley neural dose and lands every band in its target", () => {
     expect(neuralLoad(3, 7, 80)).toBeCloseTo(525, 0);
     expect(neuralLoad(3, 10, 80)).toBeCloseTo(750, 0);
-    for (const b of calder.bands.filter((b) => b.neural != null)) {
+    for (const b of ref.bands.filter((b) => b.neural != null)) {
       expect(b.neural!).toBeGreaterThanOrEqual(450);
       expect(b.neural!).toBeLessThanOrEqual(600);
     }
-    for (const b of calder.hypBands) {
+    for (const b of ref.hypBands) {
       expect(b.neural!).toBeGreaterThanOrEqual(350);
       expect(b.neural!).toBeLessThanOrEqual(600);
     }
@@ -112,7 +113,7 @@ describe("toolkit behavior", () => {
     expect(r.ei!).toBeCloseTo(r.multiple * r.loadPct!, 6);
   });
 
-  it("picks the Lab's default AMRAP: the longest in the latest round", () => {
+  it("defaults to the longest AMRAP in the latest round", () => {
     const a = analyze(EXAMPLE_PROBE);
     const s = a.decaySets.find((d) => d.id === a.decayDefault)!;
     expect(s.round).toBe(2);

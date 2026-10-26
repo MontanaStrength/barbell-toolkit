@@ -1,6 +1,5 @@
 // Qualification copy: what each reading is good for, and when it breaks.
-// Drafted from the Performance Lab docs (calibration model, drive-zone issue,
-// Lab protocol). Edit freely; nothing else depends on the wording.
+// Edit freely; nothing else depends on the wording.
 
 export interface Qualification {
   useFor: string[];
@@ -22,7 +21,7 @@ export const QUAL: Record<string, Qualification> = {
   "force-load": {
     useFor: [
       "Seeing how much force you have in reserve at each load, and how fast it shrinks as the bar gets heavier.",
-      "Comparing your profile against the population line the StrengthArchitect engine uses.",
+      "Comparing your profile against a population line for the same lift.",
     ],
     breaksWhen: [
       "The ladder singles weren't fresh and fast. Fatigue or a soft rep pulls a point down and tilts the line.",
