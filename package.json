@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "build:preview": "vite build --mode preview --outDir dist-preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -23,6 +24,7 @@
     "typescript": "^5.6.3",
     "vite": "^5.4.19",
     "vite-plugin-singlefile": "^2.0.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.153.0"
   }
 }

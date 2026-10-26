@@ -42,6 +42,11 @@ npm run build:preview  # one self-contained HTML file in dist-preview/
 
 ## Hosting
 
-`npm run build` produces a static site in `dist/`. Any static host works as
-long as it serves `index.html` for paths it doesn't find, so report sections
-keep their own URLs (`/report/l-star`, `/report/sessions`, …).
+Cloudflare, as a Worker that serves the static build (`wrangler.jsonc`).
+There's no server code: every request is a file from `dist/`, and paths with
+no file get `index.html`, so report sections keep their own URLs
+(`/report/l-star`, `/report/sessions`, …).
+
+Cloudflare's GitHub integration builds and deploys on push (build command
+`npm run build`, deploy command `npx wrangler deploy`). To deploy by hand from
+a machine logged in with `npx wrangler login`: `npm run deploy`.
