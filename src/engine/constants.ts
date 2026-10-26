@@ -15,8 +15,7 @@ export interface LiftSpec {
   mvt: number;
 }
 
-// Per-lift recruitment lines: presses 85, squat and deadlift 90.
-// Open question: whether presses should sit at 87.
+// Per-lift recruitment lines: presses 85, squat and deadlift 90 (decided Oct 2026).
 export const LIFTS: Record<LiftKey, LiftSpec> = {
   bench: { key: "bench", name: "Bench press", recruitLine: 85, mvt: 0.15 },
   squat: { key: "squat", name: "Back squat", recruitLine: 90, mvt: 0.3 },

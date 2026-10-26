@@ -47,7 +47,7 @@ export const QUAL: Record<string, Qualification> = {
     breaksWhen: [
       "The e1RM is off. L* moves with it (use the slider on this page to see by how much).",
       "It's read as a fiber count. L* is inferred from force, a band divider with wide error bars, not a measurement of muscle.",
-      "The recruitment line is wrong for the lift. The line is a convention (85 for presses, 90 for squat and deadlift here) and still under review.",
+      "The recruitment line is wrong for the lift. The line is a convention: 85 for presses, 90 for squat and deadlift. You can set your own on the probe page.",
     ],
   },
   decay: {
