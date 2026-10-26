@@ -146,7 +146,8 @@ input[type="range"] {
   width: 100%;
   max-width: var(--page);
   margin: 0 auto;
-  padding: 0 var(--gutter);
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
 }
 
 .site-header {

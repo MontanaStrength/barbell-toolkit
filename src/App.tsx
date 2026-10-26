@@ -1,4 +1,4 @@
-import { BrowserRouter, HashRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Metrics from "./pages/Metrics";
@@ -8,8 +8,9 @@ import RepReadout from "./pages/RepReadout";
 import Report from "./pages/Report";
 import { StoreProvider } from "./store";
 
-// The shareable single-file preview uses hash URLs; the deployed site uses real paths.
-const Router = __HASH_ROUTER__ ? HashRouter : BrowserRouter;
+// The shareable single-file preview keeps its route in memory; the deployed
+// site uses real paths so every report section has its own URL.
+const Router = __PREVIEW__ ? MemoryRouter : BrowserRouter;
 
 export default function App() {
   return (

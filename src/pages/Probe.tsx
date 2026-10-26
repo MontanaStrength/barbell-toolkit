@@ -36,6 +36,13 @@ export default function Probe() {
   const forceRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
+  // Destructive actions confirm inline: some embeds refuse window.confirm().
+  const [pending, setPending] = useState<
+    | { kind: "clear" }
+    | { kind: "example" }
+    | { kind: "import"; reps: Rep[]; skipped: number; name: string }
+    | null
+  >(null);
 
   const lastRound = mine.reps.length ? Math.max(...mine.reps.map((r) => r.round)) : 1;
   const suggestLb = (target: number) => (mine.e1rm > 0 ? String(plateRound((mine.e1rm * target) / 100)) : "");
@@ -117,21 +124,39 @@ export default function Probe() {
       setMessage(res.error);
       return;
     }
-    if (mine.reps.length && !window.confirm(`Replace your ${mine.reps.length} logged reps with the ${res.reps.length} in this file?`)) return;
-    setMine((p) => ({ ...p, reps: res.reps }));
-    setMessage(`Imported ${res.reps.length} reps${res.skipped ? `; skipped ${res.skipped} rows that weren't ladder or AMRAP reps` : ""}.`);
+    if (mine.reps.length) {
+      setPending({ kind: "import", reps: res.reps, skipped: res.skipped, name: file.name });
+      return;
+    }
+    applyImport(res.reps, res.skipped);
+  }
+
+  function applyImport(reps: Rep[], skipped: number) {
+    setMine((p) => ({ ...p, reps }));
+    setPending(null);
+    setMessage(`Imported ${reps.length} reps${skipped ? `; skipped ${skipped} rows that weren't ladder or AMRAP reps` : ""}.`);
   }
 
   function loadExample() {
-    if (mine.reps.length && !window.confirm("Replace your logged reps with the example probe?")) return;
     setMine({ ...EXAMPLE_PROBE });
+    setPending(null);
     setMessage("Loaded the example probe. Edit or delete reps freely; it's your copy.");
   }
 
   function clearAll() {
-    if (!window.confirm("Delete every logged rep? This can't be undone.")) return;
     setMine((p) => ({ ...p, reps: [] }));
+    setPending(null);
     setMessage("Cleared your probe.");
+  }
+
+  async function copyCsv() {
+    const text = toCsv(mine.reps);
+    try {
+      await navigator.clipboard.writeText(text);
+      setMessage(`Copied ${mine.reps.length} reps as CSV. Paste them into a spreadsheet or a text file.`);
+    } catch {
+      setMessage(__PREVIEW__ ? "Couldn't reach the clipboard here." : "Couldn't reach the clipboard here. Use Export CSV instead.");
+    }
   }
 
   const sorted = useMemo(
@@ -337,14 +362,19 @@ export default function Probe() {
             <button type="button" className="btn btn-small btn-quiet" onClick={() => fileRef.current?.click()}>
               Import CSV
             </button>
-            <button type="button" className="btn btn-small btn-quiet" onClick={exportCsv} disabled={!mine.reps.length}>
-              Export CSV
+            {!__PREVIEW__ && (
+              <button type="button" className="btn btn-small btn-quiet" onClick={exportCsv} disabled={!mine.reps.length}>
+                Export CSV
+              </button>
+            )}
+            <button type="button" className="btn btn-small btn-quiet" onClick={copyCsv} disabled={!mine.reps.length}>
+              Copy CSV
             </button>
-            <button type="button" className="link-btn" onClick={loadExample}>
+            <button type="button" className="link-btn" onClick={() => (mine.reps.length ? setPending({ kind: "example" }) : loadExample())}>
               Load the example
             </button>
             {mine.reps.length > 0 && (
-              <button type="button" className="link-btn" onClick={clearAll}>
+              <button type="button" className="link-btn" onClick={() => setPending({ kind: "clear" })}>
                 Clear all
               </button>
             )}
@@ -362,6 +392,28 @@ export default function Probe() {
             }}
           />
         </div>
+
+        {pending && (
+          <div className="flag flag-warn btn-row" role="alertdialog" aria-label="Confirm">
+            <span style={{ flex: "1 1 260px" }}>
+              {pending.kind === "clear" && `Delete all ${mine.reps.length} logged reps? This can't be undone.`}
+              {pending.kind === "example" && `Replace your ${mine.reps.length} logged reps with the example probe?`}
+              {pending.kind === "import" && `Replace your ${mine.reps.length} logged reps with the ${pending.reps.length} in ${pending.name}?`}
+            </span>
+            <button
+              type="button"
+              className="btn btn-small"
+              onClick={() =>
+                pending.kind === "clear" ? clearAll() : pending.kind === "example" ? loadExample() : applyImport(pending.reps, pending.skipped)
+              }
+            >
+              {pending.kind === "clear" ? "Delete all" : "Replace"}
+            </button>
+            <button type="button" className="btn btn-small btn-quiet" onClick={() => setPending(null)}>
+              Keep my reps
+            </button>
+          </div>
+        )}
 
         {mine.reps.length === 0 ? (
           <div className="empty stack">
