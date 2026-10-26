@@ -40,5 +40,8 @@ npm run build          # deployable site in dist/
 npm run build:preview  # one self-contained HTML file in dist-preview/
 ```
 
-`vercel.json` rewrites every path to `index.html`, so report sections have
-their own URLs (`/report/l-star`, `/report/sessions`, …).
+## Hosting
+
+`npm run build` produces a static site in `dist/`. Any static host works as
+long as it serves `index.html` for paths it doesn't find, so report sections
+keep their own URLs (`/report/l-star`, `/report/sessions`, …).
