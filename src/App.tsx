@@ -1,27 +1,33 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import Metrics from "./pages/Metrics";
 import NotFound from "./pages/NotFound";
+import Probe from "./pages/Probe";
+import RepReadout from "./pages/RepReadout";
+import Report from "./pages/Report";
+import { StoreProvider } from "./store";
 
-const queryClient = new QueryClient();
+// The shareable single-file preview keeps its route in memory; the deployed
+// site uses real paths so every report section has its own URL.
+const Router = __PREVIEW__ ? MemoryRouter : BrowserRouter;
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+export default function App() {
+  return (
+    <StoreProvider>
+      <Router>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
+          <Route element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="rep" element={<RepReadout />} />
+            <Route path="probe" element={<Probe />} />
+            <Route path="report" element={<Report />} />
+            <Route path="report/:section" element={<Report />} />
+            <Route path="metrics" element={<Metrics />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+      </Router>
+    </StoreProvider>
+  );
+}

@@ -1,73 +1,52 @@
-# Welcome to your Lovable project
+# Barbell Toolkit
 
-## Project info
+Free, self-serve force–velocity profiling for lifters with a velocity sensor.
+Log a probe (ladder singles at 60/70/80/90% of e1RM, then one all-out set at
+60%) and get a report: Force–Load line, drive compression, L* (the load where
+Effective Intensity crosses the lift's recruitment line), within-set decay,
+reliability across rounds, and session bands with velocity stops.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Everything runs in the browser. A probe is saved to `localStorage` and can be
+exported and imported as probe-log CSV (the probe-log spreadsheet's own
+headers import too).
 
-## How can I edit this code?
+## Engine
 
-There are several ways of editing your application.
+`src/engine/` is pure TypeScript with no dependencies. Design decisions:
 
-**Use Lovable**
+1. Velocity stops scale by goal: `v_stop = (1 − f)·v_fresh + f·MVT`, with
+   f = 0.2 power, 0.3 strength, 0.5 hypertrophy (provisional; see
+   `STOP_FRACTION` in `constants.ts`).
+2. The recruitment line is set per lift (`LIFTS` in `constants.ts`).
+3. Loads are plotted as the bar actually lifted ÷ the current e1RM, not the
+   planned percentage.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+`engine.test.ts` pins a hand-validated reference report and the v4
+probe-log spreadsheet's numbers (Force–Load fit, L*, decoupling), so a change
+to the math can't drift silently.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Content
 
-**Use your preferred IDE**
+The "Use it for / Breaks when" copy on every page lives in
+`src/content/qualification.ts`. Edit it there.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Develop
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+npm install
+npm run dev            # local site
+npm test               # engine tests
+npm run build          # deployable site in dist/
+npm run build:preview  # one self-contained HTML file in dist-preview/
 ```
 
-**Edit a file directly in GitHub**
+## Hosting
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Cloudflare, as a Worker that serves the static build (`wrangler.jsonc`).
+There's no server code: every request is a file from `dist/`, and paths with
+no file get `index.html`, so report sections keep their own URLs
+(`/report/l-star`, `/report/sessions`, …).
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Cloudflare's GitHub integration builds and deploys on push (build command
+`npm run build`, deploy command `npx wrangler deploy`). To deploy by hand from
+a machine logged in with `npx wrangler login`: `npm run deploy`.
