@@ -1,21 +1,12 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
+import react from "@vitejs/plugin-react";
+import { viteSingleFile } from "vite-plugin-singlefile";
 
-// https://vitejs.dev/config/
+// `--mode preview` builds one self-contained HTML file with hash routing,
+// for sharing a clickable preview. The normal build is the deployable site.
 export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
-    },
-  },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+  plugins: mode === "preview" ? [react(), viteSingleFile()] : [react()],
+  define: {
+    __HASH_ROUTER__: JSON.stringify(mode === "preview"),
   },
 }));
