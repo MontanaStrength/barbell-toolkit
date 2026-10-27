@@ -1,12 +1,17 @@
 {
-  // Cloudflare Worker that serves the static build. No server code: every
-  // request is a file from ./dist, and paths with no file (report sections
-  // like /report/l-star) get index.html so the app can route them.
+  // Cloudflare Worker for barbelltoolkit.com. The script in worker/ only
+  // redirects www to the bare domain; every other request is a file from
+  // ./dist, and paths with no file (report sections like /report/l-star) get
+  // index.html so the app can route them.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "barbell-toolkit",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // The redirect has to see www requests before a file is served for them.
+    "run_worker_first": true
   }
 }

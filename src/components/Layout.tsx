@@ -41,6 +41,15 @@ export default function Layout() {
   const { unit, setUnit } = useStore();
   useEffect(() => {
     window.scrollTo(0, 0);
+    // One address per page for search engines: the bare domain and this path.
+    if (__PREVIEW__) return;
+    let link = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "canonical";
+      document.head.appendChild(link);
+    }
+    link.href = `https://barbelltoolkit.com${pathname === "/" ? "/" : pathname.replace(/\/$/, "")}`;
   }, [pathname]);
 
   return (
