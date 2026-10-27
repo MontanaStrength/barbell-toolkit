@@ -14,8 +14,10 @@ import {
   type Design,
   type DesignCtx,
   type Family,
+  type Param,
   type Values,
 } from "../engine/sessions/designs";
+import { halfPoint } from "../engine/sessions/effort";
 import { fmt, ms, suggestBarLb, wt, type Unit } from "../format";
 
 const SPOTTER_KEY = "barbell-toolkit/spotter/v1";
@@ -30,6 +32,9 @@ function loadFlag(key: string) {
 
 const clock = (s: number) =>
   `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+const loadText = (pct: number) =>
+  `${fmt(pct, Number.isInteger(pct) ? 0 : 1)}%`;
 
 function repsLabel(s: CardSet): string {
   const r = s.reps;
@@ -46,7 +51,8 @@ function repsLabel(s: CardSet): string {
   return s.tempo ? `${base}, ${s.tempo} tempo` : base;
 }
 
-const rpeLabel = (s: CardSet) => `RPE ${s.ceiling ? "≤ " : ""}${s.rpe}`;
+const rpeLabel = (s: CardSet) =>
+  `RPE ${s.ceiling ? "≤ " : ""}${halfPoint(s.rpe)}`;
 const nextLabel = (s: CardSet) =>
   s.next === 0
     ? "–"
@@ -64,6 +70,30 @@ function blocked(d: Design, ctx: DesignCtx): string | null {
     }`.trim();
   }
   return d.unavailable?.(ctx) ?? null;
+}
+
+/** A knob's value in words: its own words if it has them, else the number and unit. */
+function valueText(p: Param, x: number, v: Values): string {
+  if (p.show) return p.show(x, v);
+  return p.unit === "%"
+    ? `${x}%`
+    : p.unit === "s"
+      ? `${x} s`
+      : p.unit === "min"
+        ? `${x} min`
+        : `${x}`;
+}
+
+/** What a stepper can reach: a range, a short list, or where it is among named options. */
+function rangeText(p: Param, allowed: number[], x: number): string {
+  if (allowed.length === 1) return "the only option here";
+  if (p.coded) return `${allowed.indexOf(x) + 1} of ${allowed.length}`;
+  const unit =
+    p.unit === "%" ? "%" : p.unit === "s" ? " s" : p.unit === "min" ? " min" : "";
+  const last = allowed[allowed.length - 1];
+  const runs = allowed.every((y, i) => i === 0 || y - allowed[i - 1] === 1);
+  if (runs) return `${allowed[0]}–${last}${unit}`;
+  return `${allowed.slice(0, -1).join(", ")} or ${last}${unit}`;
 }
 
 /** A design's set structure at a glance: bar height is load, bar width is reps, against L*. */
@@ -171,6 +201,20 @@ function thenLabel(r: Row): string {
 const setsLabel = (r: Row) =>
   r.first === r.last ? `${r.first}` : `${r.first}–${r.last}`;
 
+/** The session's size in a sentence: reps, sets, neural dose against its band, minutes. */
+function totalsText(card: Card, family: Family): string {
+  const t = card.totals;
+  if (t.reps == null || t.neural == null) {
+    return `One ${t.minutes}-minute block. The reps are whatever clean work fits in it, so there's no rep count or neural dose to add up.`;
+  }
+  const [lo, hi] = t.target;
+  const n = Math.round(t.neural);
+  const where = n < lo ? "under" : n > hi ? "over" : "inside";
+  return `${t.approximate ? "Up to " : ""}${t.reps} reps in ${t.sets} ${
+    t.sets === 1 ? "set" : "sets"
+  }, about ${t.minutes} min. Neural dose ${n}, ${where} the ${lo}–${hi} a ${family} block aims for.`;
+}
+
 export default function SessionDesigner({
   a,
   unit,
@@ -203,6 +247,7 @@ export default function SessionDesigner({
     () => (why ? null : buildCard(design, ctx, inputs[key])),
     [why, design, ctx, inputs, key],
   );
+  const speeds = ctx.fresh(75) != null;
 
   const bar = (pct: number) => wt(suggestBarLb(e1rm, pct, unit), unit);
   // Only the knobs a lifter touches are stored, so the rest keep following their own rules.
@@ -227,12 +272,12 @@ export default function SessionDesigner({
       `${text.name}, ${LIFTS[lift].name.toLowerCase()} (e1RM ${wt(e1rm, unit)})`,
       ...rowsOf(card.sets).map(
         (r) =>
-          `${r.first === r.last ? `Set ${r.first}` : `Sets ${r.first}–${r.last}`}, ${r.s.group}: ${repsLabel(r.s)} @ ${fmt(r.s.pct, 0)}% (${bar(r.s.pct)}), ${rpeLabel(r.s)}, stop below ${ms(r.s.stopV)}${
-            r.next ? `, ${thenLabel(r)}` : ""
-          }`,
+          `${r.first === r.last ? `Set ${r.first}` : `Sets ${r.first}–${r.last}`}, ${r.s.group}: ${repsLabel(r.s)} @ ${loadText(r.s.pct)} (${bar(r.s.pct)}), ${rpeLabel(r.s)}, ${
+            r.s.single ? "check" : "stop below"
+          } ${ms(r.s.stopV)}${r.next ? `, ${thenLabel(r)}` : ""}`,
       ),
       ...card.rules.map((r) => `- ${r}`),
-      `${card.totals.approximate ? "Up to " : ""}${card.totals.reps} reps, neural dose ${fmt(card.totals.neural, 0)}, about ${card.totals.minutes} min.`,
+      totalsText(card, design.family),
     ];
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
@@ -254,9 +299,16 @@ export default function SessionDesigner({
           Pick one of {DESIGNS.length} set structures. Each fills in from this
           profile: bar weights from the max, a stop velocity for every set from
           the fresh speed at that load, and the road each set is on from L*.
-          Bars above the red line are on the load road; grey ones below it are
-          on the fatigue road.
+          {ctx.lstar != null
+            ? " Bars above the red line are on the load road; grey ones below it are on the fatigue road."
+            : " This probe has no L*, so the roads stay blank, and designs that start at L* + 1 use a standard floor instead."}
         </p>
+        {!speeds && (
+          <p className="flag">
+            This probe has no bar speeds, so the card can give loads, reps
+            and effort but no stop velocities.
+          </p>
+        )}
       </div>
 
       <div className="segmented" role="group" aria-label="Goal">
@@ -277,31 +329,33 @@ export default function SessionDesigner({
         ))}
       </div>
 
-      <div className="design-grid" role="list">
+      <ul className="design-grid" aria-label={`${family} designs`}>
         {list.map((d) => {
           const preview = previews[d.key];
           return (
-            <button
-              key={d.key}
-              type="button"
-              role="listitem"
-              className="design-card"
-              aria-pressed={d.key === key}
-              onClick={() => pick(d, true)}
-            >
-              <span className="design-name">{DESIGN_TEXT[d.key].name}</span>
-              <span className="design-summary">
-                {DESIGN_TEXT[d.key].summary}
-              </span>
-              {preview ? (
-                <Shape card={preview} lstar={ctx.lstar} />
-              ) : (
-                <span className="design-off">Not for this lift or profile</span>
-              )}
-            </button>
+            <li key={d.key}>
+              <button
+                type="button"
+                className="design-card"
+                aria-pressed={d.key === key}
+                onClick={() => pick(d, true)}
+              >
+                <span className="design-name">{DESIGN_TEXT[d.key].name}</span>
+                <span className="design-summary">
+                  {DESIGN_TEXT[d.key].summary}
+                </span>
+                {preview ? (
+                  <Shape card={preview} lstar={ctx.lstar} />
+                ) : (
+                  <span className="design-off">
+                    Not for this lift or profile
+                  </span>
+                )}
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ul>
 
       <article
         ref={cardRef}
@@ -348,9 +402,9 @@ export default function SessionDesigner({
                 <div className="knobs">
                   {design.params.map((p) => {
                     const v = card.values[p.key];
-                    const [lo, hi] = card.bounds[p.key];
-                    const step = p.step ?? 1;
-                    if (p.choices) {
+                    const allowed = card.options[p.key];
+                    const at = allowed.indexOf(v);
+                    if (p.buttons) {
                       return (
                         <div key={p.key} className="knob">
                           <span className="field-label">{p.label}</span>
@@ -359,30 +413,27 @@ export default function SessionDesigner({
                             role="group"
                             aria-label={p.label}
                           >
-                            {p.choices.map((c) => (
+                            {allowed.map((x) => (
                               <button
-                                key={c.value}
+                                key={x}
                                 type="button"
-                                aria-pressed={v === c.value}
-                                onClick={() => setValue(p.key, c.value)}
+                                aria-pressed={v === x}
+                                onClick={() => setValue(p.key, x)}
                               >
-                                {c.label}
+                                {valueText(p, x, card.values)}
                               </button>
                             ))}
                           </div>
                         </div>
                       );
                     }
-                    const shown =
-                      p.unit === "%"
-                        ? `${v}%`
-                        : p.unit === "s"
-                          ? `${v} s`
-                          : p.unit === "min"
-                            ? `${v} min`
-                            : `${v}`;
+                    const word = p.coded ? "Previous" : "Less";
+                    const more = p.coded ? "Next" : "More";
                     return (
-                      <div key={p.key} className="knob">
+                      <div
+                        key={p.key}
+                        className={p.coded ? "knob knob-wide" : "knob"}
+                      >
                         <span className="field-label" id={`k-${p.key}`}>
                           {p.label}
                         </span>
@@ -393,26 +444,26 @@ export default function SessionDesigner({
                         >
                           <button
                             type="button"
-                            aria-label={`Less ${p.label.toLowerCase()}`}
-                            disabled={v - step < lo - 1e-9}
-                            onClick={() => setValue(p.key, v - step)}
+                            aria-label={`${word} ${p.label.toLowerCase()}`}
+                            disabled={at <= 0}
+                            onClick={() => setValue(p.key, allowed[at - 1])}
                           >
                             −
                           </button>
-                          <output aria-live="polite">{shown}</output>
+                          <output aria-live="polite">
+                            {valueText(p, v, card.values)}
+                          </output>
                           <button
                             type="button"
-                            aria-label={`More ${p.label.toLowerCase()}`}
-                            disabled={v + step > hi + 1e-9}
-                            onClick={() => setValue(p.key, v + step)}
+                            aria-label={`${more} ${p.label.toLowerCase()}`}
+                            disabled={at >= allowed.length - 1}
+                            onClick={() => setValue(p.key, allowed[at + 1])}
                           >
                             +
                           </button>
                         </div>
                         <span className="knob-range">
-                          {lo === hi
-                            ? "fixed for this profile"
-                            : `${lo}–${hi}${p.unit === "%" ? "%" : p.unit === "s" ? " s" : p.unit === "min" ? " min" : ""}`}
+                          {rangeText(p, allowed, v)}
                         </span>
                       </div>
                     );
@@ -444,14 +495,21 @@ export default function SessionDesigner({
                           <td>
                             <strong>{bar(s.pct)}</strong>
                             <small className="cell-note">
-                              {fmt(s.pct, 0)}%
+                              {loadText(s.pct)}
                             </small>
                           </td>
                           <td>
                             {repsLabel(s)}
                             <small className="cell-note">{rpeLabel(s)}</small>
                           </td>
-                          <td>{ms(s.stopV)}</td>
+                          <td>
+                            {ms(s.stopV)}
+                            {s.single && s.stopV != null && (
+                              <small className="cell-note">
+                                a check, not a stop
+                              </small>
+                            )}
+                          </td>
                           <td>{thenLabel(row)}</td>
                           <td>
                             {s.road ? (
@@ -469,12 +527,7 @@ export default function SessionDesigner({
                 </table>
               </div>
 
-              <p className="totals">
-                {card.totals.approximate ? "Up to " : ""}
-                {card.totals.reps} reps in {card.totals.sets}{" "}
-                {card.totals.sets === 1 ? "set" : "sets"}, neural dose{" "}
-                {fmt(card.totals.neural, 0)}, about {card.totals.minutes} min.
-              </p>
+              <p className="totals">{totalsText(card, design.family)}</p>
 
               {card.rules.length > 0 && (
                 <ul className="rules">

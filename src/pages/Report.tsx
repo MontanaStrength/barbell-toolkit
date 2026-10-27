@@ -458,13 +458,6 @@ function Reliability({ a, unit }: { a: Analysis; unit: Unit }) {
 }
 
 function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
-  if (a.lstar == null) {
-    return (
-      <div className="empty">
-        <p style={{ margin: "0 auto" }}>Session bands need an L*. Log ladder singles at three or more loads.</p>
-      </div>
-    );
-  }
   return (
     <>
       <SessionDesigner a={a} unit={unit} />
@@ -473,14 +466,26 @@ function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
         <h2 id="bands-h" style={{ fontSize: 30 }}>
           Your bands
         </h2>
-        <p>
-          Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to the
-          Hanley neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
-        </p>
-        <h3>Strength and speed</h3>
-        <BandTable bands={a.bands} unit={unit} />
-        <h3>Hypertrophy</h3>
-        <BandTable bands={a.hypBands} unit={unit} />
+        {a.lstar == null ? (
+          <div className="empty">
+            <p style={{ margin: "0 auto" }}>
+              {a.fl.m == null
+                ? "The bands start at L*, which comes from the Force–Load line. That line needs singles at two or more loads."
+                : `The bands start at L*, where Effective Intensity crosses the ${a.probe.recruitLine}% line. On this probe it doesn't cross anywhere from 30 to 100% of max, so there are no bands to show.`}
+            </p>
+          </div>
+        ) : (
+          <>
+            <p>
+              Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to
+              the Hanley neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
+            </p>
+            <h3>Strength and speed</h3>
+            <BandTable bands={a.bands} unit={unit} />
+            <h3>Hypertrophy</h3>
+            <BandTable bands={a.hypBands} unit={unit} />
+          </>
+        )}
       </section>
 
       <section className="stack" aria-labelledby="stops-h">

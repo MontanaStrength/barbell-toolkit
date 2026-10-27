@@ -1,14 +1,26 @@
-// Session designs (John Hanley's, from the Strength Architect catalogue and
-// the Oct 24, 2026 recruitment and tension additions). Each design is a set
-// structure with Hanley's defaults and ranges; the lifter's profile fills in
-// the rest. Where a range comes from a solver it says so; the catalogue
-// additions follow catalogue-additions-design.md.
+// Session designs (John Hanley's): the eighteen Strength Architect rotation
+// designs and the eight recruitment and tension additions of Oct 24, 2026.
+//
+// The eighteen are built the way SA's solvers build them (modeling/schemes,
+// origin/main, Oct 27, 2026). The knobs step through each solver's own option
+// lists, load comes from reps and RPE on the effort curve (effort.ts), and
+// rest and RPE follow the solver's rules for that load. SA's solvers also size
+// the volume to a budget and rotate through what fits; here the lifter picks.
+//
+// Loads stay inside each solver's limits. Where a solver takes its loads only
+// from the block's band, strength designs use SA's strength band, 73–92%, and
+// drop sets 55–80%, the widest window the hypertrophy solvers reach.
+//
+// The eight additions follow catalogue-additions-design.md. They have no
+// solver yet, so their knobs are the catalogue's ranges, held back wherever
+// the curve says a set would pass its RPE ceiling.
 //
 // Effort is written as RPE, as the designs are. The card turns each RPE into a
 // stop velocity on the lifter's own fresh speed at that load (constants.ts,
 // RPE_STOP), so a top set still ends deeper than its back-offs.
 
 import { FIRST_REP, type LiftKey } from "../constants";
+import { dropRep, intensityForRPE, maxRepsAt, rpeAt, rpeCeiling } from "./effort";
 
 export type Family = "strength" | "hypertrophy";
 
@@ -26,13 +38,14 @@ export interface PlanSet {
   /** Load as % of e1RM. */
   pct: number;
   reps: Reps;
+  /** The effort the set ends at, to one decimal: from the curve, or the solver's own figure for this kind of set. */
   rpe: number;
   /** The RPE is a "no harder than" ceiling, not a target. */
   ceiling?: boolean;
   /** Seconds until the next set: rest after this one, or a start-to-start clock. */
   next: number;
   clock?: boolean;
-  /** Eccentric-pause-concentric seconds, when the tempo is the point. */
+  /** Eccentric-pause-concentric-pause seconds, when the tempo is the point. */
   tempo?: string;
 }
 
@@ -46,17 +59,21 @@ export interface DesignCtx {
 }
 
 export type Values = Record<string, number>;
-type Bound = number | ((ctx: DesignCtx, v: Values) => number);
 
 export interface Param {
   key: string;
   label: string;
-  min: Bound;
-  max: Bound;
-  def: Bound;
-  step?: number;
+  /** Every value the knob may take for this lifter, given the knobs before it, in stepping order. */
+  values: (ctx: DesignCtx, v: Values) => number[];
+  /** Where the knob starts, before the lifter touches it. */
+  def: number | ((ctx: DesignCtx, v: Values, allowed: number[]) => number);
   unit?: "%" | "s" | "min";
-  choices?: Array<{ value: number; label: string }>;
+  /** Words for a value, when the number alone doesn't say it; v holds the knobs as resolved. */
+  show?: (value: number, v: Values) => string;
+  /** The values name options (a shape, an order) rather than measure anything. */
+  coded?: boolean;
+  /** A few options: show them as buttons. */
+  buttons?: boolean;
 }
 
 export interface Built {
@@ -78,29 +95,26 @@ export interface Design {
   build: (v: Values, ctx: DesignCtx) => Built;
 }
 
-// ---------- shared models ----------
+// ---------- helpers ----------
 
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
+/** Whole numbers from lo to hi. */
+const span = (lo: number, hi: number) => {
+  const out: number[] = [];
+  for (let x = Math.ceil(lo); x <= hi; x++) out.push(x);
+  return out;
+};
+const nearest = (xs: number[], x: number) =>
+  xs.reduce((best, y) => (Math.abs(y - x) < Math.abs(best - x) ? y : best), xs[0]);
+const indices = <T,>(xs: T[]) => xs.map((_, i) => i);
+const round1 = (x: number) => Math.round(x * 10) / 10;
 
-/** Brzycki reps to failure at a load %. */
-export const maxRepsAt = (pct: number) => 37 - 0.36 * clamp(pct, 30, 100);
-
-/**
- * Hanley's peak-force drop rep: the last rep still at ≥ 95% of the first rep's
- * peak force. 60% → 8, 65% → 7, 70% → 6, 75% → 5, 80% → 3, 85% → 2, 90%+ → 1.
- */
-export function dropRep(pct: number): number {
-  const I = clamp(pct, 30, 100);
-  if (I > 90) return 1;
-  const ratio = 0.3 + 0.24 * Math.pow((90 - I) / 30, 0.65);
-  return Math.max(1, Math.round(maxRepsAt(I) * ratio));
+type Allowed = number[] | ((ctx: DesignCtx, v: Values) => number[]);
+function knob(key: string, label: string, values: Allowed, def: Param["def"], more: Partial<Param> = {}): Param {
+  return { key, label, values: typeof values === "function" ? values : () => values, def, ...more };
 }
-
-/** Rest for peak-force-capped strength sets, by load (strengthSets solver). */
-export const strengthRest = (pct: number) => (pct >= 85 ? 300 : pct >= 80 ? 240 : pct >= 75 ? 180 : 150);
-
-/** Most reps a set can hold at a load and still stop with this many in reserve. */
-const repsWithReserve = (pct: number, rir: number) => Math.floor(maxRepsAt(pct) - rir);
+const loadKnob = (key: string, label: string, values: Allowed, def: Param["def"]) => knob(key, label, values, def, { unit: "%" });
+const rpeWords = (x: number) => `RPE ${x}`;
 
 const S = (group: string, pct: number, reps: Reps, rpe: number, next: number, more: Partial<PlanSet> = {}): PlanSet => ({
   group,
@@ -117,18 +131,6 @@ const repeat = <T,>(n: number, f: (i: number) => T): T[] => Array.from({ length:
 /** The last set of a session has nothing after it. */
 const close = (sets: PlanSet[]) => sets.map((s, i) => (i === sets.length - 1 ? { ...s, next: 0 } : s));
 
-const pct = (key: string, label: string, min: Bound, max: Bound, def: Bound): Param => ({ key, label, min, max, def, unit: "%" });
-const count = (key: string, label: string, min: Bound, max: Bound, def: Bound): Param => ({ key, label, min, max, def });
-const secs = (key: string, label: string, min: number, max: number, def: number, step: number): Param => ({
-  key,
-  label,
-  min,
-  max,
-  def,
-  step,
-  unit: "s",
-});
-
 const mps = (x: number | null) => (x == null ? null : `${x.toFixed(2)} m/s`);
 
 /** The catalogue's first-rep rule, in velocity: 92% of fresh speed at the load. */
@@ -143,8 +145,185 @@ function firstRepRule(ctx: DesignCtx, load: number, extraInterval: boolean): str
     : `When a set's first rep is clearly slower than your first set's, ${then}.`;
 }
 
-/** Where L* puts a design's lower bound, for designs floored at L* + 1. */
-const lstarFloor = (ctx: DesignCtx, fallback: number) => (ctx.lstar != null ? Math.ceil(ctx.lstar + 1) : fallback);
+/** A single has nothing to stop; its speed is the check. */
+const singlesCheck = (then: string) =>
+  `A single has no stop: its listed speed is the check. One that comes in slower is harder than planned, so ${then}.`;
+
+/**
+ * The load floor for designs that only pay on the load road: L* + 1, as SA's
+ * solvers set it. SA uses 65% when it has no L* for the lift.
+ */
+const lstarFloor = (ctx: DesignCtx, fallback = 65) => (ctx.lstar != null ? Math.ceil(ctx.lstar) + 1 : fallback);
+
+// ---------- the solvers' rules ----------
+
+/** SA's strength goal band, % of max (GOAL_PROFILES.strength). */
+const STRENGTH: [number, number] = [73, 92];
+/** Drop sets take their loads only from the block's band; this is the widest the hypertrophy solvers reach. */
+const DROP_WINDOW: [number, number] = [55, 80];
+
+/** Rest for peak-force-capped strength sets (strengthSets). */
+export const strengthRest = (pct: number) => (pct >= 85 ? 300 : pct >= 80 ? 240 : pct >= 75 ? 180 : 150);
+
+// Sawtooth: the perform set sits about three reps from failure, the practice set two or three under it.
+const sawtoothPerform = (pct: number) => Math.max(2, Math.round(maxRepsAt(pct) - 3));
+function sawtoothPractice(pct: number): number[] {
+  const high = sawtoothPerform(pct);
+  if (high <= 3) return [1];
+  return [high - 3, high - 2].filter((r) => r >= 1);
+}
+
+// Top set + back-off: the top set lands at RPE 8.5 (95% at most); back-offs 7.5% lighter.
+const TOP_RPE = 8.5;
+const topSetPct = (reps: number) => Math.min(95, intensityForRPE(reps, TOP_RPE));
+const backoffPct = (top: number) => Math.max(30, Math.round(topSetPct(top) * (1 - 7.5 / 100)));
+const backoffReps = (top: number) =>
+  span(2, 8).filter((r) => rpeAt(r, backoffPct(top)) <= Math.min(TOP_RPE, rpeCeiling(r)));
+
+// Symmetric arcs (double and volume pyramids): RPE [p−2, p−1, p, p−1, p−2], the
+// descent 1.5 points lighter than the matching ascent set.
+type ArcFamily = "strength" | "hypertrophy";
+function arc(reps: number, peak: number) {
+  const up = [peak - 2, peak - 1, peak].map((rpe) => ({ rpe, pct: intensityForRPE(reps, rpe) }));
+  const down = [peak - 1, peak - 2].map((rpe) => ({ rpe, pct: round1(intensityForRPE(reps, rpe) - 1.5) }));
+  return [...up, ...down];
+}
+function arcPeaks(reps: number, family: ArcFamily): number[] {
+  const cap = rpeCeiling(reps);
+  const peaks = family === "hypertrophy" ? [Math.min(8, cap)] : [...new Set([7.5, 8, 8.5, 9].map((p) => Math.min(p, cap)))];
+  // Strength arcs also sit inside the strength band.
+  const [lo, hi] = family === "strength" ? STRENGTH : [-Infinity, Infinity];
+  return peaks.filter((p) => {
+    if (p < 7) return false;
+    const a = arc(reps, p);
+    return a[2].pct >= Math.max(lo, 68) && a[2].pct <= Math.min(hi, 92) && a[0].pct >= Math.max(55, lo - 10);
+  });
+}
+const ARC_GROUPS = ["Ascend", "Ascend", "Peak", "Descend", "Descend"];
+
+// Rep templates for the ascending and reverse pyramids, and the effort ramps
+// the solvers try on them: a top RPE and a step per set.
+const ASCENDING = [
+  [12, 10, 8], [10, 8, 6], [12, 10, 8, 6], [10, 8, 6, 4], [12, 10, 8, 8], [10, 8, 6, 6],
+  [12, 12, 10, 8, 6], [12, 10, 10, 8, 6], [12, 10, 8, 6, 4], [14, 12, 10, 8, 6],
+  [14, 12, 10, 8, 6, 6], [12, 12, 10, 8, 8, 6],
+];
+const REVERSE = [
+  [8, 10, 12], [6, 8, 10], [6, 8, 10, 12], [4, 6, 8, 10], [8, 8, 10, 12], [6, 6, 8, 10],
+  [6, 8, 10, 12, 12], [6, 8, 10, 10, 12], [4, 6, 8, 10, 12], [6, 8, 10, 12, 14],
+  [6, 6, 8, 10, 12, 14], [6, 8, 8, 10, 12, 12],
+];
+const PYRAMID_TOPS = [7, 7.5, 8, 8.5];
+const PYRAMID_STEPS = [0.5, 0.75];
+type Direction = "up" | "down";
+
+/** One pyramid: each set's RPE steps toward the top set, held to the ceiling for its reps, and its load follows. */
+function pyramid(reps: number[], dir: Direction, effort: number) {
+  const top = PYRAMID_TOPS[Math.floor(effort / 2)];
+  const step = PYRAMID_STEPS[effort % 2];
+  const n = reps.length;
+  return reps.map((r, i) => {
+    const away = dir === "up" ? n - 1 - i : i;
+    const rpe = Math.min(rpeCeiling(r), Math.round((top - step * away) * 2) / 2);
+    return { reps: r, rpe, pct: intensityForRPE(r, rpe) };
+  });
+}
+function pyramidValid(sets: ReturnType<typeof pyramid>, dir: Direction): boolean {
+  const pcts = sets.map((s) => s.pct);
+  const climbs = pcts.every((p, i) => i === 0 || (dir === "up" ? p > pcts[i - 1] : p < pcts[i - 1]));
+  const top = dir === "up" ? pcts[pcts.length - 1] : pcts[0];
+  const light = dir === "up" ? pcts[0] : pcts[pcts.length - 1];
+  return climbs && top >= 68 && top <= 82 && light >= 48;
+}
+/** The effort ramps that work on a template, one per distinct result, easiest first. */
+function pyramidEfforts(reps: number[], dir: Direction): number[] {
+  const seen = new Map<string, { code: number; sum: number }>();
+  for (let code = 0; code < PYRAMID_TOPS.length * PYRAMID_STEPS.length; code++) {
+    const sets = pyramid(reps, dir, code);
+    if (!pyramidValid(sets, dir)) continue;
+    const key = sets.map((s) => s.rpe).join("/");
+    if (!seen.has(key)) seen.set(key, { code, sum: sets.reduce((t, s) => t + s.pct, 0) });
+  }
+  return [...seen.values()].sort((a, b) => a.sum - b.sum || a.code - b.code).map((x) => x.code);
+}
+const pyramidEffortWords = (reps: number[], dir: Direction, code: number) =>
+  `RPE ${pyramid(reps, dir, code).map((s) => s.rpe).join(" / ")}`;
+/** SA's first top RPE and step, or the nearest that works. */
+const pyramidDefault = (allowed: number[]) => (allowed.includes(4) ? 4 : allowed[Math.floor(allowed.length / 2)]);
+
+// Tapered: lead sets at RPE 7.5 (the ceiling for six or more reps), taper sets
+// at the same weight with fewer reps, read at the capacity left after the lead
+// sets (SA: 75%).
+const LEAD_RPE = 7.5;
+const TAPER_RETENTION = 0.75;
+const taperedPct = (leadReps: number) => clamp(intensityForRPE(leadReps, LEAD_RPE), 55, 85);
+const taperModel = (leadReps: number, taperReps: number) =>
+  round1(10 - (maxRepsAt(taperedPct(leadReps)) * TAPER_RETENTION - taperReps));
+
+// Straight sets: below 74% the reps leave 3.5 in reserve on the load road and
+// 2.5 below L*; from 74% they stop at the drop rep. RPE climbs set to set.
+const STRAIGHT_RPE_MIN = 6.5;
+const STRAIGHT_RPE_MAX = 8.2;
+function straightPlan(pct: number, ctx: DesignCtx) {
+  const onLoadRoad = ctx.lstar != null && pct >= ctx.lstar;
+  const reps = pct < 74 ? Math.max(3, Math.round(maxRepsAt(pct) - (onLoadRoad ? 10 - 6.5 : 2.5))) : dropRep(pct);
+  const first = rpeAt(reps, pct);
+  const accrual = pct < 65 ? 0.3 : pct < 70 ? 0.4 : 0.5;
+  const maxSets = Math.max(2, Math.floor((STRAIGHT_RPE_MAX - first) / accrual) + 1);
+  return { reps, first, accrual, maxSets };
+}
+
+// Drop sets: each tier takes the most reps that keep it under its RPE ceiling.
+const firstTierCeiling = (pct: number) => (pct >= 80 ? 8 : pct >= 75 ? 7.5 : 7);
+function dropTiers(start: number, tiers: number, step: number, later: number) {
+  return repeat(tiers, (t) => {
+    const pct = start - step * t;
+    const ceiling = t === 0 ? firstTierCeiling(pct) : later;
+    for (let r = Math.floor(maxRepsAt(pct)); r >= (t === 0 ? 3 : 4); r--) {
+      if (rpeAt(r, pct) <= ceiling) return { pct, reps: r };
+    }
+    return null;
+  });
+}
+
+// Force/metabolic: one load; force sets stop at the drop rep, metabolic sets
+// take the reps for RPE 6.5 to 7.5, within the ceiling for their count.
+const FM_CEILING = 78;
+function metabolicReps(pct: number): number[] {
+  const force = dropRep(pct);
+  const out = new Set<number>();
+  for (const target of [6.5, 7, 7.5]) {
+    const reps = Math.max(1, Math.round(maxRepsAt(pct) - (10 - target)));
+    const rpe = rpeAt(reps, pct);
+    if (reps > force && reps <= 15 && rpe >= 6 && rpe <= rpeCeiling(reps)) out.add(reps);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+const fmLoads = (ctx: DesignCtx) => span(lstarFloor(ctx), FM_CEILING).filter((p) => metabolicReps(p).length > 0);
+
+// Cluster and tempo shapes: [reps per mini-set, mini-sets, seconds between].
+const PURE_CLUSTERS = [
+  { reps: 1, minis: 3, intra: 15 },
+  { reps: 2, minis: 2, intra: 20 },
+];
+const HYP_CLUSTERS = [
+  { reps: 5, minis: 3, intra: 15 },
+  { reps: 4, minis: 3, intra: 15 },
+  { reps: 3, minis: 3, intra: 15 },
+  { reps: 6, minis: 2, intra: 20 },
+  { reps: 5, minis: 2, intra: 20 },
+];
+const hypClusterRpe = (pct: number, reps: number) => (pct >= 76 ? (reps >= 5 ? 8 : 7.5) : reps >= 5 ? 7.5 : 7);
+const clusterWords = (c: { reps: number; minis: number; intra: number }) =>
+  `${Array(c.minis).fill(c.reps).join("+")}, ${c.intra} s between`;
+const ECCENTRICS = [
+  { sets: 4, reps: 5, ecc: 4 },
+  { sets: 5, reps: 4, ecc: 3 },
+  { sets: 3, reps: 6, ecc: 5 },
+  { sets: 4, reps: 4, ecc: 3 },
+  { sets: 3, reps: 5, ecc: 4 },
+];
+const eccentricRpe = (e: { ecc: number }, pct: number) => (e.ecc >= 4 ? (pct >= 75 ? 7.5 : 7) : pct >= 75 ? 7 : 6.5);
 
 // ---------- the catalogue ----------
 
@@ -153,21 +332,37 @@ export const DESIGNS: Design[] = [
   {
     key: "strengthPrescriptionTable",
     family: "strength",
-    params: [pct("load", "Load", 75, 90, 82), count("sets", "Sets", 3, 6, 5)],
-    build: (v) => ({
-      sets: close(repeat(v.sets, () => S("Work", v.load, fixed(dropRep(v.load)), 7, strengthRest(v.load), { ceiling: true }))),
-      rules: [],
-    }),
+    params: [
+      // Every rep a quality rep: reps stop at the drop rep, so loads that allow only one are out.
+      loadKnob("load", "Load", span(...STRENGTH).filter((p) => dropRep(p) > 1), 82),
+      knob("sets", "Sets", span(3, 6), 5),
+    ],
+    build: (v) => {
+      const reps = dropRep(v.load);
+      return {
+        sets: close(repeat(v.sets, () => S("Work", v.load, fixed(reps), rpeAt(reps, v.load), strengthRest(v.load)))),
+        rules: [],
+      };
+    },
   },
   {
     key: "sawtooth",
     family: "strength",
-    params: [pct("load", "Load", 80, 88, 85), count("sets", "Sets", 4, 8, 6)],
+    params: [
+      loadKnob("load", "Load", span(...STRENGTH), 85),
+      knob("low", "Practice-set reps", (_c, v) => sawtoothPractice(v.load), (_c, _v, allowed) => allowed[allowed.length - 1]),
+      knob("pairs", "Practice-and-perform pairs", span(2, 8), 3),
+    ],
     build: (v) => {
-      const hi = dropRep(v.load);
-      const lo = Math.max(1, hi - 1);
+      const high = sawtoothPerform(v.load);
+      const rest = v.load >= 85 ? 240 : v.load >= 80 ? 210 : 180;
       return {
-        sets: close(repeat(v.sets, (i) => S(i % 2 ? "Higher" : "Lower", v.load, fixed(i % 2 ? hi : lo), 6, 240, { ceiling: true }))),
+        sets: close(
+          repeat(v.pairs, () => [
+            S("Practice", v.load, fixed(v.low), rpeAt(v.low, v.load), rest),
+            S("Perform", v.load, fixed(high), rpeAt(high, v.load), rest),
+          ]).flat(),
+        ),
         rules: [],
       };
     },
@@ -176,101 +371,121 @@ export const DESIGNS: Design[] = [
     key: "topSetBackoff",
     family: "strength",
     params: [
-      count("top", "Top set reps", 1, 5, 3),
-      // The top set stays at RPE 9 or under: Brzycki reps to failure ≥ reps + 1.
-      pct("topPct", "Top set load", 80, (_c, v) => Math.min(95, Math.floor((36 - v.top) / 0.36)), 88),
-      pct("drop", "Back-off drop", 5, 12, 8),
-      count("bSets", "Back-off sets", 2, 5, 4),
-      count("bReps", "Back-off reps", 2, (_c, v) => clamp(repsWithReserve(v.topPct - v.drop, 2), 2, 8), (_c, v) => Math.min(8, v.top + 1)),
+      knob("top", "Top-set reps", span(1, 5), 3),
+      knob("bReps", "Back-off reps", (_c, v) => backoffReps(v.top), (_c, v) => Math.min(8, v.top + 2)),
+      knob("bSets", "Back-off sets", span(2, 6), 3),
     ],
-    build: (v) => ({
-      sets: close([
-        S("Top set", v.topPct, fixed(v.top), 8.5, 240),
-        ...repeat(v.bSets, () => S("Back-off", v.topPct - v.drop, fixed(v.bReps), 6.5, 240)),
-      ]),
-      rules: [],
-    }),
+    build: (v) => {
+      const top = topSetPct(v.top);
+      const back = backoffPct(v.top);
+      return {
+        sets: close([
+          S("Top set", top, fixed(v.top), TOP_RPE, top >= 92 ? 300 : top >= 88 ? 270 : top >= 85 ? 240 : 210),
+          ...repeat(v.bSets, () =>
+            S("Back-off", back, fixed(v.bReps), rpeAt(v.bReps, back), back >= 85 ? 240 : back >= 80 ? 210 : back >= 75 ? 180 : 150),
+          ),
+        ]),
+        rules: [],
+      };
+    },
   },
   {
     key: "pureCluster",
     family: "strength",
     params: [
-      count("clusters", "Clusters", 3, 5, 4),
-      count("singles", "Singles per cluster", 2, 4, 3),
-      pct("load", "Load", 80, 90, 87),
-      secs("intra", "Rest inside a cluster", 15, 45, 15, 15),
+      loadKnob("load", "Load", [80, 82, 85, 87, 90], 87),
+      // Doubles only where the drop rep allows two.
+      knob("shape", "Each cluster", (_c, v) => indices(PURE_CLUSTERS).filter((i) => PURE_CLUSTERS[i].reps <= dropRep(v.load)), 0, {
+        coded: true,
+        buttons: true,
+        show: (i) => clusterWords(PURE_CLUSTERS[i]),
+      }),
+      knob("clusters", "Clusters", [2, 3, 4, 5], 4),
     ],
-    build: (v) => ({
-      sets: close(
-        repeat(v.clusters, () => S("Cluster", v.load, { kind: "cluster", parts: repeat(v.singles, () => 1), intraRest: v.intra }, 7.5, 240)),
-      ),
-      rules: [],
-    }),
+    build: (v) => {
+      const c = PURE_CLUSTERS[v.shape];
+      const rpe = c.reps === 1 ? (v.load >= 87 ? 7.5 : 7) : v.load >= 85 ? 8 : 7.5;
+      const rest = v.load >= 87 ? 240 : v.load >= 82 ? 210 : 180;
+      return {
+        sets: close(repeat(v.clusters, () => S("Cluster", v.load, { kind: "cluster", parts: Array(c.minis).fill(c.reps), intraRest: c.intra }, rpe, rest))),
+        rules: [],
+      };
+    },
   },
   {
     key: "doublePyramid",
     family: "strength",
-    params: [pct("peak", "Peak load", 85, 93, 90), count("reps", "Reps per set", 2, (_c, v) => clamp(Math.floor(maxRepsAt(v.peak) - 1), 2, 4), 3)],
-    build: (v) => {
-      const arc: Array<[string, number, number]> = [
-        ["Ascend", -10, 7],
-        ["Ascend", -5, 8],
-        ["Peak", 0, 9],
-        ["Descend", -6, 8],
-        ["Descend", -11, 7],
-      ];
-      return { sets: close(arc.map(([g, o, rpe]) => S(g, v.peak + o, fixed(v.reps), rpe, 180))), rules: [] };
-    },
+    params: [
+      knob("reps", "Reps per set", [2, 3, 5].filter((r) => arcPeaks(r, "strength").length > 0), 3),
+      knob("peak", "Peak effort", (_c, v) => arcPeaks(v.reps, "strength"), (_c, _v, allowed) => allowed[allowed.length - 1], {
+        show: rpeWords,
+      }),
+    ],
+    build: (v) => ({
+      sets: close(arc(v.reps, v.peak).map((s, i) => S(ARC_GROUPS[i], s.pct, fixed(v.reps), s.rpe, 180))),
+      rules: [],
+    }),
   },
   {
     key: "singles",
     family: "strength",
     params: [
-      {
-        key: "mode",
-        label: "Presentation",
-        min: 0,
-        max: 1,
-        def: 0,
-        choices: [
-          { value: 0, label: "Straight, full rest" },
-          { value: 1, label: "EMOM" },
-        ],
-      },
-      count("count", "Singles", 4, 8, (_c, v) => (v.mode ? 6 : 5)),
-      pct("load", "Load", 85, 93, 88),
+      knob("mode", "Presentation", [0, 1], 0, { coded: true, buttons: true, show: (x) => (x ? "EMOM" : "Straight, full rest") }),
+      knob("count", "Singles", span(5, 8), (_c, v) => (v.mode ? 6 : 5)),
+      loadKnob("load", "Load", (_c, v) => (v.mode ? [88, 90, 92] : [85, 87, 88, 90, 92]), 88),
     ],
-    build: (v) => ({
-      sets: close(
-        repeat(v.count, () =>
-          v.mode ? S("Single", v.load, fixed(1), 7.5, 60, { clock: true }) : S("Single", v.load, fixed(1), 8, 300),
-        ),
-      ),
-      rules: [],
-    }),
+    build: (v) => {
+      if (v.mode) {
+        const rpe = v.load >= 92 ? 8.5 : v.load >= 90 ? 8 : 7.5;
+        return {
+          sets: close(repeat(v.count, () => S("Single", v.load, fixed(1), rpe, 60, { clock: true }))),
+          rules: [singlesCheck("end the EMOM there")],
+        };
+      }
+      // A point either side of the load, for feel; at most one single at RPE 9.
+      let nine = false;
+      const sets = repeat(v.count, (i) => {
+        const pct = clamp(v.load + [-1, 0, 1][i % 3], ...STRENGTH);
+        let rpe = pct >= 92 ? 8.5 : pct >= 88 ? 8 : 7.5;
+        if (!nine && i === Math.floor(v.count * 0.7) && pct >= 90) {
+          rpe = 9;
+          nine = true;
+        }
+        return S("Single", pct, fixed(1), rpe, 240);
+      });
+      return { sets: close(sets), rules: [singlesCheck("make it the last one today")] };
+    },
   },
   {
     key: "rampingSingles",
     family: "strength",
     params: [
-      pct("top", "Top single", 88, 95, 90),
-      count("bSets", "Back-off sets", 2, 4, 3),
-      count("bReps", "Back-off reps", 2, 3, 3),
-      pct("drop", "Back-off drop", 8, 15, 12),
+      // The shortest ramp, three singles two points apart, has to start inside the band.
+      loadKnob("top", "Top single", span(Math.max(75, STRENGTH[0] + 4), STRENGTH[1]), 90),
+      knob("step", "Step between singles", (_c, v) => [2, 3, 4, 5].filter((s) => v.top - 2 * s >= STRENGTH[0]), 5, {
+        show: (x) => `${x} points`,
+      }),
+      knob("rungs", "Singles in the ramp", (_c, v) => span(3, 6).filter((n) => v.top - v.step * (n - 1) >= STRENGTH[0]), 4),
+      knob("nine", "Top single", (_c, v) => (v.top >= 88 ? [0, 1] : [0]), 0, {
+        coded: true,
+        buttons: true,
+        show: (x) => (x ? "Up to RPE 9" : "As the ramp sets it"),
+      }),
+      knob("bSets", "Back-off sets", [2, 3, 4], 3),
+      knob("bReps", "Back-off reps", [2, 3], 3),
     ],
     build: (v) => {
-      const ramp: Array<[number, number]> = [
-        [-15, 7],
-        [-10, 7],
-        [-5, 7.5],
-        [0, 8.5],
-      ];
+      const start = v.top - v.step * (v.rungs - 1);
+      const ramp = repeat(v.rungs, (i) => {
+        const pct = start + v.step * i;
+        const last = i === v.rungs - 1;
+        const rpe = last && v.nine ? 9 : pct <= 82 ? 7 : pct <= 88 ? 7.5 : pct <= 92 ? 8 : 8.5;
+        return S(last ? "Top single" : "Ramp", pct, fixed(1), rpe, last ? 150 : 120);
+      });
+      const back = Math.max(STRENGTH[0], v.top - 12);
       return {
-        sets: close([
-          ...ramp.map(([o, rpe], i) => S("Ramp", v.top + o, fixed(1), rpe, i === ramp.length - 1 ? 150 : 120)),
-          ...repeat(v.bSets, () => S("Back-off", v.top - v.drop, fixed(v.bReps), 7, 150)),
-        ]),
-        rules: [],
+        sets: close([...ramp, ...repeat(v.bSets, () => S("Back-off", back, fixed(v.bReps), 7.5, 150, { ceiling: true }))]),
+        rules: [singlesCheck("end the ramp at that single and start the back-offs")],
       };
     },
   },
@@ -278,10 +493,11 @@ export const DESIGNS: Design[] = [
     key: "threadedSingles",
     family: "strength",
     params: [
-      count("pairs", "Set-and-single pairs", 4, 6, 5),
-      pct("single", "Single load", 85, 92, 88),
-      pct("gap", "Moderate sets, points under the single", 8, 12, 11),
-      count("reps", "Moderate reps", 3, 4, 4),
+      knob("pairs", "Set-and-single pairs", span(4, 6), 5),
+      loadKnob("single", "Single load", span(85, 92), 88),
+      // The moderate sets stay at RPE 7 or under: at least a triple has to fit.
+      knob("gap", "Moderate sets, points under the single", (_c, v) => span(8, 12).filter((g) => rpeAt(3, v.single - g) <= 7), 11),
+      knob("reps", "Moderate reps", (_c, v) => [3, 4].filter((r) => rpeAt(r, v.single - v.gap) <= 7), 4),
     ],
     build: (v, ctx) => {
       const v9 = mps(ctx.stop(v.single, 9));
@@ -305,24 +521,14 @@ export const DESIGNS: Design[] = [
     key: "routeSwap",
     family: "strength",
     params: [
-      {
-        key: "order",
-        label: "Order",
-        min: 0,
-        max: 1,
-        def: 0,
-        choices: [
-          { value: 0, label: "Heavy first" },
-          { value: 1, label: "Volume first" },
-        ],
-      },
-      count("aSets", "Heavy doubles", 3, 5, 4),
-      pct("aPct", "Heavy load", 85, 88, 87),
-      pct("bPct", "Volume load", 68, 72, 70),
+      knob("order", "Order", [0, 1], 0, { coded: true, buttons: true, show: (x) => (x ? "Volume first" : "Heavy first") }),
+      knob("aSets", "Heavy doubles", span(3, 5), 4),
+      loadKnob("aPct", "Heavy load", span(85, 88), 87),
+      loadKnob("bPct", "Volume load", span(68, 72), 70),
     ],
     build: (v, ctx) => {
       const heavy = repeat(v.aSets, () => S("Heavy", v.aPct, fixed(2), 8, 180, { ceiling: true }));
-      const volume = repeat(2, () => S("Volume", v.bPct, toStop(8), 8, 240));
+      const volume = repeat(2, () => S("Volume", v.bPct, toStop(Math.round(maxRepsAt(v.bPct) - 2)), 8, 240));
       const lead = v.order ? volume : heavy;
       const follow = v.order ? heavy : volume;
       const f = ctx.fresh(v.aPct);
@@ -340,7 +546,7 @@ export const DESIGNS: Design[] = [
   {
     key: "recruitmentCrossover",
     family: "strength",
-    params: [pct("dbl", "Doubles", 80, 85, 83), pct("mod", "Moderate sets", 68, 72, 70), pct("fin", "Finisher", 55, 60, 58)],
+    params: [loadKnob("dbl", "Doubles", span(80, 85), 83), loadKnob("mod", "Moderate sets", span(68, 72), 70), loadKnob("fin", "Finisher", span(55, 60), 58)],
     build: (v) => ({
       sets: close([
         ...repeat(2, () => S("Doubles", v.dbl, fixed(2), 7.5, 150, { ceiling: true })),
@@ -354,10 +560,10 @@ export const DESIGNS: Design[] = [
     key: "boundedDescent",
     family: "strength",
     params: [
-      pct("top", "Wave top", 80, 85, 83),
-      pct("mid", "Middle", 75, 78, 77),
-      pct("low", "Low", 68, 72, 70),
-      count("lowReps", "Reps at the low load", 2, 4, 3),
+      loadKnob("top", "Wave top", span(80, 85), 83),
+      loadKnob("mid", "Middle", span(75, 78), 77),
+      loadKnob("low", "Low", span(68, 72), 70),
+      knob("lowReps", "Reps at the low load", span(2, 4), 3),
     ],
     build: (v, ctx) => {
       const wave = (w: number) => [
@@ -382,165 +588,237 @@ export const DESIGNS: Design[] = [
     key: "tapered",
     family: "hypertrophy",
     params: [
-      pct("lead", "Lead load", 65, 80, 75),
-      count("leadSets", "Lead sets", 1, 3, 2),
-      count("leadReps", "Lead reps", 4, (_c, v) => clamp(repsWithReserve(v.lead, 2.5), 4, 8), 6),
-      pct("drop", "Taper drop", 0, 12, 8),
-      count("taperSets", "Taper sets", 2, 4, 3),
-      count("taperReps", "Taper reps", 6, (_c, v) => clamp(repsWithReserve(v.lead - v.drop, 2.5), 6, 12), 10),
+      knob("leadReps", "Lead reps", [7, 8, 9, 10, 12], 10),
+      knob("leadSets", "Lead sets", [2, 3], 2),
+      knob(
+        "taperReps",
+        "Taper reps",
+        (_c, v) => [4, 5, 6, 7, 8].filter((t) => t < v.leadReps),
+        // The most taper reps the lead sets leave room for, within the ceiling.
+        (_c, v, allowed) => [...allowed].reverse().find((t) => taperModel(v.leadReps, t) <= rpeCeiling(t)) ?? allowed[0],
+      ),
+      knob("taperSets", "Taper sets", span(1, 6), 3),
     ],
-    build: (v) => ({
-      sets: close([
-        ...repeat(v.leadSets, () => S("Lead", v.lead, fixed(v.leadReps), 7.5, 150)),
-        ...repeat(v.taperSets, () => S("Taper", v.lead - v.drop, fixed(v.taperReps), 7, 150)),
-      ]),
-      rules: [],
-    }),
-  },
-  {
-    key: "ascendingPyramid",
-    family: "hypertrophy",
-    params: [pct("top", "Top load", 72, 80, 78), count("sets", "Sets", 3, 4, 4)],
     build: (v) => {
-      const full: Array<[number, number, number]> = [
-        [12, -16, 6.5],
-        [10, -10, 7],
-        [8, -5, 7.5],
-        [6, 0, 8],
-      ];
+      const pct = taperedPct(v.leadReps);
+      const model = taperModel(v.leadReps, v.taperReps);
+      const cap = rpeCeiling(v.taperReps);
+      // Past the ceiling, the stop decides how many of the reps happen.
+      const over = model > cap;
       return {
-        sets: close(full.slice(4 - v.sets).map(([reps, o, rpe]) => S("Pyramid", v.top + o, fixed(reps), rpe, 120))),
-        rules: [],
+        sets: close([
+          ...repeat(v.leadSets, () => S("Lead", pct, fixed(v.leadReps), LEAD_RPE, 90)),
+          ...repeat(v.taperSets, () => S("Taper", pct, over ? upTo(v.taperReps) : fixed(v.taperReps), Math.min(model, cap), 90)),
+        ]),
+        rules: [
+          over
+            ? `Same weight throughout. After the lead sets, ${v.taperReps} reps would run past RPE ${cap}, so the taper sets end at the stop even if the reps aren't all there.`
+            : "Same weight throughout. The taper sets come after the lead sets, so they feel harder than their reps suggest.",
+        ],
       };
     },
   },
   {
+    key: "ascendingPyramid",
+    family: "hypertrophy",
+    params: [
+      knob("shape", "Reps", indices(ASCENDING).filter((i) => pyramidEfforts(ASCENDING[i], "up").length > 0), 2, {
+        coded: true,
+        show: (i) => ASCENDING[i].join(" / "),
+      }),
+      knob("effort", "Effort", (_c, v) => pyramidEfforts(ASCENDING[v.shape], "up"), (_c, _v, allowed) => pyramidDefault(allowed), {
+        coded: true,
+        show: (code, v) => pyramidEffortWords(ASCENDING[v.shape], "up", code),
+      }),
+      knob("rest", "Rest", [105, 120], 120, { unit: "s" }),
+    ],
+    build: (v) => ({
+      sets: close(pyramid(ASCENDING[v.shape], "up", v.effort).map((s) => S("Pyramid", s.pct, fixed(s.reps), s.rpe, v.rest))),
+      rules: [],
+    }),
+  },
+  {
     key: "reversePyramid",
     family: "hypertrophy",
-    params: [pct("top", "Top load", 74, 80, 78), count("sets", "Sets", 3, 4, 3), pct("step", "Drop per set", 4, 8, 6)],
-    build: (v) => {
-      const reps = [6, 8, 10, 12];
-      const rpe = [8, 7.5, 7, 6.5];
-      return { sets: close(repeat(v.sets, (i) => S("Pyramid", v.top - v.step * i, fixed(reps[i]), rpe[i], 150))), rules: [] };
-    },
+    params: [
+      knob("shape", "Reps", indices(REVERSE).filter((i) => pyramidEfforts(REVERSE[i], "down").length > 0), 1, {
+        coded: true,
+        show: (i) => REVERSE[i].join(" / "),
+      }),
+      knob("effort", "Effort", (_c, v) => pyramidEfforts(REVERSE[v.shape], "down"), (_c, _v, allowed) => pyramidDefault(allowed), {
+        coded: true,
+        show: (code, v) => pyramidEffortWords(REVERSE[v.shape], "down", code),
+      }),
+      knob("rest", "Rest", [120, 150], 150, { unit: "s" }),
+    ],
+    build: (v) => ({
+      sets: close(pyramid(REVERSE[v.shape], "down", v.effort).map((s) => S("Pyramid", s.pct, fixed(s.reps), s.rpe, v.rest))),
+      rules: [],
+    }),
   },
   {
     key: "volumePyramid",
     family: "hypertrophy",
-    params: [pct("peak", "Peak load", 75, 82, 79), count("reps", "Reps per set", 4, (_c, v) => clamp(repsWithReserve(v.peak, 2), 4, 6), 5)],
+    params: [knob("reps", "Reps per set", [5, 6, 8].filter((r) => arcPeaks(r, "hypertrophy").length > 0), 5)],
     build: (v) => {
-      const arc: Array<[string, number, number]> = [
-        ["Ascend", -6, 7],
-        ["Ascend", -3, 7.5],
-        ["Peak", 0, 8],
-        ["Descend", -4, 7.5],
-        ["Descend", -7, 7],
-      ];
-      return { sets: close(arc.map(([g, o, rpe]) => S(g, v.peak + o, fixed(v.reps), rpe, 150))), rules: [] };
+      const peak = arcPeaks(v.reps, "hypertrophy")[0];
+      return { sets: close(arc(v.reps, peak).map((s, i) => S(ARC_GROUPS[i], s.pct, fixed(v.reps), s.rpe, 150))), rules: [] };
     },
   },
   {
     key: "straightSets",
     family: "hypertrophy",
     params: [
-      pct("load", "Load", 55, 80, 65),
-      count("sets", "Sets", 3, 5, 4),
-      // At 74% and up, reps cap at the peak-force drop rep (straightSets solver).
-      count("reps", "Reps", 3, (_c, v) => (v.load >= 74 ? dropRep(v.load) : Math.min(15, repsWithReserve(v.load, 3))), (_c, v) =>
-        v.load >= 74 ? dropRep(v.load) : 8,
-      ),
+      loadKnob("load", "Load", (ctx) => span(55, 80).filter((p) => straightPlan(p, ctx).first <= STRAIGHT_RPE_MAX), 65),
+      knob("sets", "Sets", (ctx, v) => span(2, straightPlan(v.load, ctx).maxSets), 4),
     ],
-    // RPE drifts about half a point a set at the same load.
-    build: (v) => ({ sets: close(repeat(v.sets, (i) => S("Work", v.load, fixed(v.reps), Math.min(9, 6.5 + 0.5 * i), 90))), rules: [] }),
-  },
-  {
-    key: "dropSet",
-    family: "hypertrophy",
-    params: [
-      pct("top", "First tier load", 68, 78, 74),
-      count("tiers", "Tiers", 2, 4, 3),
-      count("per", "Sets per tier", 1, 2, 2),
-      pct("step", "Drop per tier", 4, 10, 8),
-    ],
-    build: (v) => {
-      const reps = [6, 8, 10, 12];
-      const rpe = [7, 7.5, 8, 8.5];
+    build: (v, ctx) => {
+      const p = straightPlan(v.load, ctx);
+      const rest = v.load >= 75 ? 180 : v.load >= 70 ? 150 : 120;
       return {
         sets: close(
-          repeat(v.tiers, (t) => repeat(v.per, () => S(`Tier ${t + 1}`, Math.max(45, v.top - v.step * t), fixed(reps[t]), rpe[t], 90))).flat(),
+          repeat(v.sets, (i) =>
+            S("Work", v.load, fixed(p.reps), Math.max(STRAIGHT_RPE_MIN, Math.min(STRAIGHT_RPE_MAX, round1(p.first + i * p.accrual))), rest),
+          ),
         ),
         rules: [],
       };
     },
   },
   {
+    key: "dropSet",
+    family: "hypertrophy",
+    params: [
+      knob("tiers", "Tiers", [2, 3, 4], 3),
+      knob("step", "Drop per tier", [2, 3, 4, 5], 4, { show: (x) => `${x} points` }),
+      knob("later", "Later tiers up to", [8, 8.5], 8, { buttons: true, show: rpeWords }),
+      loadKnob(
+        "start",
+        "First tier",
+        (_c, v) =>
+          span(DROP_WINDOW[0] + v.step * (v.tiers - 1), DROP_WINDOW[1]).filter((s) => dropTiers(s, v.tiers, v.step, v.later).every((t) => t != null)),
+        74,
+      ),
+      // 12 to 50 reps in all.
+      knob(
+        "per",
+        "Sets per tier",
+        (_c, v) =>
+          [1, 2, 3].filter((n) => {
+            const reps = n * dropTiers(v.start, v.tiers, v.step, v.later).reduce((t, x) => t + x!.reps, 0);
+            return reps >= 12 && reps <= 50;
+          }),
+        2,
+      ),
+    ],
+    build: (v) => ({
+      sets: close(
+        dropTiers(v.start, v.tiers, v.step, v.later)
+          .map((t, i) => repeat(v.per, () => S(`Tier ${i + 1}`, t!.pct, fixed(t!.reps), rpeAt(t!.reps, t!.pct), 90)))
+          .flat(),
+      ),
+      rules: [],
+    }),
+  },
+  {
     key: "mechanicalTension",
     family: "hypertrophy",
-    params: [pct("load", "Load", 65, 80, 78), count("sets", "Sets", 4, 10, 6), count("reps", "Reps", 2, (_c, v) => dropRep(v.load), 3)],
-    build: (v) => ({ sets: close(repeat(v.sets, () => S("Work", v.load, fixed(v.reps), 6, 180, { ceiling: true }))), rules: [] }),
+    unavailable: (ctx) => (lstarFloor(ctx) > 80 ? "Your L* sits above this design's band: its floor is L* + 1 and its ceiling 80%." : null),
+    params: [
+      loadKnob("load", "Load", (ctx) => span(lstarFloor(ctx), 80), (ctx) => clamp(72, lstarFloor(ctx), 80)),
+      knob("sets", "Sets", span(3, 10), 6),
+    ],
+    build: (v) => {
+      const reps = dropRep(v.load);
+      return {
+        sets: close(
+          repeat(v.sets, () => S("Work", v.load, fixed(reps), Math.min(9, rpeAt(reps, v.load)), v.load >= 78 ? 180 : v.load >= 72 ? 150 : 120)),
+        ),
+        rules: [],
+      };
+    },
   },
   {
     key: "eccentricAccentuated",
     family: "hypertrophy",
     params: [
-      pct("load", "Load", 65, 75, 72),
-      count("sets", "Sets", 3, 5, 4),
-      count("reps", "Reps", 4, 6, 5),
-      secs("ecc", "Eccentric", 3, 4, 4, 1),
+      knob("shape", "Sets × reps", indices(ECCENTRICS), 0, {
+        coded: true,
+        show: (i) => `${ECCENTRICS[i].sets} × ${ECCENTRICS[i].reps}, ${ECCENTRICS[i].ecc} s down`,
+      }),
+      // SA's list, less any load where the reps alone cost more than the RPE the set is given
+      // (3 × 6 at 78% is RPE 8 before the slow eccentric, past the 7.5 ceiling for six reps).
+      loadKnob("load", "Load", (_c, v) => [68, 72, 75, 78].filter((p) => rpeAt(ECCENTRICS[v.shape].reps, p) <= eccentricRpe(ECCENTRICS[v.shape], p)), 72),
     ],
-    build: (v) => ({
-      sets: close(
-        repeat(v.sets, () => S("Work", v.load, fixed(v.reps), 7, v.ecc >= 4 || v.load >= 75 ? 180 : 150, { tempo: `${v.ecc}-0-1` })),
-      ),
-      rules: [`Lower for ${v.ecc} s, no pause, then drive up. Read the concentric speed only.`],
-    }),
+    build: (v) => {
+      const e = ECCENTRICS[v.shape];
+      const rpe = eccentricRpe(e, v.load);
+      const rest = e.ecc >= 4 || v.load >= 75 ? 180 : 150;
+      return {
+        sets: close(repeat(e.sets, () => S("Work", v.load, fixed(e.reps), rpe, rest, { tempo: `${e.ecc}-0-1-0` }))),
+        rules: [`Lower for ${e.ecc} s, no pause, then drive up. Read the concentric speed only.`],
+      };
+    },
   },
   {
     key: "forceMetabolic",
     family: "hypertrophy",
-    // One load for both kinds of set; the force sets are floored at L* + 1
-    // (forceMetabolic solver), and above 72% the metabolic sets turn into grinds.
-    unavailable: (ctx) => (lstarFloor(ctx, 62) > 72 ? "Your L* sits above this design's load band (62 to 72%)." : null),
+    // One load for both kinds of set, floored at L* + 1, up to 78%, wherever a metabolic set fits under its ceiling.
+    unavailable: (ctx) =>
+      fmLoads(ctx).length ? null : `Your L* sits above this design's band: its floor is L* + 1 and its ceiling ${FM_CEILING}%.`,
     params: [
-      count("pairs", "Force-and-metabolic pairs", 2, 4, 3),
-      pct("load", "Load", (ctx) => Math.max(62, lstarFloor(ctx, 62)), 72, 72),
-      count("fReps", "Force reps", 2, (_c, v) => clamp(dropRep(v.load), 2, 5), 4),
-      count("mReps", "Metabolic reps", (_c, v) => v.fReps + 2, (_c, v) => clamp(repsWithReserve(v.load, 3), v.fReps + 2, 10), 8),
-    ],
-    build: (v) => ({
-      sets: close(
-        repeat(v.pairs, () => [
-          S("Force", v.load, fixed(v.fReps), 7.5, 150, { ceiling: true }),
-          S("Metabolic", v.load, fixed(v.mReps), 7, 150),
-        ]).flat(),
+      loadKnob("load", "Load", (ctx) => fmLoads(ctx), 70),
+      knob("fSets", "Force sets", [2, 3, 4], 3),
+      knob("mReps", "Metabolic reps", (_c, v) => metabolicReps(v.load), (_c, v, allowed) =>
+        allowed.reduce((best, r) => (Math.abs(rpeAt(r, v.load) - 7) < Math.abs(rpeAt(best, v.load) - 7) ? r : best)),
       ),
-      rules: [],
-    }),
+      knob("mSets", "Metabolic sets", span(1, 4), (_c, v) => v.fSets),
+    ],
+    build: (v) => {
+      const force = dropRep(v.load);
+      const out: PlanSet[] = [];
+      for (let i = 0; i < Math.max(v.fSets, v.mSets); i++) {
+        if (i < v.fSets) out.push(S("Force", v.load, fixed(force), Math.min(rpeCeiling(force), rpeAt(force, v.load)), v.load >= 74 ? 180 : 150));
+        if (i < v.mSets) out.push(S("Metabolic", v.load, fixed(v.mReps), rpeAt(v.mReps, v.load), 90));
+      }
+      return { sets: close(out), rules: [] };
+    },
   },
   {
     key: "hypertrophyCluster",
     family: "hypertrophy",
     params: [
-      count("clusters", "Clusters", 2, 4, 3),
-      count("minis", "Mini-sets per cluster", 2, 3, 3),
-      count("reps", "Reps per mini-set", 3, 6, 5),
-      pct("load", "Load", 70, 78, 74),
-      secs("intra", "Rest inside a cluster", 10, 20, 15, 5),
+      loadKnob("load", "Load", [72, 74, 76, 78], 74),
+      knob("shape", "Each cluster", (_c, v) => indices(HYP_CLUSTERS).filter((i) => hypClusterRpe(v.load, HYP_CLUSTERS[i].reps) <= rpeCeiling(HYP_CLUSTERS[i].reps)), 0, {
+        coded: true,
+        show: (i) => clusterWords(HYP_CLUSTERS[i]),
+      }),
+      knob("clusters", "Clusters", [3, 4], 3),
     ],
-    build: (v) => ({
-      sets: close(repeat(v.clusters, () => S("Cluster", v.load, { kind: "cluster", parts: repeat(v.minis, () => v.reps), intraRest: v.intra }, 7.5, 180))),
-      rules: [],
-    }),
+    build: (v) => {
+      const c = HYP_CLUSTERS[v.shape];
+      return {
+        sets: close(
+          repeat(v.clusters, () =>
+            S("Cluster", v.load, { kind: "cluster", parts: Array(c.minis).fill(c.reps), intraRest: c.intra }, hypClusterRpe(v.load, c.reps), v.load >= 76 ? 180 : 150),
+          ),
+        ),
+        rules: [],
+      };
+    },
   },
   {
     key: "densitySet",
     family: "hypertrophy",
     // Never an AMRAP under a barbell without a spotter: off bench and squat.
     lifts: ["deadlift"],
-    params: [{ key: "minutes", label: "Duration", min: 6, max: 12, def: 10, unit: "min" }, pct("load", "Load", 60, 70, 65)],
+    params: [knob("minutes", "Duration", span(12, 18), 15, { unit: "min" }), loadKnob("load", "Load", span(55, 80), 65)],
     build: (v) => ({
       sets: [S("Density block", v.load, { kind: "timed", minutes: v.minutes }, 7, 0, { ceiling: true })],
-      rules: ["Self-paced: rest as needed and keep every rep clean. End each run of reps at the stop velocity."],
+      rules: [
+        "Self-paced: rest as needed and keep every rep clean. End each run of reps at the stop velocity.",
+        "Mechanics decide rest, not the clock. If a rep starts to look different from your first set, rest longer.",
+      ],
     }),
   },
   {
@@ -548,9 +826,9 @@ export const DESIGNS: Design[] = [
     family: "hypertrophy",
     unavailable: (ctx) => (lstarFloor(ctx, 70) > 80 ? "Your L* sits above this design's band: its floor is L* + 1 and its ceiling 80%." : null),
     params: [
-      pct("load", "Load", (ctx) => lstarFloor(ctx, 70), 80, (ctx) => clamp(72, lstarFloor(ctx, 70), 78)),
-      count("sets", "Sets", 8, 12, 10),
-      secs("clock", "Every", 90, 120, 105, 15),
+      loadKnob("load", "Load", (ctx) => span(lstarFloor(ctx, 70), 80), (ctx) => clamp(72, lstarFloor(ctx, 70), 78)),
+      knob("sets", "Sets", span(8, 12), 10),
+      knob("clock", "Every", [90, 105, 120], 105, { unit: "s" }),
     ],
     build: (v, ctx) => ({
       sets: close(repeat(v.sets, () => S("Set", v.load, fixed(clamp(dropRep(v.load), 3, 4)), 7, v.clock, { ceiling: true, clock: true }))),
@@ -561,7 +839,7 @@ export const DESIGNS: Design[] = [
     key: "restPauseHarvest",
     family: "hypertrophy",
     spotter: ["bench", "squat"],
-    params: [pct("load", "Load", 72, 78, 75), secs("intra", "Rest inside a block", 20, 30, 20, 5)],
+    params: [loadKnob("load", "Load", span(72, 78), 75), knob("intra", "Rest inside a block", [20, 25, 30], 20, { unit: "s" })],
     build: (v, ctx) => {
       const block = (b: number) => [
         S(`Block ${b}, activation`, v.load, toStop(Math.round(maxRepsAt(v.load) - 2)), 8, v.intra),
@@ -572,9 +850,7 @@ export const DESIGNS: Design[] = [
         sets: close([...block(1), ...block(2)]),
         rules: [
           "The activation set stops two reps short. Each mini-set stops one short. No rep is a grind.",
-          v9
-            ? `A mini-set whose first rep is already under ${v9} ends the block.`
-            : "A mini-set whose first rep already reads RPE 9 ends the block.",
+          v9 ? `A mini-set whose first rep is already under ${v9} ends the block.` : "A mini-set whose first rep already reads RPE 9 ends the block.",
         ],
       };
     },
@@ -582,7 +858,7 @@ export const DESIGNS: Design[] = [
   {
     key: "shrinkingSets",
     family: "hypertrophy",
-    params: [pct("load", "Load", 68, 74, 71), count("starts", "Starts", 6, 8, 8), secs("clock", "Every", 75, 105, 90, 15)],
+    params: [loadKnob("load", "Load", span(68, 74), 71), knob("starts", "Starts", span(6, 8), 8), knob("clock", "Every", [75, 90, 105], 90, { unit: "s" })],
     build: (v, ctx) => ({
       sets: close(repeat(v.starts, () => S("Bout", v.load, upTo(4), 7, v.clock, { ceiling: true, clock: true }))),
       rules: [
@@ -596,10 +872,10 @@ export const DESIGNS: Design[] = [
     key: "recoveryIslands",
     family: "hypertrophy",
     params: [
-      pct("load", "Load", 68, 75, 72),
-      count("blocks", "Blocks", 3, 5, 4),
-      secs("pair", "Rest between pairs", 30, 60, 45, 15),
-      secs("block", "Rest between blocks", 150, 210, 180, 30),
+      loadKnob("load", "Load", span(68, 75), 72),
+      knob("blocks", "Blocks", span(3, 5), 4),
+      knob("pair", "Rest between pairs", [30, 45, 60], 45, { unit: "s" }),
+      knob("block", "Rest between blocks", [150, 180, 210], 180, { unit: "s" }),
     ],
     build: (v, ctx) => {
       const f = ctx.fresh(v.load);
@@ -620,18 +896,28 @@ export const DESIGNS: Design[] = [
 
 export const designByKey = (key: string) => DESIGNS.find((d) => d.key === key) ?? null;
 
-/** Settle every parameter in order, each inside bounds that may depend on the ones before it. */
-export function resolve(d: Design, ctx: DesignCtx, input: Partial<Values> = {}) {
+export interface Resolved {
+  values: Values;
+  /** The values each knob may take, as resolved. */
+  options: Record<string, number[]>;
+}
+
+/**
+ * Settle every knob in order, each among the values the knobs before it allow.
+ * A value the lifter set that is no longer allowed moves to the nearest one that
+ * is; a named option that is no longer allowed goes back to its default.
+ */
+export function resolve(d: Design, ctx: DesignCtx, input: Partial<Values> = {}): Resolved {
   const values: Values = {};
-  const bounds: Record<string, [number, number]> = {};
+  const options: Record<string, number[]> = {};
   for (const p of d.params) {
-    const at = (b: Bound) => (typeof b === "function" ? b(ctx, values) : b);
-    const lo = at(p.min);
-    const hi = Math.max(lo, at(p.max));
-    const step = p.step ?? 1;
-    const raw = input[p.key] ?? at(p.def);
-    values[p.key] = clamp(Math.round(raw / step) * step, lo, hi);
-    bounds[p.key] = [lo, hi];
+    const allowed = p.values(ctx, values);
+    if (!allowed.length) throw new Error(`${d.key}: no value fits ${p.key}`);
+    options[p.key] = allowed;
+    const def = typeof p.def === "function" ? p.def(ctx, values, allowed) : p.def;
+    const want = input[p.key];
+    values[p.key] =
+      want != null && allowed.includes(want) ? want : nearest(allowed, want != null && !p.coded ? want : def);
   }
-  return { values, bounds };
+  return { values, options };
 }

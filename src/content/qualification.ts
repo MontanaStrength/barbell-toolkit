@@ -79,6 +79,7 @@ export const QUAL: Record<string, Qualification> = {
       "The stop fractions are taken as exact. They are coaching starting points (0.2 power, 0.3 strength, 0.6 / 0.4 hypertrophy below / above L*), not measured from you.",
       "A design's RPE is read as a stop velocity through a fixed map (RPE 6.5 → 0.2, 7.5 → 0.3, 8 → 0.4, 9 → 0.6 of the way to your MVT). It's a starting point; your own sets will tell you where it's off.",
       "Hypertrophy reps are read as personal. They come from a population reps-to-failure table, not your data.",
+      "A design's loads are read as personal. Each comes from its reps and RPE on a population curve (Nuzzo et al., 2023, the one Strength Architect's solvers use), not from your own sets.",
       "Set counts are followed past recovery. The neural-dose targets are coaching ranges, not limits.",
     ],
   },

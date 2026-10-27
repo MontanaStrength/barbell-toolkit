@@ -1,8 +1,14 @@
 // Names and words for the session designs. The eighteen catalogue designs use
 // John Hanley's copy from the Strength Architect scheme previews, trimmed only
-// where a sentence described what that app's engine does. The eight added on
-// Oct 24, 2026 use his catalogue cues; their summaries and explanations are
-// DRAFTS assembled from his catalogue and brainstorm wording, for him to edit.
+// where a sentence described what that app's engine does. On Oct 27, 2026 the
+// designs moved from those previews to SA's solvers, so six explanations were
+// brought in line with what the solvers build: Tapered (one weight, not a
+// lighter taper; SA's own scheme details say the same), Sawtooth (the perform
+// set runs past the peak-force drop), Double and Volume Pyramid (whole RPE
+// steps, peaks by rep count), Eccentric Accentuated (3–5 s) and
+// Force/Metabolic (one weight). The eight added on Oct 24, 2026 use his
+// catalogue cues; their summaries and explanations are DRAFTS assembled from
+// his catalogue and brainstorm wording, for him to edit.
 
 export interface DesignText {
   name: string;
@@ -24,7 +30,7 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
     name: "Sawtooth",
     summary: "Alternating rep counts at one weight",
     explanation:
-      "Alternating rep counts at the same weight. Every set stays under the peak-force threshold — this is quality work, not grinding. On Practice sets, slow down — brace your trunk, build full-body tension, work your cues. On Perform sets, trust your setup and just move the bar.",
+      "Alternating rep counts at the same weight. Perform sets run about three reps short of failure; the Practice sets between them are a deliberate underload, so the next Perform set stays crisp. On Practice sets, slow down — brace your trunk, build full-body tension, work your cues. On Perform sets, trust your setup and just move the bar.",
   },
   topSetBackoff: {
     name: "Top Set + Back-off",
@@ -40,9 +46,9 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
   },
   doublePyramid: {
     name: "Double Pyramid",
-    summary: "Symmetric arc: ascend, peak at RPE 9, descend",
+    summary: "Symmetric arc: ascend, peak at up to RPE 9, descend",
     explanation:
-      "The full pyramid shape for strength phases. Sets 1–3 ascend intensity from RPE 7 to a peak RPE 9 exposure, then sets 4–5 descend at RPE-symmetric loads slightly under the mirrored ascent sets to honor accrued fatigue. The peak set gives a genuine near-max neural exposure; the back-offs capture potentiated volume while the nervous system is still primed. Intensification and realization phases only — too peaky for accumulation, too voluminous for meet week.",
+      "The full pyramid shape for strength phases. Sets 1–3 ascend a point of RPE at a time to a peak exposure of up to RPE 9, then sets 4–5 descend at RPE-symmetric loads slightly under the mirrored ascent sets to honor accrued fatigue. The peak set gives a genuine near-max neural exposure; the back-offs capture potentiated volume while the nervous system is still primed. Intensification and realization phases only — too peaky for accumulation, too voluminous for meet week.",
   },
   singles: {
     name: "Singles",
@@ -92,9 +98,9 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
   // ----- hypertrophy -----
   tapered: {
     name: "Tapered Sets",
-    summary: "Heavier lead sets, then lighter taper sets",
+    summary: "Lead sets, then shorter taper sets at the same weight",
     explanation:
-      "Lead sets use heavier loads to recruit high-threshold motor units. Taper sets drop the weight but keep those motor units engaged — accumulating metabolic stress where it matters most.",
+      "Lead sets build peak tension at high effort. Taper sets extend time under metabolic stress at the same load — more stimulus without more fatigue. The taper sets drop the reps, not the weight, and feel harder than their reps suggest because the lead sets came first.",
   },
   ascendingPyramid: {
     name: "Ascending Pyramid",
@@ -110,9 +116,9 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
   },
   volumePyramid: {
     name: "Volume Pyramid",
-    summary: "Symmetric arc: ascend, peak at RPE 8, descend",
+    summary: "Build to a peak, then descend at fixed reps",
     explanation:
-      "The full pyramid shape — ascend, peak, descend. Each set climbs a half-step in effort toward a single peak set at RPE 8, then two RPE-symmetric back-off sets capture potentiated volume as fatigue accrues. Load on the descent is slightly lighter than the mirrored ascent set to honor the fatigue curve.",
+      "The full pyramid shape — ascend, peak, descend. Each set climbs a point of RPE toward a single peak set at RPE 8 (7.5 for sets of six or more), then two RPE-symmetric back-off sets capture potentiated volume as fatigue accrues. Load on the descent is slightly lighter than the mirrored ascent set to honor the fatigue curve.",
   },
   straightSets: {
     name: "Straight Sets",
@@ -134,15 +140,15 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
   },
   eccentricAccentuated: {
     name: "Eccentric Accentuated",
-    summary: "Extended 3–4 s eccentric on every rep",
+    summary: "Extended 3–5 s eccentric on every rep",
     explanation:
-      "Muscles produce 20–50% more force during lengthening contractions than shortening ones — and the eccentric phase is the primary driver of muscle damage, the third pillar of hypertrophy. This scheme biases the stimulus toward that phase with a deliberate 3–4 s controlled descent on every rep. Load stays moderate because the tempo is where the work happens, not the weight on the bar.",
+      "Muscles produce 20–50% more force during lengthening contractions than shortening ones — and the eccentric phase is the primary driver of muscle damage, the third pillar of hypertrophy. This scheme biases the stimulus toward that phase with a deliberate 3–5 s controlled descent on every rep. Load stays moderate because the tempo is where the work happens, not the weight on the bar.",
   },
   forceMetabolic: {
     name: "Force/Metabolic Interleave",
     summary: "Force and metabolic sets interleaved at one load",
     explanation:
-      "Two stimulus types in one session. Force sets (low rep, heavier) drive mechanical tension and motor unit recruitment. Metabolic sets (higher rep, lighter) exploit that recruitment for metabolite accumulation. Interleaving them prevents neural fatigue from compounding on either block.",
+      "Two stimulus types in one session, at one weight. Force sets (low rep, crisp) drive mechanical tension and motor unit recruitment. Metabolic sets (more reps, same weight) exploit that recruitment for metabolite accumulation. Interleaving them prevents neural fatigue from compounding on either block.",
   },
   hypertrophyCluster: {
     name: "Hypertrophy Cluster",

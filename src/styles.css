@@ -1095,6 +1095,19 @@ td.band-name small {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.design-grid > li {
+  display: flex;
+  min-width: 0;
+}
+
+.design-grid > li > .design-card {
+  flex: 1;
+  min-width: 0;
 }
 
 .design-card {
@@ -1208,6 +1221,18 @@ td.band-name small {
 .knob-range {
   font-size: 13px;
   color: var(--ink-2);
+}
+
+/* Named options (a rep template, an effort ramp) need room for their words. */
+.knob-wide {
+  grid-column: 1 / -1;
+}
+
+.knob-wide .stepper output {
+  min-width: 200px;
+  padding: 6px 12px;
+  text-align: center;
+  line-height: 1.25;
 }
 
 td.set-name {
@@ -1400,6 +1425,15 @@ td.set-name small,
 
   .stepper output {
     min-width: 58px;
+  }
+
+  .knob-wide .stepper {
+    width: 100%;
+  }
+
+  .knob-wide .stepper output {
+    flex: 1;
+    min-width: 0;
   }
 
   .panel {
