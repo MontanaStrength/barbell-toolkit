@@ -7,7 +7,8 @@ import { fromCsv, toCsv } from "../engine/csv";
 import { EXAMPLE_PROBE } from "../engine/example";
 import { intentFloor, readRep } from "../engine/metrics";
 import WeightInput from "../components/WeightInput";
-import { fmt, suggestBarLb, usePageTitle, wt, wtValue, type Unit } from "../format";
+import { fmt, suggestBarLb, todayIso, usePageTitle, wt, wtValue, type Unit } from "../format";
+import { byDateDesc, probeWhen, type SavedProbe } from "../probes";
 import { isUsable, useStore } from "../store";
 
 const TARGETS = [60, 70, 80, 90];
@@ -28,11 +29,126 @@ const num = (s: string) => {
   return Number.isFinite(n) ? n : null;
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 export default function Probe() {
   usePageTitle("Run the probe");
-  const { mine, setMine, setSource, unit } = useStore();
+  const { currentId } = useStore();
+  return (
+    <div className="stack-lg">
+      <div className="stack">
+        <h1>Run the probe</h1>
+        <p className="lede">
+          Log each rep as you go. Everything saves in this browser, so you can close the page between sets.
+        </p>
+      </div>
+      <ProbeHistory />
+      {/* Keyed so switching probes resets the half-typed rep. */}
+      <ProbeEditor key={currentId} />
+    </div>
+  );
+}
+
+const probeOption = (s: SavedProbe) =>
+  `${LIFTS[s.probe.lift].name}, ${s.probe.reps.length ? probeWhen(s) : `started ${probeWhen(s)}`} (${
+    s.probe.reps.length ? `${s.probe.reps.length} reps` : "no reps yet"
+  })`;
+
+function ProbeHistory() {
+  const { probes, currentId, mine, selectProbe, newProbe, deleteProbe } = useStore();
+  const [note, setNote] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  if (probes.length < 2 && !mine.reps.length) return null;
+  const sorted = [...probes].sort(byDateDesc);
+  const current = probes.find((s) => s.id === currentId)!;
+  const sameLift = probes.filter((s) => s.probe.lift === mine.lift && isUsable(s.probe)).length;
+
+  return (
+    <section className="panel stack" aria-labelledby="probes-h">
+      <div className="btn-row" style={{ justifyContent: "space-between" }}>
+        <h2 id="probes-h">Your probes</h2>
+        <button
+          type="button"
+          className="btn btn-small"
+          disabled={!mine.reps.length}
+          onClick={() => {
+            newProbe();
+            setConfirming(false);
+            setNote(
+              `Started a new ${LIFTS[mine.lift].name.toLowerCase()} probe; your earlier one is saved. Check the e1RM below and update it if your max has moved.`,
+            );
+          }}
+        >
+          New probe
+        </button>
+      </div>
+      {probes.length > 1 && (
+        <div className="field" style={{ maxWidth: 520 }}>
+          <label htmlFor="p-pick">Logging into</label>
+          <select
+            id="p-pick"
+            value={currentId}
+            onChange={(e) => {
+              selectProbe(e.target.value);
+              setConfirming(false);
+              setNote(null);
+            }}
+          >
+            {sorted.map((s) => (
+              <option key={s.id} value={s.id}>
+                {probeOption(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      <p className="field-hint">
+        Start a new probe after each training block. Earlier ones stay saved here
+        {sameLift >= 2 ? (
+          <>
+            , and the report's <Link to="/report/compare">Compare page</Link> shows what changed between them.
+          </>
+        ) : (
+          ", and once you have two of the same lift the report shows what changed between them."
+        )}
+      </p>
+      {note && (
+        <p className="small" role="status">
+          {note}
+        </p>
+      )}
+      {probes.length > 1 &&
+        (confirming ? (
+          <div className="flag flag-warn btn-row" role="alertdialog" aria-label="Confirm">
+            <span style={{ flex: "1 1 260px" }}>
+              Delete the {probeOption(current)} probe? This can't be undone.
+            </span>
+            <button
+              type="button"
+              className="btn btn-small"
+              onClick={() => {
+                deleteProbe(currentId);
+                setConfirming(false);
+                setNote("Deleted that probe.");
+              }}
+            >
+              Delete probe
+            </button>
+            <button type="button" className="btn btn-small btn-quiet" onClick={() => setConfirming(false)}>
+              Keep it
+            </button>
+          </div>
+        ) : (
+          <div>
+            <button type="button" className="link-btn" onClick={() => setConfirming(true)}>
+              Delete this probe
+            </button>
+          </div>
+        ))}
+    </section>
+  );
+}
+
+function ProbeEditor() {
+  const { mine, setMine, setSource, viewProbe, currentId, unit } = useStore();
   const navigate = useNavigate();
   const forceRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -91,7 +207,7 @@ export default function Probe() {
     }
     const rep: Rep = {
       round: draft.round,
-      date: today(),
+      date: todayIso(),
       phase: draft.phase,
       target: draft.target,
       lb: bar,
@@ -114,7 +230,7 @@ export default function Probe() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `probe-${mine.lift}-${today()}.csv`;
+    a.download = `probe-${mine.lift}-${todayIso()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -178,14 +294,7 @@ export default function Probe() {
   const usable = isUsable(mine);
 
   return (
-    <div className="stack-lg">
-      <div className="stack">
-        <h1>Run the probe</h1>
-        <p className="lede">
-          Log each rep as you go. Everything saves in this browser, so you can close the page between sets.
-        </p>
-      </div>
-
+    <>
       <section className="panel stack" aria-labelledby="setup-h">
         <h2 id="setup-h">Set up</h2>
         <div className="fields">
@@ -242,8 +351,9 @@ export default function Probe() {
             </li>
           </ol>
           <p className="muted">
-            Repeat the probe on another day as round 2 to put error bars on your profile. One misgrooved rep won't
-            ruin it: log it and keep going.
+            Within a week or two, repeat it on another day as round 2: that measures your day-to-day noise and puts
+            error bars on the profile. After a training block, start a new probe instead and compare the two. One
+            misgrooved rep won't ruin either: log it and keep going.
           </p>
         </div>
       </details>
@@ -466,6 +576,7 @@ export default function Probe() {
             className="btn"
             onClick={() => {
               setSource("mine");
+              viewProbe(currentId);
               navigate("/report");
             }}
           >
@@ -477,7 +588,7 @@ export default function Probe() {
           </Link>
         )}
       </div>
-    </div>
+    </>
   );
 }
 

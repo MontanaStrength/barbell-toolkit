@@ -571,6 +571,11 @@ main {
   gap: 0 32px;
 }
 
+/* Four headline readings sit two by two; three-plus-one reads as a leftover. */
+.readings-quad {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .reading {
   padding: 16px 0;
   border-top: 1px solid var(--rule);
@@ -591,6 +596,47 @@ main {
 .reading-note {
   font-size: 15px;
   color: var(--ink-2);
+}
+
+/* Real change or noise: ink for a call the data supports, muted for one it doesn't. */
+.verdict {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.verdict-real {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.verdict-unknown {
+  border-style: dashed;
+  font-weight: 500;
+}
+
+.source-pick {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.source-pick select {
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  max-width: 100%;
 }
 
 /* EI scale on the rep readout */
@@ -862,6 +908,13 @@ main {
   border-top-width: 3px;
 }
 
+.swatch-error {
+  width: 2px;
+  height: 14px;
+  border-top: none;
+  background: var(--ink-2);
+}
+
 .swatch-velocity {
   border-color: var(--velocity);
 }
@@ -1072,6 +1125,7 @@ td.band-name small {
   }
 
   .report-nav ol {
+    position: relative;
     display: flex;
     overflow-x: auto;
     border-left: none;
@@ -1127,6 +1181,10 @@ td.band-name small {
   }
 
   .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .readings-quad {
     grid-template-columns: minmax(0, 1fr);
   }
 

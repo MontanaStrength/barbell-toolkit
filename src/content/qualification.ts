@@ -81,4 +81,17 @@ export const QUAL: Record<string, Qualification> = {
       "Set counts are followed past recovery. The neural-dose targets are coaching ranges, not limits.",
     ],
   },
+  compare: {
+    useFor: [
+      "Deciding whether a training block moved your profile enough to re-set your session bands.",
+      "Telling a bigger max apart from a changed profile: L* in pounds can rise while L* as a percentage stays put.",
+      "Checking force and bar speed at the same bar weight, the readings that don't depend on the max you entered.",
+    ],
+    breaksWhen: [
+      "The probes used different sensors, setups or rep styles. The change may be the instrument, not you.",
+      "Either probe was run tired. Fatigue lowers every fresh point and reads as lost force.",
+      "Your e1RM entries are stale. Every percentage moves with them, L* included; force and speed at a fixed bar don't.",
+      "No load was repeated on a second day. The noise band then comes from singles within one session, and day-to-day noise is usually larger, so treat a narrow call as provisional.",
+    ],
+  },
 };

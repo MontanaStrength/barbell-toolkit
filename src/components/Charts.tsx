@@ -1,6 +1,7 @@
 import {
   CartesianGrid,
   ComposedChart,
+  ErrorBar,
   Label,
   Line,
   ReferenceLine,
@@ -10,8 +11,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { POPULATION_FL } from "../engine/constants";
+import { N_TO_LBF, POPULATION_FL } from "../engine/constants";
 import type { Analysis, DecaySet } from "../engine/analyze";
+import type { PointNoise } from "../engine/compare";
+import { toUnit, wt, type Unit } from "../format";
 
 // Recharts takes colours as props; CSS variables keep them in step with the theme.
 const C = {
@@ -222,6 +225,153 @@ export function ReliabilityChart({ a }: { a: Analysis }) {
       <div className="legend">
         <span><i className="swatch swatch-dot" /> Ladder round (counts toward the profile)</span>
         <span><i className="swatch swatch-ring" /> AMRAP opener (shown, not counted)</span>
+      </div>
+    </>
+  );
+}
+
+// ---------- comparing two probes ----------
+
+const niceDomain = (lo: number, hi: number, step: number): [number, number] => [
+  Math.floor(lo / step) * step,
+  Math.ceil(hi / step) * step,
+];
+
+/**
+ * Peak force against bar weight for two probes. This is the direct reading:
+ * it doesn't depend on the e1RM entered for either probe. Error bars are each
+ * load's 95% noise.
+ */
+export function CompareForceChart({
+  earlier,
+  later,
+  noise,
+  barLb,
+  unit,
+  labels,
+}: {
+  earlier: Analysis;
+  later: Analysis;
+  noise: { earlier: PointNoise[]; later: PointNoise[] };
+  barLb: number | null;
+  unit: Unit;
+  labels: { earlier: string; later: string };
+}) {
+  const toX = (lb: number) => +toUnit(lb, unit).toFixed(1);
+  const toF = (lbf: number) => +(unit === "kg" ? lbf / N_TO_LBF : lbf).toFixed(1);
+  const curve = (a: Analysis) => {
+    if (a.fl.m == null || a.fl.b == null || !a.loadPoints.length) return [];
+    const lbs = a.loadPoints.map((p) => p.lb);
+    const lo = Math.min(...lbs);
+    const hi = Math.max(...lbs);
+    return Array.from({ length: 31 }, (_, i) => {
+      const W = lo + ((hi - lo) * i) / 30;
+      return { x: toX(W), f: toF((a.fl.m! * ((W / a.probe.e1rm) * 100) + a.fl.b!) * W) };
+    });
+  };
+  const pts = (n: PointNoise[]) =>
+    n.map((p) => ({ x: toX(p.lb), f: toF(p.mult * p.lb), err: p.seMult != null ? toF(1.96 * p.seMult * p.lb) : 0 }));
+  const all = [...noise.earlier, ...noise.later].map((p) => toX(p.lb));
+  const step = unit === "kg" ? 10 : 20;
+  const domain = all.length ? niceDomain(Math.min(...all) - step / 2, Math.max(...all) + step / 2, step) : ([0, 1] as [number, number]);
+  const fUnit = unit === "kg" ? "N" : "lbf";
+  return (
+    <>
+      <div className="chart-frame" role="img" aria-label={`Peak force against bar weight for ${labels.earlier} and ${labels.later}`}>
+        <ResponsiveContainer>
+          <ComposedChart margin={{ ...margin, left: 16 }}>
+            <CartesianGrid stroke={C.rule} strokeDasharray="2 4" />
+            <XAxis type="number" dataKey="x" domain={domain} ticks={range(domain[0], domain[1], step)} tick={tick} tickLine={false} axisLine={{ stroke: C.rule }} allowDuplicatedCategory={false}>
+              <Label value={`Bar weight, ${unit}`} position="insideBottom" offset={-14} style={axisLabel} />
+            </XAxis>
+            <YAxis type="number" domain={["auto", "auto"]} tick={tick} tickLine={false} axisLine={{ stroke: C.rule }} width={52}>
+              <Label value={`Peak force, ${fUnit}`} angle={-90} position="insideLeft" offset={-6} style={{ ...axisLabel, textAnchor: "middle" }} />
+            </YAxis>
+            <Tooltip {...tooltipStyle} formatter={(v: number) => `${Math.round(v)} ${fUnit}`} labelFormatter={(l: number) => `${l} ${unit}`} />
+            {barLb != null && (
+              <ReferenceLine x={toX(barLb)} stroke={C.ink2} strokeDasharray="2 3">
+                <Label value={wt(barLb, unit)} position="insideTopLeft" offset={8} style={{ ...axisLabel, fontWeight: 600 }} />
+              </ReferenceLine>
+            )}
+            <Line data={curve(earlier)} dataKey="f" name={labels.earlier} stroke={C.steel} strokeDasharray="6 4" strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Line data={curve(later)} dataKey="f" name={labels.later} stroke={C.ink} strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Scatter data={pts(noise.earlier)} dataKey="f" name={labels.earlier} fill={C.surface} stroke={C.steel} strokeWidth={2} isAnimationActive={false}>
+              <ErrorBar dataKey="err" direction="y" width={6} strokeWidth={1.5} stroke={C.steel} />
+            </Scatter>
+            <Scatter data={pts(noise.later)} dataKey="f" name={labels.later} fill={C.ink} isAnimationActive={false}>
+              <ErrorBar dataKey="err" direction="y" width={6} strokeWidth={1.5} stroke={C.ink} />
+            </Scatter>
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="legend">
+        <span><i className="swatch swatch-dot" /> {labels.later}</span>
+        <span><i className="swatch swatch-ring" /> {labels.earlier}</span>
+        <span><i className="swatch swatch-error" /> 95% noise at each load</span>
+      </div>
+    </>
+  );
+}
+
+/** Effective Intensity for two probes against the recruitment line, with both L* markers. */
+export function CompareEIChart({
+  earlier,
+  later,
+  labels,
+}: {
+  earlier: Analysis;
+  later: Analysis;
+  labels: { earlier: string; later: string };
+}) {
+  const dA = loadDomain(earlier);
+  const dB = loadDomain(later);
+  const domain: [number, number] = [Math.min(dA[0], dB[0]), Math.max(dA[1], dB[1])];
+  const xs = range(domain[0], domain[1], 1);
+  const curve = (a: Analysis) =>
+    a.fl.m != null && a.fl.b != null ? xs.map((L) => ({ load: L, ei: +((a.fl.m! * L + a.fl.b!) * L).toFixed(2) })) : [];
+  const pts = (a: Analysis) => a.points.map((p) => ({ load: +p.load.toFixed(1), ei: +p.ei.toFixed(1) }));
+  const line = later.probe.recruitLine;
+  const lA = earlier.lstar;
+  const lB = later.lstar;
+  // Each L* label sits on its outer side so the two never overlap.
+  const leftIsEarlier = lA != null && lB != null ? lA <= lB : true;
+  return (
+    <>
+      <div
+        className="chart-frame"
+        role="img"
+        aria-label={`Effective Intensity against load for both probes. L* was ${lA?.toFixed(1)}% and is now ${lB?.toFixed(1)}% of e1RM.`}
+      >
+        <ResponsiveContainer>
+          <ComposedChart margin={margin}>
+            <CartesianGrid stroke={C.rule} strokeDasharray="2 4" />
+            {loadAxis(domain)}
+            <YAxis type="number" domain={[60, "auto"]} tick={tick} tickLine={false} axisLine={{ stroke: C.rule }} width={48} tickFormatter={(v: number) => `${v}%`} />
+            <Tooltip {...tooltipStyle} formatter={(v: number) => `${v.toFixed(1)}% EI`} labelFormatter={(l: number) => `${l}% of e1RM`} />
+            <ReferenceLine y={line} stroke={C.signal} strokeWidth={2.5} ifOverflow="extendDomain">
+              <Label value={`Recruitment line, ${line}%`} position="insideTopRight" offset={8} style={{ ...axisLabel, fill: C.signal, fontWeight: 600 }} />
+            </ReferenceLine>
+            {lA != null && (
+              <ReferenceLine x={+lA.toFixed(1)} stroke={C.steel} strokeDasharray="4 4" strokeWidth={1.5}>
+                <Label value={`was ${lA.toFixed(1)}%`} position={leftIsEarlier ? "insideTopRight" : "insideTopLeft"} offset={8} style={{ ...axisLabel, fontWeight: 600 }} />
+              </ReferenceLine>
+            )}
+            {lB != null && (
+              <ReferenceLine x={+lB.toFixed(1)} stroke={C.signal} strokeDasharray="4 4" strokeWidth={1.5}>
+                <Label value={`L* ${lB.toFixed(1)}%`} position={leftIsEarlier ? "insideTopLeft" : "insideTopRight"} offset={8} style={{ ...axisLabel, fill: C.signal, fontWeight: 600 }} />
+              </ReferenceLine>
+            )}
+            <Line data={curve(earlier)} dataKey="ei" name={labels.earlier} stroke={C.steel} strokeDasharray="6 4" strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Line data={curve(later)} dataKey="ei" name={labels.later} stroke={C.ink} strokeWidth={2} dot={false} isAnimationActive={false} />
+            <Scatter data={pts(earlier)} dataKey="ei" name={labels.earlier} fill={C.surface} stroke={C.steel} strokeWidth={2} isAnimationActive={false} />
+            <Scatter data={pts(later)} dataKey="ei" name={labels.later} fill={C.ink} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="legend">
+        <span><i className="swatch swatch-dot" /> {labels.later}</span>
+        <span><i className="swatch swatch-ring" /> {labels.earlier}</span>
+        <span><i className="swatch swatch-signal" /> Recruitment line</span>
       </div>
     </>
   );

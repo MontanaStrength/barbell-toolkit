@@ -91,11 +91,11 @@ export interface Analysis extends Profile {
   flags: Flag[];
 }
 
-const multipleOf = (r: Rep) => (r.forceN * N_TO_LBF) / r.lb;
-const pointKey = (r: Rep) => (r.target != null ? `t${r.target}` : `lb${r.lb}`);
+export const multipleOf = (r: Rep) => (r.forceN * N_TO_LBF) / r.lb;
+export const pointKey = (r: Rep) => (r.target != null ? `t${r.target}` : `lb${r.lb}`);
 
 /** Fresh reading for one load in one round: best ladder rep, else the AMRAP's opening reps. */
-function roundValue(reps: Rep[]): { mult: number; v: number | null; clean: boolean; used: Rep[] } | null {
+export function roundValue(reps: Rep[]): { mult: number; v: number | null; clean: boolean; used: Rep[] } | null {
   const ladder = reps.filter((r) => r.phase === "ladder");
   const used = ladder.length
     ? ladder

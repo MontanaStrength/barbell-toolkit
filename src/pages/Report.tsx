@@ -1,13 +1,23 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useParams } from "react-router-dom";
-import { DecayChart, DriveChart, EIChart, ForceLoadChart, ReliabilityChart } from "../components/Charts";
+import {
+  CompareEIChart,
+  CompareForceChart,
+  DecayChart,
+  DriveChart,
+  EIChart,
+  ForceLoadChart,
+  ReliabilityChart,
+} from "../components/Charts";
 import QualCard from "../components/QualCard";
 import { KV } from "../components/Readings";
 import SourceBar from "../components/SourceBar";
 import { analyze, type Analysis } from "../engine/analyze";
-import { STOP_FRACTION } from "../engine/constants";
-import { fmt, ms, pct, usePageTitle, wt, wtRange, type Unit } from "../format";
-import { useStore } from "../store";
+import { compareProbes, noiseBasis, sharedRange, type Change } from "../engine/compare";
+import { LIFTS, N_TO_LBF, STOP_FRACTION } from "../engine/constants";
+import { fmt, force, fromUnit, ms, pct, plateStep, signed, suggestBarLb, toUnit, usePageTitle, wt, wtRange, type Unit } from "../format";
+import { byDateDesc, probeDate, probeWhen, type SavedProbe } from "../probes";
+import { isUsable, useStore } from "../store";
 import NotFound from "./NotFound";
 
 const SECTIONS = [
@@ -18,10 +28,18 @@ const SECTIONS = [
   { id: "decay", nav: "Within-set decay", title: "How drive fades inside a set, and what tracks it" },
   { id: "reliability", nav: "Reliability", title: "How much to trust each point" },
   { id: "sessions", nav: "Sessions", title: "Turning the numbers into sessions" },
+  { id: "compare", nav: "Compare", title: "What changed between probes" },
 ] as const;
 
 export default function Report() {
   const { section = "" } = useParams();
+  const navRef = useRef<HTMLOListElement>(null);
+  // On phones the section menu scrolls sideways; keep the current section in view.
+  useEffect(() => {
+    const ol = navRef.current;
+    const link = ol?.querySelector<HTMLElement>("a.active");
+    if (ol && link && ol.scrollWidth > ol.clientWidth) ol.scrollLeft = link.offsetLeft - (ol.clientWidth - link.offsetWidth) / 2;
+  }, [section]);
   const { analysis: a, unit } = useStore();
   const idx = SECTIONS.findIndex((s) => s.id === section);
   const meta = SECTIONS[idx];
@@ -37,7 +55,7 @@ export default function Report() {
       <SourceBar />
       <div className="report">
         <nav className="report-nav" aria-label="Report sections">
-          <ol>
+          <ol ref={navRef}>
             {SECTIONS.map((s) => (
               <li key={s.id}>
                 <NavLink to={href(s.id)} end className={({ isActive }) => (isActive ? "active" : undefined)}>
@@ -56,6 +74,7 @@ export default function Report() {
           {section === "decay" && <Decay a={a} unit={unit} />}
           {section === "reliability" && <Reliability a={a} unit={unit} />}
           {section === "sessions" && <Sessions a={a} unit={unit} />}
+          {section === "compare" && <Compare unit={unit} />}
           <nav className="pager" aria-label="Previous and next section">
             {prev ? (
               <Link to={href(prev.id)}>
@@ -87,7 +106,18 @@ function Says({ children }: { children: ReactNode }) {
   );
 }
 
+/** Other complete probes of the same lift as the one on screen, newest first. */
+function useOtherProbes(): { viewed: SavedProbe | null; others: SavedProbe[] } {
+  const { source, viewed, probes } = useStore();
+  if (source === "example" || !viewed) return { viewed: null, others: [] };
+  const others = probes
+    .filter((s) => s.id !== viewed.id && s.probe.lift === viewed.probe.lift && isUsable(s.probe))
+    .sort(byDateDesc);
+  return { viewed, others };
+}
+
 function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
+  const { others } = useOtherProbes();
   const rows: Array<{ to: string; label: string; value: string; note: string }> = [
     {
       to: "/report/l-star",
@@ -162,6 +192,13 @@ function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
             ))}
           </ul>
         </section>
+      )}
+      {others.length > 0 && (
+        <p className="panel panel-tight">
+          You have {others.length === 1 ? "another" : `${others.length} other`} {LIFTS[a.probe.lift].name.toLowerCase()}{" "}
+          probe{others.length === 1 ? "" : "s"}, the latest from {probeWhen(others[0])}.{" "}
+          <Link to="/report/compare">See what changed</Link>.
+        </p>
       )}
       <EIChart a={a} />
     </>
@@ -513,5 +550,297 @@ function BandTable({ bands, unit }: { bands: Analysis["bands"]; unit: Unit }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+// ---------- comparing probes ----------
+
+/** A bar both probes lifted, near 75% of the newer max, on the plates of the chosen unit. */
+function pickBar(range: [number, number] | null, e1rm: number, unit: Unit): number | null {
+  if (!range) return null;
+  const [lo, hi] = range;
+  const step = fromUnit(plateStep(unit), unit);
+  let w = suggestBarLb(e1rm, 75, unit);
+  if (w > hi) w -= Math.ceil((w - hi) / step - 1e-9) * step;
+  if (w < lo) w += Math.ceil((lo - w) / step - 1e-9) * step;
+  return w >= lo && w <= hi ? w : (lo + hi) / 2;
+}
+
+function Compare({ unit }: { unit: Unit }) {
+  const { viewed, others } = useOtherProbes();
+  if (!viewed) {
+    return (
+      <div className="empty stack">
+        <p style={{ margin: "0 auto" }}>
+          Compare lines up two of your own probes of the same lift: force and bar speed at the same weight, L*, and your
+          session bands, each with a noise band so you can tell a real change from measurement wobble. The worked
+          example is a single probe, so there's nothing to compare it with.
+        </p>
+        <p style={{ margin: "0 auto" }}>
+          <Link to="/probe" className="btn">
+            Run the probe
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  if (!others.length) {
+    return (
+      <div className="empty stack">
+        <p style={{ margin: "0 auto" }}>
+          This is your only {LIFTS[viewed.probe.lift].name.toLowerCase()} probe so far. After your next training block,
+          press <strong>New probe</strong> on the probe page and run it again. This one stays saved, and this page will
+          show what changed.
+        </p>
+        <p style={{ margin: "0 auto" }}>
+          <Link to="/probe" className="btn btn-quiet">
+            Go to the probe page
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  return <CompareBody key={viewed.id} viewed={viewed} others={others} unit={unit} />;
+}
+
+function Verdict({ ch, mag }: { ch: Change; mag: (x: number | null) => string }) {
+  if (ch.verdict === "unknown") return <span className="verdict verdict-unknown">No noise band</span>;
+  return (
+    <span className={`verdict verdict-${ch.verdict}`}>
+      {ch.verdict === "real" ? "Bigger than the noise" : "Inside the noise"} (±{mag(ch.band)})
+    </span>
+  );
+}
+
+interface Shown {
+  value: (x: number | null) => string;
+  delta: (x: number | null) => string;
+  mag: (x: number | null) => string;
+}
+
+function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: SavedProbe[]; unit: Unit }) {
+  const before = others.find((s) => probeDate(s) <= probeDate(viewed)) ?? others[0];
+  const [otherId, setOtherId] = useState(before.id);
+  const other = others.find((s) => s.id === otherId) ?? before;
+  const [early, late] = probeDate(other) <= probeDate(viewed) ? [other, viewed] : [viewed, other];
+  const barLb = useMemo(
+    () => pickBar(sharedRange(early.probe, late.probe), late.probe.e1rm, unit),
+    [early, late, unit],
+  );
+  const c = useMemo(() => compareProbes(early.probe, late.probe, { barLb }), [early, late, barLb]);
+  const ch = c.changes;
+  const labels = { earlier: probeWhen(early), later: probeWhen(late) };
+  const bar = barLb != null ? wt(barLb, unit) : null;
+
+  const fUnit = unit === "kg" ? "N" : "lbf";
+  const toF = (lbf: number) => (unit === "kg" ? lbf / N_TO_LBF : lbf);
+  const S: Record<"force" | "speed" | "lstar" | "lstarLb" | "slope" | "mult" | "e1rm" | "alpha" | "beta", Shown> = {
+    force: { value: (x) => force(x, unit), delta: (x) => (x == null ? "–" : `${signed(toF(x), 0)} ${fUnit}`), mag: (x) => (x == null ? "–" : `${Math.round(toF(x))} ${fUnit}`) },
+    speed: { value: (x) => ms(x), delta: (x) => `${signed(x, 2)} m/s`, mag: (x) => ms(x) },
+    lstar: { value: (x) => pct(x), delta: (x) => `${signed(x, 1)} points`, mag: (x) => `${fmt(x, 1)} points` },
+    lstarLb: {
+      value: (x) => wt(x, unit),
+      delta: (x) => (x == null ? "–" : `${signed(toUnit(x, unit), unit === "kg" ? 1 : 0)} ${unit}`),
+      mag: (x) => (x == null ? "–" : `${fmt(toUnit(x, unit), unit === "kg" ? 1 : 0)} ${unit}`),
+    },
+    slope: { value: (x) => (x == null ? "–" : `${fmt(x, 4)} per %`), delta: (x) => signed(x, 4), mag: (x) => fmt(x, 4) },
+    mult: { value: (x) => (x == null ? "–" : `${fmt(x, 3)}×`), delta: (x) => signed(x, 3), mag: (x) => fmt(x, 3) },
+    e1rm: { value: (x) => wt(x, unit), delta: (x) => (x == null ? "–" : `${signed(toUnit(x, unit), unit === "kg" ? 1 : 0)} ${unit}`), mag: () => "" },
+    alpha: { value: (x) => (x == null ? "–" : `${fmt(x, 0)}%`), delta: (x) => `${signed(x, 0)} points`, mag: (x) => `${fmt(x, 0)} points` },
+    beta: { value: (x) => fmt(x, 2), delta: (x) => signed(x, 2), mag: (x) => fmt(x, 2) },
+  };
+
+  const headline: Array<{ label: string; ch: Change; s: Shown }> = [
+    ...(bar ? [{ label: `Peak force at ${bar}`, ch: ch.forceAt, s: S.force }, { label: `Bar speed at ${bar}`, ch: ch.vAt, s: S.speed }] : []),
+    { label: "L*, % of max", ch: ch.lstar, s: S.lstar },
+    { label: "L* as a bar weight", ch: ch.lstarLb, s: S.lstarLb },
+  ];
+
+  const basis = { e: noiseBasis(c.noise.earlier), l: noiseBasis(c.noise.later) };
+  const days = basis.e.days + basis.l.days;
+  const unsized = basis.e.none + basis.l.none > 0;
+  const real = (x: Change) => x.verdict === "real";
+  const fPct =
+    ch.forceAt.delta != null && ch.forceAt.before ? (ch.forceAt.delta / ch.forceAt.before) * 100 : null;
+  // Split the change in L* as a bar weight into the max moving and L* itself moving.
+  const fromMax = ch.lstar.before != null ? (ch.lstar.before * c.e1rm.delta) / 100 : null;
+  const fromLstar = ch.lstar.delta != null ? (ch.lstar.delta * c.e1rm.after) / 100 : null;
+
+  const verdictWords = (x: Change, s: Shown) =>
+    x.verdict === "real"
+      ? "That's bigger than the noise."
+      : x.verdict === "noise"
+        ? `That's inside the noise: these two probes can't resolve a change smaller than about ${s.mag(x.band)}.`
+        : "There's no noise band for it, so it can't be called either way.";
+
+  return (
+    <>
+      <div className="field" style={{ maxWidth: 520 }}>
+        <label htmlFor="cmp-pick">Compare your {probeWhen(viewed)} probe with</label>
+        <select id="cmp-pick" value={other.id} onChange={(e) => setOtherId(e.target.value)}>
+          {others.map((s) => (
+            <option key={s.id} value={s.id}>
+              {LIFTS[s.probe.lift].name}, {probeWhen(s)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="lede">
+        {LIFTS[late.probe.lift].name}, {labels.earlier} to {labels.later}. Your entered max went from{" "}
+        {wt(c.e1rm.before, unit)} to {wt(c.e1rm.after, unit)}.
+        {c.lineChanged || c.mvtChanged
+          ? ` The earlier probe used ${c.lineChanged ? `a ${early.probe.recruitLine}% line` : ""}${c.lineChanged && c.mvtChanged ? " and " : ""}${c.mvtChanged ? `an MVT of ${fmt(early.probe.mvt, 2)} m/s` : ""}; both are read against the newer settings here.`
+          : ""}
+      </p>
+
+      <div className="readings readings-quad">
+        {headline.map((h) => (
+          <div key={h.label} className="reading">
+            <div className="reading-label">{h.label}</div>
+            <div className="reading-value">{h.s.value(h.ch.after)}</div>
+            <div className="reading-note">
+              Was {h.s.value(h.ch.before)}, {h.s.delta(h.ch.delta)}
+            </div>
+            <Verdict ch={h.ch} mag={h.s.mag} />
+          </div>
+        ))}
+      </div>
+      <p className="small muted">
+        Noise bands are 95% ranges on each change, sized from how much your repeated singles at each load disagree
+        {days === 0
+          ? ". Neither probe repeated a load on a second day, so that spread comes from within a session; day-to-day noise is usually larger."
+          : ": across days where you repeated a load, within a session elsewhere."}
+        {unsized ? " Readings without a band rest on loads with a single rep each." : ""}
+      </p>
+
+      <Says>
+        {bar && ch.forceAt.delta != null && (
+          <p>
+            At {bar}, peak force went from {S.force.value(ch.forceAt.before)} to {S.force.value(ch.forceAt.after)}
+            {fPct != null ? ` (${signed(fPct, 1)}%)` : ""}. {verdictWords(ch.forceAt, S.force)}
+            {ch.vAt.delta != null && (
+              <>
+                {" "}
+                Fresh bar speed at that weight went from {ms(ch.vAt.before)} to {ms(ch.vAt.after)}:{" "}
+                {ch.vAt.verdict === "real" ? "bigger than the noise" : ch.vAt.verdict === "noise" ? "inside the noise" : "no noise band"}.
+              </>
+            )}
+          </p>
+        )}
+        {ch.lstar.delta != null && (
+          <p>
+            L* moved from {pct(ch.lstar.before)} to {pct(ch.lstar.after)} of your max ({S.lstar.delta(ch.lstar.delta)}).{" "}
+            {verdictWords(ch.lstar, S.lstar)}
+            {c.e1rm.delta !== 0 && fromMax != null && fromLstar != null && ch.lstarLb.delta != null && (
+              <>
+                {" "}
+                As a bar weight it went from {wt(ch.lstarLb.before, unit)} to {wt(ch.lstarLb.after, unit)}:{" "}
+                {S.lstarLb.delta(fromMax)} from your max moving and {S.lstarLb.delta(fromLstar)} from L* itself.
+              </>
+            )}
+          </p>
+        )}
+        <p>
+          {real(ch.lstar)
+            ? "L* has shifted by more than the noise, so your session bands have moved with it. Train from the newer probe's bands."
+            : real(ch.forceAt) || real(ch.vAt)
+              ? `${
+                  real(ch.forceAt)
+                    ? `You're making ${ch.forceAt.delta! > 0 ? "more" : "less"} force at the same bar`
+                    : `Your bar speed at the same weight is ${ch.vAt.delta! > 0 ? "up" : "down"}`
+                } by more than the noise, but L* hasn't moved beyond its own. The newer probe is still your best estimate of where you are; its bands are below.`
+              : "Nothing here moved more than the noise. That doesn't prove nothing changed; it means these two probes can't show it. Repeating each load on a second day (round 2) narrows the band."}
+        </p>
+      </Says>
+
+      <CompareForceChart earlier={c.earlier} later={c.later} noise={c.noise} barLb={barLb} unit={unit} labels={labels} />
+      <CompareEIChart earlier={c.earlier} later={c.later} labels={labels} />
+
+      <section className="stack" aria-labelledby="cmp-bands-h">
+        <h2 id="cmp-bands-h" style={{ fontSize: 26 }}>
+          What changes in your sessions
+        </h2>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Band</th>
+                <th>{labels.earlier}</th>
+                <th>{labels.later}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {c.bands.map((b) => (
+                <tr key={b.label}>
+                  <td className="band-name">{b.label}</td>
+                  <td>{b.before ? `${wtRange(b.before.loLb, b.before.hiLb, unit)}, stop ${ms(b.before.stop)}` : "–"}</td>
+                  <td>
+                    <strong>{b.after ? wtRange(b.after.loLb, b.after.hiLb, unit) : "–"}</strong>
+                    {b.after ? `, stop ${ms(b.after.stop)}` : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="stack" aria-labelledby="cmp-all-h">
+        <h2 id="cmp-all-h" style={{ fontSize: 26 }}>
+          Every reading
+        </h2>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Reading</th>
+                <th>Before</th>
+                <th>Now</th>
+                <th>Change</th>
+                <th>95% noise</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(
+                [
+                  ["L*, % of max", ch.lstar, S.lstar],
+                  ["L* as a bar weight", ch.lstarLb, S.lstarLb],
+                  ["Force–Load slope", ch.slope, S.slope],
+                  ...(bar
+                    ? ([
+                        [`Multiple at ${bar}`, ch.multAt, S.mult],
+                        [`Peak force at ${bar}`, ch.forceAt, S.force],
+                        [`Bar speed at ${bar}`, ch.vAt, S.speed],
+                      ] as Array<[string, Change, Shown]>)
+                    : []),
+                  ["e1RM from bar speed", ch.velE1rm, { ...S.lstarLb }],
+                  ["Drive ceiling α (modeled)", ch.alpha, S.alpha],
+                  ["Compression β", ch.beta, S.beta],
+                ] as Array<[string, Change, Shown]>
+              ).map(([label, x, s]) => (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td>{s.value(x.before)}</td>
+                  <td>{s.value(x.after)}</td>
+                  <td>{s.delta(x.delta)}</td>
+                  <td>
+                    {x.band != null ? `±${s.mag(x.band)}` : "–"}
+                    {x.verdict === "real" ? " (real)" : ""}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td>e1RM you entered</td>
+                <td>{wt(c.e1rm.before, unit)}</td>
+                <td>{wt(c.e1rm.after, unit)}</td>
+                <td>{S.e1rm.delta(c.e1rm.delta)}</td>
+                <td>an input, not a reading</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <QualCard id="compare" />
+    </>
   );
 }
