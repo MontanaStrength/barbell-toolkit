@@ -14,9 +14,9 @@ headers import too).
 
 `src/engine/` is pure TypeScript with no dependencies. Design decisions:
 
-1. Velocity stops scale by goal: `v_stop = (1 − f)·v_fresh + f·MVT`, with
-   f = 0.2 power, 0.3 strength, 0.5 hypertrophy (provisional; see
-   `STOP_FRACTION` in `constants.ts`).
+1. Velocity stops: `v_stop = (1 − f)·v_fresh + f·MVT`, with f = 0.2 power,
+   0.3 strength, and for hypertrophy 0.6 below L* and 0.4 above it, since
+   light sets only count when taken deep (`STOP_FRACTION` in `constants.ts`).
 2. The recruitment line is set per lift (`LIFTS` in `constants.ts`).
 3. Loads are plotted as the bar actually lifted ÷ the current e1RM, not the
    planned percentage.

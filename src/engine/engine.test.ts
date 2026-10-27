@@ -98,11 +98,24 @@ describe("toolkit behavior", () => {
   it("scales velocity stops by goal", () => {
     expect(stopVelocity(0.65, 0.15, STOP_FRACTION.power)).toBeCloseTo(0.55, 6);
     expect(stopVelocity(0.65, 0.15, STOP_FRACTION.strength)).toBeCloseTo(0.5, 6);
-    expect(stopVelocity(0.65, 0.15, STOP_FRACTION.hypertrophy)).toBeCloseTo(0.4, 6);
+    expect(stopVelocity(0.65, 0.15, STOP_FRACTION.hypertrophyBelowLstar)).toBeCloseTo(0.35, 6);
+    expect(stopVelocity(0.65, 0.15, STOP_FRACTION.hypertrophyAboveLstar)).toBeCloseTo(0.45, 6);
     const a = analyze(EXAMPLE_PROBE);
     const pt = a.stopsAtTested[0];
     expect(pt.power!).toBeGreaterThan(pt.strength!);
     expect(pt.strength!).toBeGreaterThan(pt.hypertrophy!);
+  });
+
+  it("takes hypertrophy sets deeper below L* than above it", () => {
+    const a = analyze(EXAMPLE_PROBE);
+    const [below, above] = a.stopsAtTested; // 57.5% and 67.1%, either side of L* 63.6%
+    expect(below.load).toBeLessThan(a.lstar!);
+    expect(above.load).toBeGreaterThan(a.lstar!);
+    expect(below.hypertrophy!).toBeCloseTo(0.4 * 0.65 + 0.6 * 0.15, 6);
+    expect(above.hypertrophy!).toBeCloseTo(0.6 * 0.51 + 0.4 * 0.15, 6);
+    const light = a.hypBands[0];
+    expect((light.lo + light.hi) / 2).toBeLessThan(a.lstar!);
+    expect(light.stop!).toBeCloseTo(0.4 * a.vAt(light.hi)! + 0.6 * 0.15, 6);
   });
 
   it("reads a single rep", () => {

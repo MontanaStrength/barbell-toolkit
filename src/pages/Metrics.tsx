@@ -49,7 +49,7 @@ const METRICS = [
     name: "Velocity stop",
     formula: "(1 − f) · fresh mean velocity + f · MVT",
     unit: "m/s",
-    meaning: `End the set when a rep's mean velocity falls below this. f is ${STOP_FRACTION.power} for power, ${STOP_FRACTION.strength} for strength, ${STOP_FRACTION.hypertrophy} for hypertrophy (provisional).`,
+    meaning: `End the set when a rep's mean velocity falls below this. f is ${STOP_FRACTION.power} for power, ${STOP_FRACTION.strength} for strength, and for hypertrophy ${STOP_FRACTION.hypertrophyBelowLstar} below L* (go deep) and ${STOP_FRACTION.hypertrophyAboveLstar} above it.`,
   },
   {
     name: "Neural dose (Hanley)",

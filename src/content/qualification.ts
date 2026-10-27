@@ -76,7 +76,7 @@ export const QUAL: Record<string, Qualification> = {
       "Turning L* into concrete pounds for a training block.",
     ],
     breaksWhen: [
-      "The stop rule is taken as final. Stops scale by goal (f = 0.2 power, 0.3 strength, 0.5 hypertrophy) and that logic is provisional.",
+      "The stop fractions are taken as exact. They are coaching starting points (0.2 power, 0.3 strength, 0.6 / 0.4 hypertrophy below / above L*), not measured from you.",
       "Hypertrophy reps are read as personal. They come from a population reps-to-failure table, not your data.",
       "Set counts are followed past recovery. The neural-dose targets are coaching ranges, not limits.",
     ],

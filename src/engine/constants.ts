@@ -30,17 +30,34 @@ export const POPULATION_FL = { m: -0.0114, b: 2.09 };
 export type Goal = "power" | "strength" | "hypertrophy";
 
 /**
- * Velocity stop by goal, from the v4 probe sheet:
- *   v_stop = (1 − f) · v_fresh + f · MVT
+ * Velocity stop:  v_stop = (1 − f) · v_fresh + f · MVT
  * f is how far toward MVT a set may slow before it ends.
- * Provisional: the logic is expected to become more nuanced than one
- * fraction per goal.
+ *
+ * Power work sits below L* and strength work above it, so each takes one
+ * fraction. Hypertrophy straddles L*: below it, light sets only recruit
+ * high-threshold fibers if taken deep, so they get the deeper stop
+ * (decided Oct 2026; starting values, adjust with coaching data).
  */
-export const STOP_FRACTION: Record<Goal, number> = {
+export interface StopFractions {
+  power: number;
+  strength: number;
+  hypertrophyBelowLstar: number;
+  hypertrophyAboveLstar: number;
+}
+
+export const STOP_FRACTION: StopFractions = {
   power: 0.2,
   strength: 0.3,
-  hypertrophy: 0.5,
+  hypertrophyBelowLstar: 0.6,
+  hypertrophyAboveLstar: 0.4,
 };
+
+/** The fraction for a goal at a load, given L*. Without an L*, hypertrophy uses the above-L* value. */
+export function stopFractionFor(goal: Goal, load: number, lstar: number | null, f: StopFractions = STOP_FRACTION): number {
+  if (goal === "power") return f.power;
+  if (goal === "strength") return f.strength;
+  return lstar != null && load < lstar ? f.hypertrophyBelowLstar : f.hypertrophyAboveLstar;
+}
 
 /** Hanley neural-dose targets for a session block. */
 export const NEURAL_TARGET: [number, number] = [350, 600];

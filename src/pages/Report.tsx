@@ -435,8 +435,9 @@ function Sessions({ a }: { a: Analysis }) {
         <h2 id="stops-h" style={{ fontSize: 26 }}>Stop velocities at your tested loads</h2>
         <p>
           The stop moves toward your MVT ({fmt(a.probe.mvt, 2)} m/s) by a fraction set by the goal:{" "}
-          {STOP_FRACTION.power} for power, {STOP_FRACTION.strength} for strength, {STOP_FRACTION.hypertrophy} for
-          hypertrophy. Stop = (1 − f) × fresh velocity + f × MVT. This rule is provisional.
+          {STOP_FRACTION.power} for power, {STOP_FRACTION.strength} for strength, and for hypertrophy{" "}
+          {STOP_FRACTION.hypertrophyBelowLstar} below L* and {STOP_FRACTION.hypertrophyAboveLstar} above it, because
+          light sets only recruit high-threshold fibers when taken deep. Stop = (1 − f) × fresh velocity + f × MVT.
         </p>
         <div className="table-wrap">
           <table>

@@ -1,4 +1,4 @@
-import { LIFTS, N_TO_LBF, POPULATION_FL, STOP_FRACTION, type Goal, type LiftKey } from "./constants";
+import { LIFTS, N_TO_LBF, POPULATION_FL, STOP_FRACTION, stopFractionFor, type Goal, type LiftKey, type StopFractions } from "./constants";
 import { intentFloor, stopVelocity } from "./metrics";
 import { computeProfile, type Profile } from "./profile";
 import { mean, pearson, sd, solveLstar } from "./stats";
@@ -226,7 +226,7 @@ export function decoupling(sets: DecaySet[]) {
   return { n: sl.length, corrMean: pearson(sl, ml), corrPeak: pearson(sl, pl) };
 }
 
-export function analyze(probe: Probe, opts: { axis?: LoadAxis; stops?: Record<Goal, number> } = {}): Analysis {
+export function analyze(probe: Probe, opts: { axis?: LoadAxis; stops?: StopFractions } = {}): Analysis {
   const axis = opts.axis ?? "actual";
   const stops = opts.stops ?? STOP_FRACTION;
   const loadPoints = buildLoadPoints(probe, axis);
@@ -245,7 +245,7 @@ export function analyze(probe: Probe, opts: { axis?: LoadAxis; stops?: Record<Go
     v: p.v,
     power: stopVelocity(p.v, probe.mvt, stops.power),
     strength: stopVelocity(p.v, probe.mvt, stops.strength),
-    hypertrophy: stopVelocity(p.v, probe.mvt, stops.hypertrophy),
+    hypertrophy: stopVelocity(p.v, probe.mvt, stopFractionFor("hypertrophy", p.load, profile.lstar, stops)),
   }));
 
   return {

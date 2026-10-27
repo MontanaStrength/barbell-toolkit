@@ -4,7 +4,7 @@
 //   2. the recruitment line is set per lift
 //   3. the load axis is the actual bar weight as % of e1RM (handled by the caller)
 
-import { HYP_RIR, NEURAL_TARGET, STOP_FRACTION, STRENGTH_SWEET, type Goal } from "./constants";
+import { HYP_RIR, NEURAL_TARGET, STOP_FRACTION, STRENGTH_SWEET, stopFractionFor, type Goal, type StopFractions } from "./constants";
 import { neuralLoad, repsToFailure, stopVelocity, tuneSets } from "./metrics";
 import { ols, round, solveLstar, type Fit } from "./stats";
 
@@ -22,7 +22,7 @@ export interface ProfileInput {
   mvt: number;
   recruitLine: number;
   points: ProfilePoint[];
-  stops?: Record<Goal, number>;
+  stops?: StopFractions;
 }
 
 export interface Band {
@@ -163,7 +163,7 @@ export function computeProfile(input: ProfileInput): Profile {
         hiLb: lb(hi),
         reps: `${repsLo}–${repsHi}`,
         sets: `${sets}`,
-        stop: stopVelocity(vAt(hi), mvt, stops.hypertrophy),
+        stop: stopVelocity(vAt(hi), mvt, stopFractionFor("hypertrophy", mid, lstar, stops)),
         neural: neuralLoad(repsMid, sets, mid),
         note:
           mid < lstar
