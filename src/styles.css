@@ -158,13 +158,14 @@ input[type="range"] {
 .site-header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  gap: 8px 16px;
   min-height: 64px;
   flex-wrap: wrap;
+  padding-block: 8px;
 }
 
 .wordmark {
+  margin-right: auto;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -178,6 +179,13 @@ input[type="range"] {
 .wordmark svg {
   width: 30px;
   height: 18px;
+}
+
+.unit-toggle button {
+  min-height: 32px;
+  min-width: 40px;
+  padding: 4px 10px;
+  font-size: 15px;
 }
 
 .nav {
@@ -1031,6 +1039,18 @@ td.band-name small {
   .qual > div + div {
     border-left: none;
     border-top: 1px solid var(--rule);
+  }
+}
+
+@media (max-width: 700px) {
+  .unit-toggle {
+    order: 1;
+  }
+
+  .site-header-inner .nav {
+    order: 2;
+    flex-basis: 100%;
+    margin-inline: -12px;
   }
 }
 

@@ -4,21 +4,24 @@ import QualCard from "../components/QualCard";
 import { Reading } from "../components/Readings";
 import { LIFT_KEYS, LIFTS, type LiftKey } from "../engine/constants";
 import { readRep } from "../engine/metrics";
-import { fmt, usePageTitle } from "../format";
+import WeightInput from "../components/WeightInput";
+import { force as fmtForce, fmt, fromUnit, usePageTitle } from "../format";
 import { useStore } from "../store";
 
 const SCALE: [number, number] = [40, 110];
 
 export default function RepReadout() {
   usePageTitle("Read a rep");
-  const { mine } = useStore();
+  const { mine, unit } = useStore();
   const [lift, setLift] = useState<LiftKey>(mine.lift ?? "bench");
-  const [bar, setBar] = useState("225");
+  const [barLb, setBarLb] = useState<number | null>(() => (unit === "kg" ? fromUnit(100, "kg") : 225));
   const [force, setForce] = useState("1350");
-  const [e1rm, setE1rm] = useState(mine.e1rm > 0 ? String(mine.e1rm) : "315");
+  const [e1rmLb, setE1rmLb] = useState<number | null>(() =>
+    mine.e1rm > 0 ? mine.e1rm : unit === "kg" ? fromUnit(140, "kg") : 315,
+  );
 
   const line = LIFTS[lift].recruitLine;
-  const r = readRep(parseFloat(bar), parseFloat(force), parseFloat(e1rm));
+  const r = readRep(barLb ?? NaN, parseFloat(force), e1rmLb);
   const pos = (x: number) => ((Math.min(Math.max(x, SCALE[0]), SCALE[1]) - SCALE[0]) / (SCALE[1] - SCALE[0])) * 100;
 
   let verdict = "Enter a bar weight, a peak force and your e1RM.";
@@ -55,19 +58,19 @@ export default function RepReadout() {
           </div>
           <div className="fields">
             <div className="field">
-              <label htmlFor="bar">Bar weight (lb)</label>
-              <input id="bar" inputMode="decimal" value={bar} onChange={(e) => setBar(e.target.value)} />
+              <label htmlFor="bar">Bar weight ({unit})</label>
+              <WeightInput id="bar" valueLb={barLb} unit={unit} onChangeLb={setBarLb} />
             </div>
             <div className="field">
               <label htmlFor="force">Peak force (N)</label>
               <input id="force" inputMode="decimal" value={force} onChange={(e) => setForce(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="e1rm">e1RM (lb)</label>
-              <input id="e1rm" inputMode="decimal" value={e1rm} onChange={(e) => setE1rm(e.target.value)} />
+              <label htmlFor="e1rm">e1RM ({unit})</label>
+              <WeightInput id="e1rm" valueLb={e1rmLb} unit={unit} onChangeLb={setE1rmLb} />
             </div>
           </div>
-          <p className="field-hint">Peak force in newtons, as most sensors report it. It's converted to pounds-force here.</p>
+          <p className="field-hint">Peak force in newtons, as most sensors report it.</p>
         </form>
 
         <div className="stack" aria-live="polite">
@@ -80,7 +83,7 @@ export default function RepReadout() {
           </div>
           <div className="readings">
             <Reading label="Surplus Index" value={r ? `${fmt(r.surplus * 100, 1)}%` : "–"} note={r ? `${fmt(r.surplus, 2)} g` : undefined} />
-            <Reading label="Net force" value={r ? `${fmt(r.net, 0)} lbf` : "–"} note={r ? `Peak ${fmt(r.forceLbf, 0)} lbf` : undefined} />
+            <Reading label="Net force" value={r ? fmtForce(r.net, unit) : "–"} note={r ? `Peak ${fmtForce(r.forceLbf, unit)}` : undefined} />
             <Reading label="Load" value={r?.loadPct != null ? `${fmt(r.loadPct, 1)}%` : "–"} note="of e1RM" />
             <Reading label="Effective Intensity" value={r?.ei != null ? `${fmt(r.ei, 1)}%` : "–"} note="peak force ÷ e1RM" />
           </div>

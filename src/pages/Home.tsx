@@ -4,10 +4,12 @@ import { EIChart } from "../components/Charts";
 import QualCard from "../components/QualCard";
 import { analyze } from "../engine/analyze";
 import { EXAMPLE_PROBE } from "../engine/example";
-import { fmt, lb, usePageTitle } from "../format";
+import { fmt, usePageTitle, wt } from "../format";
+import { useStore } from "../store";
 
 export default function Home() {
   usePageTitle("");
+  const { unit } = useStore();
   const a = useMemo(() => analyze(EXAMPLE_PROBE), []);
 
   return (
@@ -34,7 +36,7 @@ export default function Home() {
         <figure className="hero-figure panel">
           <EIChart a={a} compact />
           <figcaption>
-            John's bench press. Above {fmt(a.lstar, 1)}% of a {EXAMPLE_PROBE.e1rm} lb max ({lb(a.lstarLb)}), the bar
+            John's bench press. Above {fmt(a.lstar, 1)}% of a {wt(EXAMPLE_PROBE.e1rm, unit)} max ({wt(a.lstarLb, unit)}), the bar
             alone drives Effective Intensity past the {EXAMPLE_PROBE.recruitLine}% line. Below it, reps only get there
             if they're fast or taken close to failure.
           </figcaption>

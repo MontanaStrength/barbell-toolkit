@@ -6,7 +6,7 @@ import { KV } from "../components/Readings";
 import SourceBar from "../components/SourceBar";
 import { analyze, type Analysis } from "../engine/analyze";
 import { STOP_FRACTION } from "../engine/constants";
-import { fmt, lb, ms, pct, usePageTitle } from "../format";
+import { fmt, ms, pct, usePageTitle, wt, wtRange, type Unit } from "../format";
 import { useStore } from "../store";
 import NotFound from "./NotFound";
 
@@ -22,7 +22,7 @@ const SECTIONS = [
 
 export default function Report() {
   const { section = "" } = useParams();
-  const { analysis: a } = useStore();
+  const { analysis: a, unit } = useStore();
   const idx = SECTIONS.findIndex((s) => s.id === section);
   const meta = SECTIONS[idx];
   usePageTitle(meta ? (meta.id ? `${meta.nav}, report` : "Report") : "Not found");
@@ -49,13 +49,13 @@ export default function Report() {
         </nav>
         <article className="report-body stack-lg">
           <h1 style={{ fontSize: "clamp(32px, 4.6vw, 46px)" }}>{meta.title}</h1>
-          {section === "" && <Overview a={a} />}
+          {section === "" && <Overview a={a} unit={unit} />}
           {section === "force-load" && <ForceLoad a={a} />}
           {section === "drive" && <Drive a={a} />}
-          {section === "l-star" && <LStar a={a} />}
-          {section === "decay" && <Decay a={a} />}
-          {section === "reliability" && <Reliability a={a} />}
-          {section === "sessions" && <Sessions a={a} />}
+          {section === "l-star" && <LStar a={a} unit={unit} />}
+          {section === "decay" && <Decay a={a} unit={unit} />}
+          {section === "reliability" && <Reliability a={a} unit={unit} />}
+          {section === "sessions" && <Sessions a={a} unit={unit} />}
           <nav className="pager" aria-label="Previous and next section">
             {prev ? (
               <Link to={href(prev.id)}>
@@ -87,13 +87,13 @@ function Says({ children }: { children: ReactNode }) {
   );
 }
 
-function Overview({ a }: { a: Analysis }) {
+function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
   const rows: Array<{ to: string; label: string; value: string; note: string }> = [
     {
       to: "/report/l-star",
       label: "L*, fast-twitch threshold",
       value: a.lstar != null ? `${fmt(a.lstar, 1)}%` : "–",
-      note: a.lstarLb != null ? `${lb(a.lstarLb)}. Population at the same line: ${pct(a.lstarPop)}.` : "Needs a Force–Load line.",
+      note: a.lstarLb != null ? `${wt(a.lstarLb, unit)}. Population at the same line: ${pct(a.lstarPop)}.` : "Needs a Force–Load line.",
     },
     {
       to: "/report/force-load",
@@ -119,8 +119,8 @@ function Overview({ a }: { a: Analysis }) {
     {
       to: "/report/l-star",
       label: "e1RM from bar speed",
-      value: a.velE1rm != null ? lb(a.velE1rm) : "–",
-      note: a.velCrossPct != null ? `${fmt(a.velCrossPct, 1)}% from the ${a.probe.e1rm} lb you entered.` : "Needs velocities at two or more loads.",
+      value: a.velE1rm != null ? wt(a.velE1rm, unit) : "–",
+      note: a.velCrossPct != null ? `${fmt(a.velCrossPct, 1)}% from the ${wt(a.probe.e1rm, unit)} you entered.` : "Needs velocities at two or more loads.",
     },
     {
       to: "/report/reliability",
@@ -129,6 +129,13 @@ function Overview({ a }: { a: Analysis }) {
       note: "Loads with two or more clean ladder rounds.",
     },
   ];
+  const flags = [...a.flags];
+  if (a.velCrossPct != null && a.velCrossPct > 5 && a.velE1rm != null) {
+    flags.push({
+      level: "info",
+      text: `Bar speed puts your max near ${wt(a.velE1rm, unit)}, ${fmt(a.velCrossPct, 0)}% from the ${wt(a.probe.e1rm, unit)} you entered. Check your e1RM or MVT.`,
+    });
+  }
   return (
     <>
       <p className="lede">
@@ -144,11 +151,11 @@ function Overview({ a }: { a: Analysis }) {
           </Link>
         ))}
       </div>
-      {a.flags.length > 0 && (
+      {flags.length > 0 && (
         <section className="stack" aria-label="Checks">
           <h2 style={{ fontSize: 26 }}>Checks on this data</h2>
           <ul className="flags">
-            {a.flags.map((f) => (
+            {flags.map((f) => (
               <li key={f.text} className={f.level === "warn" ? "flag flag-warn" : "flag"}>
                 {f.text}
               </li>
@@ -240,7 +247,7 @@ function Drive({ a }: { a: Analysis }) {
   );
 }
 
-function LStar({ a }: { a: Analysis }) {
+function LStar({ a, unit }: { a: Analysis; unit: Unit }) {
   const base = a.probe.e1rm;
   const [e1rm, setE1rm] = useState(base);
   const alt = useMemo(() => (e1rm === base ? a : analyze({ ...a.probe, e1rm })), [a, e1rm, base]);
@@ -256,18 +263,18 @@ function LStar({ a }: { a: Analysis }) {
         </p>
         <p>
           Here <strong>L* = {fmt(a.lstar, 1)}%</strong>
-          {a.lstarLb != null ? <> (about {lb(a.lstarLb)})</> : null}. Below it, lighter reps only build that drive if you
+          {a.lstarLb != null ? <> (about {wt(a.lstarLb, unit)})</> : null}. Below it, lighter reps only build that drive if you
           move them fast or take the set deep. Above it, the load itself pulls in the fast-twitch fibers.
         </p>
       </Says>
       <KV
         rows={[
           ["L*, personal", pct(a.lstar)],
-          ["L* in pounds", lb(a.lstarLb)],
+          ["L* as a bar weight", wt(a.lstarLb, unit)],
           ["L*, population at the same line", pct(a.lstarPop)],
           ["Recruitment line", `${a.probe.recruitLine}%`],
           ["EI at the heaviest load", pct(a.eiTop)],
-          ["e1RM implied by bar speed", a.velE1rm != null ? `${lb(a.velE1rm)} (${fmt(a.velCrossPct, 1)}% off)` : "–"],
+          ["e1RM implied by bar speed", a.velE1rm != null ? `${wt(a.velE1rm, unit)} (${fmt(a.velCrossPct, 1)}% off)` : "–"],
         ]}
       />
       <section className="panel stack" aria-labelledby="sens-h">
@@ -277,7 +284,7 @@ function LStar({ a }: { a: Analysis }) {
         </p>
         <div className="field">
           <label htmlFor="sens">
-            e1RM: <strong>{e1rm} lb</strong>
+            e1RM: <strong>{wt(e1rm, unit)}</strong>
             {e1rm !== base ? ` (${e1rm > base ? "+" : ""}${fmt(((e1rm - base) / base) * 100, 1)}%)` : " (as entered)"}
           </label>
           <input
@@ -294,7 +301,7 @@ function LStar({ a }: { a: Analysis }) {
         <KV
           rows={[
             ["L*", `${pct(alt.lstar)} (was ${pct(a.lstar)})`],
-            ["L* in pounds", `${lb(alt.lstarLb)} (was ${lb(a.lstarLb)})`],
+            ["L* as a bar weight", `${wt(alt.lstarLb, unit)} (was ${wt(a.lstarLb, unit)})`],
           ]}
         />
       </section>
@@ -303,7 +310,7 @@ function LStar({ a }: { a: Analysis }) {
   );
 }
 
-function Decay({ a }: { a: Analysis }) {
+function Decay({ a, unit }: { a: Analysis; unit: Unit }) {
   const [id, setId] = useState<string | null>(a.decayDefault);
   const set = a.decaySets.find((s) => s.id === (id ?? a.decayDefault)) ?? null;
   if (!set) {
@@ -324,7 +331,7 @@ function Decay({ a }: { a: Analysis }) {
         <select id="set-pick" value={set.id} onChange={(e) => setId(e.target.value)}>
           {a.decaySets.map((s) => (
             <option key={s.id} value={s.id}>
-              Round {s.round}, {s.lb} lb ({fmt(s.load, 0)}%), {s.reps.length} reps
+              Round {s.round}, {wt(s.lb, unit)} ({fmt(s.load, 0)}%), {s.reps.length} reps
             </option>
           ))}
         </select>
@@ -360,7 +367,7 @@ function Decay({ a }: { a: Analysis }) {
   );
 }
 
-function Reliability({ a }: { a: Analysis }) {
+function Reliability({ a, unit }: { a: Analysis; unit: Unit }) {
   const rounds = [...new Set(a.loadPoints.flatMap((p) => p.rounds.map((r) => r.round)))].sort((x, y) => x - y);
   return (
     <>
@@ -391,7 +398,7 @@ function Reliability({ a }: { a: Analysis }) {
             {a.loadPoints.map((p) => (
               <tr key={p.key}>
                 <td>
-                  {fmt(p.load, 1)}% ({Math.round(p.lb)} lb)
+                  {fmt(p.load, 1)}% ({wt(p.lb, unit)})
                 </td>
                 {rounds.map((rnd) => {
                   const v = p.rounds.find((r) => r.round === rnd);
@@ -412,7 +419,7 @@ function Reliability({ a }: { a: Analysis }) {
   );
 }
 
-function Sessions({ a }: { a: Analysis }) {
+function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
   if (a.lstar == null) {
     return (
       <div className="empty">
@@ -423,13 +430,13 @@ function Sessions({ a }: { a: Analysis }) {
   return (
     <>
       <p className="lede">
-        Bands start at L* = {fmt(a.lstar, 1)}% ({lb(a.lstarLb)}). Each has a rep range, a set count tuned to the Hanley
+        Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to the Hanley
         neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
       </p>
       <h2 style={{ fontSize: 26 }}>Strength and speed</h2>
-      <BandTable bands={a.bands} />
+      <BandTable bands={a.bands} unit={unit} />
       <h2 style={{ fontSize: 26 }}>Hypertrophy</h2>
-      <BandTable bands={a.hypBands} />
+      <BandTable bands={a.hypBands} unit={unit} />
 
       <section className="stack" aria-labelledby="stops-h">
         <h2 id="stops-h" style={{ fontSize: 26 }}>Stop velocities at your tested loads</h2>
@@ -454,7 +461,7 @@ function Sessions({ a }: { a: Analysis }) {
               {a.stopsAtTested.map((s) => (
                 <tr key={s.lb}>
                   <td>
-                    {fmt(s.load, 1)}% ({Math.round(s.lb)} lb)
+                    {fmt(s.load, 1)}% ({wt(s.lb, unit)})
                   </td>
                   <td>{ms(s.v)}</td>
                   <td>{ms(s.power)}</td>
@@ -471,7 +478,7 @@ function Sessions({ a }: { a: Analysis }) {
   );
 }
 
-function BandTable({ bands }: { bands: Analysis["bands"] }) {
+function BandTable({ bands, unit }: { bands: Analysis["bands"]; unit: Unit }) {
   return (
     <div className="table-wrap">
       <table>
@@ -496,7 +503,7 @@ function BandTable({ bands }: { bands: Analysis["bands"] }) {
               <td>
                 {fmt(b.lo, 0)}–{fmt(b.hi, 0)}%
               </td>
-              <td>{b.loLb != null && b.hiLb != null ? `${Math.round(b.loLb)}–${Math.round(b.hiLb)} lb` : "–"}</td>
+              <td>{wtRange(b.loLb, b.hiLb, unit)}</td>
               <td>{b.reps}</td>
               <td>{b.sets}</td>
               <td>{ms(b.stop)}</td>

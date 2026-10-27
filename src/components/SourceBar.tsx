@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { LIFTS } from "../engine/constants";
 import { EXAMPLE_LABEL } from "../engine/example";
+import { wt } from "../format";
 import { useStore } from "../store";
 
 export default function SourceBar() {
-  const { hasMine, source, setSource, active } = useStore();
+  const { hasMine, source, setSource, active, unit } = useStore();
   const showingExample = source === "example";
   return (
     <div className="source-bar">
@@ -14,7 +15,7 @@ export default function SourceBar() {
           {showingExample ? " (the worked example)" : ""}
         </span>
         <span>
-          {LIFTS[active.lift].name}, e1RM <strong>{active.e1rm} lb</strong>
+          {LIFTS[active.lift].name}, e1RM <strong>{wt(active.e1rm, unit)}</strong>
         </span>
         <span>
           MVT <strong>{active.mvt.toFixed(2)} m/s</strong>, line <strong>{active.recruitLine}%</strong>

@@ -1,8 +1,20 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { analyze, defaultProbe, type Analysis, type Probe } from "./engine/analyze";
 import { EXAMPLE_PROBE } from "./engine/example";
+import { defaultUnit, type Unit } from "./format";
 
 const KEY = "barbell-toolkit/probe/v1";
+const UNIT_KEY = "barbell-toolkit/unit/v1";
+
+function loadUnit(): Unit {
+  try {
+    const u = localStorage.getItem(UNIT_KEY);
+    if (u === "lb" || u === "kg") return u;
+  } catch {
+    // Storage blocked: fall back to the locale default.
+  }
+  return defaultUnit();
+}
 
 function load(): Probe {
   try {
@@ -35,6 +47,8 @@ interface Store {
   setSource: (s: Source) => void;
   active: Probe;
   analysis: Analysis;
+  unit: Unit;
+  setUnit: (u: Unit) => void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -49,6 +63,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => save(mine), [mine]);
 
+  const [unit, setUnitState] = useState<Unit>(loadUnit);
+  const setUnit = useCallback((u: Unit) => {
+    setUnitState(u);
+    try {
+      localStorage.setItem(UNIT_KEY, u);
+    } catch {
+      // Storage blocked: the choice lasts for this visit.
+    }
+  }, []);
+
   const setMine = useCallback((next: Probe | ((p: Probe) => Probe)) => {
     setMineState((p) => (typeof next === "function" ? next(p) : next));
   }, []);
@@ -57,8 +81,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const analysis = useMemo(() => analyze(active), [active]);
 
   const value = useMemo(
-    () => ({ mine, setMine, hasMine, source: hasMine ? source : "example", setSource, active, analysis }),
-    [mine, setMine, hasMine, source, active, analysis],
+    () => ({ mine, setMine, hasMine, source: hasMine ? source : "example", setSource, active, analysis, unit, setUnit }),
+    [mine, setMine, hasMine, source, active, analysis, unit, setUnit],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

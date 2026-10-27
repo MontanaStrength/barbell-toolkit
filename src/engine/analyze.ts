@@ -258,11 +258,11 @@ export function analyze(probe: Probe, opts: { axis?: LoadAxis; stops?: StopFract
     decayDefault: defaultDecaySet(decaySets),
     decoupling: decoupling(decaySets),
     stopsAtTested,
-    flags: qualityFlags(probe, loadPoints, profile),
+    flags: qualityFlags(loadPoints, profile),
   };
 }
 
-function qualityFlags(probe: Probe, points: LoadPoint[], p: Profile): Flag[] {
+function qualityFlags(points: LoadPoint[], p: Profile): Flag[] {
   const flags: Flag[] = [];
   if (points.length < 3) {
     flags.push({ level: "warn", text: `Only ${points.length} load${points.length === 1 ? "" : "s"} tested. The fit needs at least three; four is the protocol.` });
@@ -278,9 +278,6 @@ function qualityFlags(probe: Probe, points: LoadPoint[], p: Profile): Flag[] {
   }
   if (!points.some((pt) => pt.rounds.filter((r) => r.clean).length >= 2)) {
     flags.push({ level: "info", text: "No load has two clean rounds yet, so there are no error bars. Repeat the probe on another day to add them." });
-  }
-  if (p.velCrossPct != null && p.velCrossPct > 5 && p.velE1rm != null) {
-    flags.push({ level: "info", text: `Bar speed puts your max near ${Math.round(p.velE1rm)} lb, ${p.velCrossPct.toFixed(0)}% from the ${probe.e1rm} lb you entered. Check your e1RM or MVT.` });
   }
   return flags;
 }

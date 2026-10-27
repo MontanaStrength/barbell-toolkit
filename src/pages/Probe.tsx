@@ -6,7 +6,8 @@ import { LIFT_KEYS, LIFTS, VL_ZONES, type LiftKey } from "../engine/constants";
 import { fromCsv, toCsv } from "../engine/csv";
 import { EXAMPLE_PROBE } from "../engine/example";
 import { intentFloor, readRep } from "../engine/metrics";
-import { fmt, plateRound, usePageTitle } from "../format";
+import WeightInput from "../components/WeightInput";
+import { fmt, suggestBarLb, usePageTitle, wt, wtValue, type Unit } from "../format";
 import { isUsable, useStore } from "../store";
 
 const TARGETS = [60, 70, 80, 90];
@@ -15,7 +16,7 @@ interface Draft {
   round: number;
   phase: Phase;
   target: number;
-  lb: string;
+  barLb: number | null;
   set: number;
   forceN: string;
   meanV: string;
@@ -31,7 +32,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export default function Probe() {
   usePageTitle("Run the probe");
-  const { mine, setMine, setSource } = useStore();
+  const { mine, setMine, setSource, unit } = useStore();
   const navigate = useNavigate();
   const forceRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -45,12 +46,12 @@ export default function Probe() {
   >(null);
 
   const lastRound = mine.reps.length ? Math.max(...mine.reps.map((r) => r.round)) : 1;
-  const suggestLb = (target: number) => (mine.e1rm > 0 ? String(plateRound((mine.e1rm * target) / 100)) : "");
+  const suggestLb = (target: number, e1rm = mine.e1rm) => (e1rm > 0 ? suggestBarLb(e1rm, target, unit) : null);
   const [draft, setDraft] = useState<Draft>({
     round: lastRound,
     phase: "ladder",
     target: 60,
-    lb: suggestLb(60),
+    barLb: suggestLb(60),
     set: 1,
     forceN: "",
     meanV: "",
@@ -62,7 +63,7 @@ export default function Probe() {
   const setReps = mine.reps.filter(sameSet);
   const nextRep = setReps.length ? Math.max(...setReps.map((r) => r.rep)) + 1 : 1;
 
-  const bar = num(draft.lb);
+  const bar = draft.barLb;
   const force = num(draft.forceN);
   const live = bar && force ? readRep(bar, force, mine.e1rm || null) : null;
   const floor = live?.loadPct != null ? intentFloor(live.loadPct) : null;
@@ -72,15 +73,15 @@ export default function Probe() {
 
   const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
-  const chooseTarget = (t: number) => update({ target: t, lb: suggestLb(t), set: 1 });
+  const chooseTarget = (t: number) => update({ target: t, barLb: suggestLb(t), set: 1 });
 
   const changeLift = (lift: LiftKey) =>
     setMine((p) => ({ ...p, lift, mvt: LIFTS[lift].mvt, recruitLine: LIFTS[lift].recruitLine }));
 
-  const changeE1rm = (v: string) => {
-    const e = num(v) ?? 0;
+  const changeE1rm = (lb: number | null) => {
+    const e = lb ?? 0;
     setMine((p) => ({ ...p, e1rm: e }));
-    if (e > 0) update({ lb: String(plateRound((e * draft.target) / 100)) });
+    if (e > 0) update({ barLb: suggestLb(draft.target, e) });
   };
 
   function logRep() {
@@ -102,7 +103,7 @@ export default function Probe() {
     };
     setMine((p) => ({ ...p, reps: [...p.reps, rep] }));
     update({ forceN: "", meanV: "", peakV: "" });
-    setMessage(`Logged rep ${rep.rep} at ${rep.lb} lb.`);
+    setMessage(`Logged rep ${rep.rep} at ${wt(rep.lb, unit)}.`);
     forceRef.current?.focus();
   }
 
@@ -199,8 +200,8 @@ export default function Probe() {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="p-e1rm">e1RM (lb)</label>
-            <input id="p-e1rm" inputMode="decimal" value={mine.e1rm || ""} placeholder="e.g. 315" onChange={(e) => changeE1rm(e.target.value)} />
+            <label htmlFor="p-e1rm">e1RM ({unit})</label>
+            <WeightInput id="p-e1rm" valueLb={mine.e1rm || null} unit={unit} onChangeLb={changeE1rm} placeholder={unit === "kg" ? "e.g. 140" : "e.g. 315"} />
           </div>
           <div className="field">
             <label htmlFor="p-mvt">MVT (m/s)</label>
@@ -273,8 +274,8 @@ export default function Probe() {
             </div>
             <div className="fields">
               <div className="field">
-                <label htmlFor="d-lb">Bar weight (lb)</label>
-                <input id="d-lb" inputMode="decimal" value={draft.lb} onChange={(e) => update({ lb: e.target.value })} />
+                <label htmlFor="d-lb">Bar weight ({unit})</label>
+                <WeightInput id="d-lb" valueLb={draft.barLb} unit={unit} onChangeLb={(barLb) => update({ barLb })} />
               </div>
               <div className="field">
                 <label htmlFor="d-round">Round</label>
@@ -429,7 +430,7 @@ export default function Probe() {
                 <tr>
                   <th>Phase</th>
                   <th>Load</th>
-                  <th>Bar</th>
+                  <th>Bar ({unit})</th>
                   <th>Set</th>
                   <th>Rep</th>
                   <th>Force</th>
@@ -444,7 +445,7 @@ export default function Probe() {
               </thead>
               <tbody>
                 {rounds.map((rnd) => (
-                  <RoundRows key={rnd} round={rnd} rows={sorted.filter((x) => x.r.round === rnd)} e1rm={mine.e1rm} onDelete={deleteRep} />
+                  <RoundRows key={rnd} round={rnd} rows={sorted.filter((x) => x.r.round === rnd)} e1rm={mine.e1rm} unit={unit} onDelete={deleteRep} />
                 ))}
               </tbody>
             </table>
@@ -484,11 +485,13 @@ function RoundRows({
   round,
   rows,
   e1rm,
+  unit,
   onDelete,
 }: {
   round: number;
   rows: Array<{ r: Rep; i: number }>;
   e1rm: number;
+  unit: Unit;
   onDelete: (i: number) => void;
 }) {
   return (
@@ -502,7 +505,7 @@ function RoundRows({
           <tr key={i}>
             <td>{r.phase === "ladder" ? "Ladder" : "AMRAP"}</td>
             <td>{r.target != null ? `${r.target}%` : "–"}</td>
-            <td>{r.lb}</td>
+            <td>{wtValue(r.lb, unit)}</td>
             <td>{r.set}</td>
             <td>{r.rep}</td>
             <td>{r.forceN}</td>

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { useStore } from "../store";
 
 const NAV = [
   { to: "/rep", label: "Read a rep" },
@@ -23,6 +24,7 @@ function Mark() {
 
 export default function Layout() {
   const { pathname } = useLocation();
+  const { unit, setUnit } = useStore();
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
@@ -42,6 +44,13 @@ export default function Layout() {
               </NavLink>
             ))}
           </nav>
+          <div className="segmented unit-toggle" role="group" aria-label="Weight unit">
+            {(["lb", "kg"] as const).map((u) => (
+              <button key={u} type="button" aria-pressed={unit === u} onClick={() => setUnit(u)}>
+                {u}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
       <main>
