@@ -146,7 +146,7 @@ export function EIChart({ a, compact = false }: { a: Analysis; compact?: boolean
             <YAxis type="number" domain={[60, "auto"]} tick={tick} tickLine={false} axisLine={{ stroke: C.rule }} width={48} tickFormatter={(v: number) => `${v}%`} />
             <Tooltip {...tooltipStyle} formatter={(v: number) => `${v.toFixed(1)}% EI`} labelFormatter={(l: number) => `${l}% of e1RM`} />
             <ReferenceLine y={line} stroke={C.signal} strokeWidth={2.5} ifOverflow="extendDomain">
-              <Label value={`Recruitment line, ${line}%`} position="insideBottomRight" offset={8} style={{ ...axisLabel, fill: C.signal, fontWeight: 600 }} />
+              <Label value={`Recruitment line, ${line}%`} position="insideTopRight" offset={8} style={{ ...axisLabel, fill: C.signal, fontWeight: 600 }} />
             </ReferenceLine>
             {a.lstar != null && (
               <ReferenceLine x={+a.lstar.toFixed(1)} stroke={C.signal} strokeDasharray="4 4" strokeWidth={1.5}>
