@@ -7,6 +7,7 @@ const NAV = [
   { to: "/probe", label: "Run the probe" },
   { to: "/report", label: "Report" },
   { to: "/metrics", label: "Metrics" },
+  { to: "/lab", label: "Session lab" },
 ];
 
 function Mark() {

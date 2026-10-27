@@ -2,6 +2,7 @@ import { BrowserRouter, MemoryRouter, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Metrics from "./pages/Metrics";
+import Lab from "./pages/Lab";
 import NotFound from "./pages/NotFound";
 import Probe from "./pages/Probe";
 import RepReadout from "./pages/RepReadout";
@@ -15,7 +16,7 @@ const Router = __PREVIEW__ ? MemoryRouter : BrowserRouter;
 export default function App() {
   return (
     <StoreProvider>
-      <Router>
+      <Router {...(__PREVIEW__ ? { initialEntries: ["/lab"] } : {})}>
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Home />} />
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="report" element={<Report />} />
             <Route path="report/:section" element={<Report />} />
             <Route path="metrics" element={<Metrics />} />
+            <Route path="lab" element={<Lab />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

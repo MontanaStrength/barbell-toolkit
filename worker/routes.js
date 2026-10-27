@@ -6,7 +6,7 @@ const SECTIONS = ["force-load", "drive", "l-star", "decay", "reliability", "sess
 
 export function isAppRoute(pathname) {
   const p = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  if (p === "/" || p === "/rep" || p === "/probe" || p === "/metrics" || p === "/report") return true;
+  if (p === "/" || p === "/rep" || p === "/probe" || p === "/metrics" || p === "/lab" || p === "/report") return true;
   const m = /^\/report\/([^/]+)$/.exec(p);
   return !!m && SECTIONS.includes(m[1]);
 }

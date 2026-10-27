@@ -1469,3 +1469,67 @@ td.set-name small,
     animation: none !important;
   }
 }
+
+/* ---------- session lab (prototype) ---------- */
+
+.lab-tag {
+  font: 600 13px/1 var(--font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--signal);
+}
+
+.lab-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lab .cell-note.warn,
+.lab .warn {
+  color: var(--signal);
+}
+
+.fid {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-right: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--rule-strong);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.fid-approximate {
+  border-style: dashed;
+}
+
+.lean {
+  color: var(--signal);
+}
+
+.lab-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px 20px;
+}
+
+.lab-stats > div {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+
+.lab-stats strong {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.lab-stats span {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.3;
+}
