@@ -10,14 +10,28 @@ const NAV = [
 ];
 
 function Mark() {
-  // A loaded bar seen end-on: two plates and the sleeve.
+  // A loaded bar from the side, drawn to Olympic proportions (plate height
+  // 23 = 450 mm), with the shaft and sleeves shortened to fit. From each end
+  // inward: sleeve, clamp, a 25, two 45s, then the inner collar and shaft.
   return (
-    <svg viewBox="0 0 30 18" aria-hidden="true">
-      <rect x="0" y="8" width="30" height="2" rx="1" fill="currentColor" opacity="0.45" />
-      <rect x="5" y="1" width="4" height="16" rx="1.5" fill="currentColor" />
-      <rect x="21" y="1" width="4" height="16" rx="1.5" fill="currentColor" />
-      <rect x="10" y="4" width="2" height="10" rx="1" fill="var(--signal)" />
-      <rect x="18" y="4" width="2" height="10" rx="1" fill="var(--signal)" />
+    <svg viewBox="0 0 68 24" aria-hidden="true">
+      <g fill="var(--steel)">
+        <rect x="1.5" y="10.7" width="8" height="2.6" rx="0.4" />
+        <rect x="58.5" y="10.7" width="8" height="2.6" rx="0.4" />
+        <rect x="9.5" y="9.7" width="1.1" height="4.6" rx="0.4" />
+        <rect x="57.4" y="9.7" width="1.1" height="4.6" rx="0.4" />
+        <rect x="19.45" y="9.6" width="1.2" height="4.8" rx="0.4" />
+        <rect x="47.35" y="9.6" width="1.2" height="4.8" rx="0.4" />
+        <rect x="20.65" y="11.25" width="26.7" height="1.5" rx="0.4" />
+      </g>
+      <g fill="currentColor">
+        <rect x="10.95" y="4.5" width="1.8" height="15" rx="0.8" />
+        <rect x="55.25" y="4.5" width="1.8" height="15" rx="0.8" />
+        <rect x="13.2" y="0.5" width="2.7" height="23" rx="0.8" />
+        <rect x="52.1" y="0.5" width="2.7" height="23" rx="0.8" />
+        <rect x="16.35" y="0.5" width="2.7" height="23" rx="0.8" />
+        <rect x="48.95" y="0.5" width="2.7" height="23" rx="0.8" />
+      </g>
     </svg>
   );
 }
