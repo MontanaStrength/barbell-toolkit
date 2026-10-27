@@ -80,3 +80,40 @@ export const INTENT_FLOOR: Array<[number, number]> = [
 
 /** Mean velocity-loss zones used for live feedback (% loss from the set's best rep). */
 export const VL_ZONES = { ok: 15, caution: 20 };
+
+/**
+ * Session designs give each set an RPE target or ceiling; the toolkit ends a
+ * set by velocity instead. Each RPE maps to a stop fraction f in the same
+ * stop model: v_stop = (1 − f) · v_fresh(load) + f · MVT. The anchors line up
+ * with the goal stops above (power 0.2 ≈ RPE 6.5, strength 0.3 ≈ 7.5,
+ * hypertrophy 0.4 / 0.6 ≈ 8 / 9). Decided Oct 27, 2026; provisional.
+ */
+export const RPE_STOP: Array<[number, number]> = [
+  [6, 0.15],
+  [6.5, 0.2],
+  [7, 0.25],
+  [7.5, 0.3],
+  [8, 0.4],
+  [8.5, 0.5],
+  [9, 0.6],
+];
+
+export function rpeStopFraction(rpe: number): number {
+  const t = RPE_STOP;
+  if (rpe <= t[0][0]) return t[0][1];
+  if (rpe >= t[t.length - 1][0]) return t[t.length - 1][1];
+  for (let i = 0; i < t.length - 1; i++) {
+    const [x0, y0] = t[i];
+    const [x1, y1] = t[i + 1];
+    if (rpe >= x0 && rpe <= x1) return y0 + ((y1 - y0) * (rpe - x0)) / (x1 - x0);
+  }
+  return t[t.length - 1][1];
+}
+
+/**
+ * First-rep floors from the recruitment and tension sessions (Hanley, Oct
+ * 2026): a set's first rep against the lifter's fresh speed at that load.
+ * At or above CARRY_ON, carry on; under SLOW, the set reads as not fresh.
+ * Provisional; tied to the bench calibration, not outcome data.
+ */
+export const FIRST_REP = { carryOn: 0.95, slow: 0.92 };

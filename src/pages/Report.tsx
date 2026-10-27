@@ -11,6 +11,7 @@ import {
 } from "../components/Charts";
 import QualCard from "../components/QualCard";
 import { KV } from "../components/Readings";
+import SessionDesigner from "../components/SessionDesigner";
 import SourceBar from "../components/SourceBar";
 import { analyze, type Analysis } from "../engine/analyze";
 import { compareProbes, noiseBasis, sharedRange, type Change } from "../engine/compare";
@@ -466,17 +467,24 @@ function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
   }
   return (
     <>
-      <p className="lede">
-        Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to the Hanley
-        neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
-      </p>
-      <h2 style={{ fontSize: 26 }}>Strength and speed</h2>
-      <BandTable bands={a.bands} unit={unit} />
-      <h2 style={{ fontSize: 26 }}>Hypertrophy</h2>
-      <BandTable bands={a.hypBands} unit={unit} />
+      <SessionDesigner a={a} unit={unit} />
+
+      <section className="stack" aria-labelledby="bands-h">
+        <h2 id="bands-h" style={{ fontSize: 30 }}>
+          Your bands
+        </h2>
+        <p>
+          Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to the
+          Hanley neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
+        </p>
+        <h3>Strength and speed</h3>
+        <BandTable bands={a.bands} unit={unit} />
+        <h3>Hypertrophy</h3>
+        <BandTable bands={a.hypBands} unit={unit} />
+      </section>
 
       <section className="stack" aria-labelledby="stops-h">
-        <h2 id="stops-h" style={{ fontSize: 26 }}>Stop velocities at your tested loads</h2>
+        <h3 id="stops-h">Stop velocities at your tested loads</h3>
         <p>
           The stop moves toward your MVT ({fmt(a.probe.mvt, 2)} m/s) by a fraction set by the goal:{" "}
           {STOP_FRACTION.power} for power, {STOP_FRACTION.strength} for strength, and for hypertrophy{" "}
