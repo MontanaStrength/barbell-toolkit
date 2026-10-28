@@ -6,6 +6,16 @@ import { NEURAL_TARGET, rpeStopFraction, STRENGTH_SWEET, type LiftKey } from "..
 import { neuralLoad, stopVelocity } from "../metrics";
 import type { Profile } from "../profile";
 import { resolve, type Design, type DesignCtx, type PlanSet, type Reps, type Values } from "./designs";
+import { rpeAt } from "./effort";
+import { feltRpe } from "./fatigue";
+
+/** A lifter's change to one set: its load, its reps (fixed or per mini-set) or the rest after it. */
+export interface SetEdit {
+  pct?: number;
+  reps?: number;
+  next?: number;
+}
+export type Edits = Record<number, SetEdit>;
 
 export type Road = "load" | "fatigue";
 
@@ -21,6 +31,10 @@ export interface CardSet extends PlanSet {
   stopV: number | null;
   /** One rep: the velocity is a check, not a stop. */
   single: boolean;
+  /** The RPE this set is likely to end at after the sets before it; null when it can't be read. */
+  felt: number | null;
+  /** The lifter changed this set by hand. */
+  edited: boolean;
   /** Load road at or above L*: the bar recruits. Fatigue road below it. */
   road: Road | null;
 }
@@ -82,15 +96,38 @@ function workSeconds(s: PlanSet): number {
   return reps * (4 + ecc) + intra;
 }
 
-export function buildCard(d: Design, ctx: DesignCtx, input: Partial<Values> = {}): Card {
+/** A set with a lifter's edit applied. A rep change re-reads the set's RPE off the curve at its load. */
+function applyEdit(s: PlanSet, e: SetEdit | undefined): PlanSet {
+  if (!e) return s;
+  let out: PlanSet = { ...s };
+  if (e.pct != null) out.pct = e.pct;
+  if (e.reps != null) {
+    if (out.reps.kind === "cluster") out.reps = { ...out.reps, parts: out.reps.parts.map(() => e.reps!) };
+    else if (out.reps.kind === "fixed" || out.reps.kind === "upTo") out.reps = { ...out.reps, n: e.reps };
+    else if (out.reps.kind === "toStop") out.reps = { ...out.reps, about: e.reps };
+  }
+  if (e.next != null && s.next !== 0) out.next = e.next;
+  // Re-read effort for a changed load or count, keeping a ceiling as a ceiling.
+  if ((e.pct != null || e.reps != null) && !out.ceiling) {
+    const n = out.reps.kind === "fixed" || out.reps.kind === "upTo" ? out.reps.n : out.reps.kind === "cluster" ? Math.max(...out.reps.parts) : null;
+    if (n != null) out = { ...out, rpe: rpeAt(n, out.pct) };
+  }
+  return out;
+}
+
+export function buildCard(d: Design, ctx: DesignCtx, input: Partial<Values> = {}, edits: Edits = {}): Card {
   const { values, options } = resolve(d, ctx, input);
   const built = d.build(values, ctx);
-  const sets: CardSet[] = built.sets.map((s, i) => ({
+  const plan = built.sets.map((s, i) => applyEdit(s, edits[i]));
+  const felt = feltRpe(plan);
+  const sets: CardSet[] = plan.map((s, i) => ({
     ...s,
     n: i + 1,
     fresh: ctx.fresh(s.pct),
     stopV: ctx.stop(s.pct, s.rpe),
     single: s.reps.kind === "fixed" && s.reps.n === 1,
+    felt: felt[i],
+    edited: !!edits[i],
     road: ctx.lstar == null ? null : s.pct >= ctx.lstar ? "load" : "fatigue",
   }));
 

@@ -82,9 +82,21 @@ export interface Built {
   rules: string[];
 }
 
+/** The shape of a design's loads across the session, for filtering the catalogue. */
+export type Shape = "constant" | "rising" | "falling" | "arc" | "clustered" | "interleaved";
+export const SHAPE_NAMES: Record<Shape, string> = {
+  constant: "Same load",
+  rising: "Rising",
+  falling: "Falling",
+  arc: "Arc",
+  clustered: "Clustered",
+  interleaved: "Interleaved",
+};
+
 export interface Design {
   key: string;
   family: Family;
+  shape: Shape;
   /** Lifts the design may be run on; every lift when absent. */
   lifts?: LiftKey[];
   /** Lifts on which the lifter must confirm a spotter or rack safeties first. */
@@ -331,6 +343,7 @@ export const DESIGNS: Design[] = [
   // ===== Strength =====
   {
     key: "strengthPrescriptionTable",
+    shape: "constant",
     family: "strength",
     params: [
       // Every rep a quality rep: reps stop at the drop rep, so loads that allow only one are out.
@@ -347,6 +360,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "sawtooth",
+    shape: "interleaved",
     family: "strength",
     params: [
       loadKnob("load", "Load", span(...STRENGTH), 85),
@@ -369,6 +383,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "topSetBackoff",
+    shape: "falling",
     family: "strength",
     params: [
       knob("top", "Top-set reps", span(1, 5), 3),
@@ -391,6 +406,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "pureCluster",
+    shape: "clustered",
     family: "strength",
     params: [
       loadKnob("load", "Load", [80, 82, 85, 87, 90], 87),
@@ -414,6 +430,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "doublePyramid",
+    shape: "arc",
     family: "strength",
     params: [
       knob("reps", "Reps per set", [2, 3, 5].filter((r) => arcPeaks(r, "strength").length > 0), 3),
@@ -428,6 +445,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "singles",
+    shape: "constant",
     family: "strength",
     params: [
       knob("mode", "Presentation", [0, 1], 0, { coded: true, buttons: true, show: (x) => (x ? "EMOM" : "Straight, full rest") }),
@@ -458,6 +476,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "rampingSingles",
+    shape: "rising",
     family: "strength",
     params: [
       // The shortest ramp, three singles two points apart, has to start inside the band.
@@ -491,6 +510,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "threadedSingles",
+    shape: "interleaved",
     family: "strength",
     params: [
       knob("pairs", "Set-and-single pairs", span(4, 6), 5),
@@ -519,6 +539,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "routeSwap",
+    shape: "interleaved",
     family: "strength",
     params: [
       knob("order", "Order", [0, 1], 0, { coded: true, buttons: true, show: (x) => (x ? "Volume first" : "Heavy first") }),
@@ -545,6 +566,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "recruitmentCrossover",
+    shape: "falling",
     family: "strength",
     params: [loadKnob("dbl", "Doubles", span(80, 85), 83), loadKnob("mod", "Moderate sets", span(68, 72), 70), loadKnob("fin", "Finisher", span(55, 60), 58)],
     build: (v) => ({
@@ -558,6 +580,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "boundedDescent",
+    shape: "falling",
     family: "strength",
     params: [
       loadKnob("top", "Wave top", span(80, 85), 83),
@@ -586,6 +609,7 @@ export const DESIGNS: Design[] = [
   // ===== Hypertrophy =====
   {
     key: "tapered",
+    shape: "constant",
     family: "hypertrophy",
     params: [
       knob("leadReps", "Lead reps", [7, 8, 9, 10, 12], 10),
@@ -620,6 +644,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "ascendingPyramid",
+    shape: "rising",
     family: "hypertrophy",
     params: [
       knob("shape", "Reps", indices(ASCENDING).filter((i) => pyramidEfforts(ASCENDING[i], "up").length > 0), 2, {
@@ -639,6 +664,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "reversePyramid",
+    shape: "falling",
     family: "hypertrophy",
     params: [
       knob("shape", "Reps", indices(REVERSE).filter((i) => pyramidEfforts(REVERSE[i], "down").length > 0), 1, {
@@ -658,6 +684,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "volumePyramid",
+    shape: "arc",
     family: "hypertrophy",
     params: [knob("reps", "Reps per set", [5, 6, 8].filter((r) => arcPeaks(r, "hypertrophy").length > 0), 5)],
     build: (v) => {
@@ -667,6 +694,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "straightSets",
+    shape: "constant",
     family: "hypertrophy",
     params: [
       loadKnob("load", "Load", (ctx) => span(55, 80).filter((p) => straightPlan(p, ctx).first <= STRAIGHT_RPE_MAX), 65),
@@ -687,6 +715,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "dropSet",
+    shape: "falling",
     family: "hypertrophy",
     params: [
       knob("tiers", "Tiers", [2, 3, 4], 3),
@@ -722,6 +751,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "mechanicalTension",
+    shape: "constant",
     family: "hypertrophy",
     unavailable: (ctx) => (lstarFloor(ctx) > 80 ? "Your L* sits above this design's band: its floor is L* + 1 and its ceiling 80%." : null),
     params: [
@@ -740,6 +770,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "eccentricAccentuated",
+    shape: "constant",
     family: "hypertrophy",
     params: [
       knob("shape", "Sets × reps", indices(ECCENTRICS), 0, {
@@ -762,6 +793,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "forceMetabolic",
+    shape: "interleaved",
     family: "hypertrophy",
     // One load for both kinds of set, floored at L* + 1, up to 78%, wherever a metabolic set fits under its ceiling.
     unavailable: (ctx) =>
@@ -786,6 +818,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "hypertrophyCluster",
+    shape: "clustered",
     family: "hypertrophy",
     params: [
       loadKnob("load", "Load", [72, 74, 76, 78], 74),
@@ -809,6 +842,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "densitySet",
+    shape: "constant",
     family: "hypertrophy",
     // Never an AMRAP under a barbell without a spotter: off bench and squat.
     lifts: ["deadlift"],
@@ -823,6 +857,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "clockedSets",
+    shape: "constant",
     family: "hypertrophy",
     unavailable: (ctx) => (lstarFloor(ctx, 70) > 80 ? "Your L* sits above this design's band: its floor is L* + 1 and its ceiling 80%." : null),
     params: [
@@ -837,6 +872,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "restPauseHarvest",
+    shape: "clustered",
     family: "hypertrophy",
     spotter: ["bench", "squat"],
     params: [loadKnob("load", "Load", span(72, 78), 75), knob("intra", "Rest inside a block", [20, 25, 30], 20, { unit: "s" })],
@@ -857,6 +893,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "shrinkingSets",
+    shape: "constant",
     family: "hypertrophy",
     params: [loadKnob("load", "Load", span(68, 74), 71), knob("starts", "Starts", span(6, 8), 8), knob("clock", "Every", [75, 90, 105], 90, { unit: "s" })],
     build: (v, ctx) => ({
@@ -870,6 +907,7 @@ export const DESIGNS: Design[] = [
   },
   {
     key: "recoveryIslands",
+    shape: "clustered",
     family: "hypertrophy",
     params: [
       loadKnob("load", "Load", span(68, 75), 72),

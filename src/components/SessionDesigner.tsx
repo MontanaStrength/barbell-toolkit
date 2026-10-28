@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { DESIGN_TEXT } from "../content/designs";
 import type { Analysis } from "../engine/analyze";
 import { LIFTS } from "../engine/constants";
@@ -7,14 +7,18 @@ import {
   contextFor,
   type Card,
   type CardSet,
+  type Edits,
+  type SetEdit,
 } from "../engine/sessions/card";
 import {
   DESIGNS,
   designByKey,
+  SHAPE_NAMES,
   type Design,
   type DesignCtx,
   type Family,
   type Param,
+  type Shape as ShapeKey,
   type Values,
 } from "../engine/sessions/designs";
 import { halfPoint } from "../engine/sessions/effort";
@@ -96,6 +100,43 @@ function rangeText(p: Param, allowed: number[], x: number): string {
   return `${allowed.slice(0, -1).join(", ")} or ${last}${unit}`;
 }
 
+/** A plain numeric stepper for editing one set. */
+function Stepper({
+  label,
+  value,
+  show,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  show: (x: number) => string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (x: number) => void;
+}) {
+  const id = `e-${label.replace(/\W+/g, "-").toLowerCase()}`;
+  return (
+    <div className="knob">
+      <span className="field-label" id={id}>
+        {label}
+      </span>
+      <div className="stepper" role="group" aria-labelledby={id}>
+        <button type="button" aria-label={`Less ${label.toLowerCase()}`} disabled={value - step < min} onClick={() => onChange(value - step)}>
+          −
+        </button>
+        <output aria-live="polite">{show(value)}</output>
+        <button type="button" aria-label={`More ${label.toLowerCase()}`} disabled={value + step > max} onClick={() => onChange(value + step)}>
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** A design's set structure at a glance: bar height is load, bar width is reps, against L*. */
 function Shape({ card, lstar }: { card: Card; lstar: number | null }) {
   const W = 150;
@@ -165,6 +206,8 @@ interface Row {
   first: number;
   last: number;
   s: CardSet;
+  /** Felt RPE across the run, lowest and highest. */
+  felt: [number, number] | null;
   next: number;
   /** A different gap after the run's last set, such as the long rest closing a block. */
   after?: number;
@@ -180,16 +223,30 @@ function rowsOf(sets: CardSet[]): Row[] {
     !!a.ceiling === !!b.ceiling &&
     !!a.clock === !!b.clock &&
     a.tempo === b.tempo &&
+    !a.edited &&
+    !b.edited &&
     JSON.stringify(a.reps) === JSON.stringify(b.reps);
   for (const s of sets) {
     const prev = out[out.length - 1];
     if (prev && prev.after === undefined && same(prev.s, s)) {
       prev.last = s.n;
+      if (s.felt != null && prev.felt) prev.felt = [Math.min(prev.felt[0], s.felt), Math.max(prev.felt[1], s.felt)];
+      else prev.felt = null;
       // The run closes on a set whose gap differs: the end of a block or of the session.
       if (s.next !== prev.next) prev.after = s.next;
-    } else out.push({ first: s.n, last: s.n, s, next: s.next });
+    } else out.push({ first: s.n, last: s.n, s, next: s.next, felt: s.felt != null ? [s.felt, s.felt] : null });
   }
   return out;
+}
+
+/** When the sets before make a run feel harder than its label, say so (half a point or more by its end). */
+function feltNote(r: Row): string | null {
+  if (!r.felt || r.s.ceiling || r.felt[1] - r.s.rpe < 0.45) return null;
+  const word = (x: number) => (x >= 9.95 ? "failure" : `${halfPoint(x)}`);
+  const lo = halfPoint(r.felt[0]);
+  const hi = halfPoint(r.felt[1]);
+  if (hi - halfPoint(r.s.rpe) < 0.5) return null;
+  return r.first !== r.last && hi - lo >= 0.5 ? `feels like RPE ${word(lo)} rising to ${word(hi)}` : `feels like RPE ${word(hi)} after the sets before it`;
 }
 
 function thenLabel(r: Row): string {
@@ -228,6 +285,10 @@ export default function SessionDesigner({
   const [family, setFamily] = useState<Family>("strength");
   const [key, setKey] = useState("topSetBackoff");
   const [inputs, setInputs] = useState<Record<string, Partial<Values>>>({});
+  const [shape, setShape] = useState<ShapeKey | "all">("all");
+  const [edits, setEdits] = useState<Record<string, Edits>>({});
+  const [history, setHistory] = useState<Array<{ key: string; inputs: Partial<Values>; edits: Edits }>>([]);
+  const [editing, setEditing] = useState<number | null>(null);
   const [spotter, setSpotter] = useState(() => loadFlag(SPOTTER_KEY));
   const [note, setNote] = useState<string | null>(null);
 
@@ -244,20 +305,43 @@ export default function SessionDesigner({
   const why = blocked(design, ctx);
   const needsSpotter = !why && !!design.spotter?.includes(lift) && !spotter;
   const card = useMemo(
-    () => (why ? null : buildCard(design, ctx, inputs[key])),
-    [why, design, ctx, inputs, key],
+    () => (why ? null : buildCard(design, ctx, inputs[key], edits[key])),
+    [why, design, ctx, inputs, edits, key],
   );
   const speeds = ctx.fresh(75) != null;
 
   const bar = (pct: number) => wt(suggestBarLb(e1rm, pct, unit), unit);
+  // Every change is one undo step: the knobs and set edits of this design as they were.
+  const remember = () =>
+    setHistory((h) => [...h.slice(-29), { key, inputs: inputs[key] ?? {}, edits: edits[key] ?? {} }]);
   // Only the knobs a lifter touches are stored, so the rest keep following their own rules.
-  const setValue = (k: string, v: number) =>
+  // A knob change rebuilds the sets, so hand edits to them are dropped.
+  const setValue = (k: string, v: number) => {
+    remember();
     setInputs((all) => ({ ...all, [key]: { ...all[key], [k]: v } }));
+    setEdits((all) => ({ ...all, [key]: {} }));
+    setEditing(null);
+  };
+  const editSet = (i: number, e: SetEdit) => {
+    remember();
+    setEdits((all) => ({ ...all, [key]: { ...all[key], [i]: { ...all[key]?.[i], ...e } } }));
+  };
+  const undo = () => {
+    const last = history[history.length - 1];
+    if (!last) return;
+    setHistory((h) => h.slice(0, -1));
+    setKey(last.key);
+    setInputs((all) => ({ ...all, [last.key]: last.inputs }));
+    setEdits((all) => ({ ...all, [last.key]: last.edits }));
+    setEditing(null);
+  };
+  const canUndo = history.length > 0 && history[history.length - 1].key === key;
 
   const cardRef = useRef<HTMLElement>(null);
   function pick(d: Design, scroll = false) {
     setKey(d.key);
     setNote(null);
+    setEditing(null);
     // On a narrow screen the card sits below the whole list; take the lifter to it.
     if (scroll && window.matchMedia("(max-width: 900px)").matches) {
       requestAnimationFrame(() =>
@@ -272,9 +356,9 @@ export default function SessionDesigner({
       `${text.name}, ${LIFTS[lift].name.toLowerCase()} (e1RM ${wt(e1rm, unit)})`,
       ...rowsOf(card.sets).map(
         (r) =>
-          `${r.first === r.last ? `Set ${r.first}` : `Sets ${r.first}–${r.last}`}, ${r.s.group}: ${repsLabel(r.s)} @ ${loadText(r.s.pct)} (${bar(r.s.pct)}), ${rpeLabel(r.s)}, ${
-            r.s.single ? "check" : "stop below"
-          } ${ms(r.s.stopV)}${r.next ? `, ${thenLabel(r)}` : ""}`,
+          `${r.first === r.last ? `Set ${r.first}` : `Sets ${r.first}–${r.last}`}, ${r.s.group}: ${repsLabel(r.s)} @ ${loadText(r.s.pct)} (${bar(r.s.pct)}), ${rpeLabel(r.s)}${
+            feltNote(r) ? ` (${feltNote(r)})` : ""
+          }, ${r.s.single ? "check" : "stop below"} ${ms(r.s.stopV)}${r.next ? `, ${thenLabel(r)}` : ""}`,
       ),
       ...card.rules.map((r) => `- ${r}`),
       totalsText(card, design.family),
@@ -287,7 +371,11 @@ export default function SessionDesigner({
     }
   }
 
-  const list = DESIGNS.filter((d) => d.family === family);
+  const inFamily = DESIGNS.filter((d) => d.family === family);
+  const shapes = (["all", ...Object.keys(SHAPE_NAMES)] as Array<ShapeKey | "all">).filter(
+    (k) => k === "all" || inFamily.some((d) => d.shape === k),
+  );
+  const list = inFamily.filter((d) => shape === "all" || d.shape === shape);
 
   return (
     <section className="stack-lg designer" aria-labelledby="design-h">
@@ -329,6 +417,14 @@ export default function SessionDesigner({
         ))}
       </div>
 
+      <div className="segmented segmented-quiet" role="group" aria-label="Shape of the loads">
+        {shapes.map((k) => (
+          <button key={k} type="button" aria-pressed={shape === k} onClick={() => setShape(k)}>
+            {k === "all" ? "All shapes" : SHAPE_NAMES[k]}
+          </button>
+        ))}
+      </div>
+
       <ul className="design-grid" aria-label={`${family} designs`}>
         {list.map((d) => {
           const preview = previews[d.key];
@@ -340,7 +436,10 @@ export default function SessionDesigner({
                 aria-pressed={d.key === key}
                 onClick={() => pick(d, true)}
               >
-                <span className="design-name">{DESIGN_TEXT[d.key].name}</span>
+                <span className="design-name">
+                  {DESIGN_TEXT[d.key].name}
+                  {DESIGN_TEXT[d.key].draft && <span className="draft-tag">Experimental</span>}
+                </span>
                 <span className="design-summary">
                   {DESIGN_TEXT[d.key].summary}
                 </span>
@@ -363,10 +462,23 @@ export default function SessionDesigner({
         aria-labelledby="card-h"
       >
         <div className="stack-sm">
-          <h3 id="card-h" style={{ fontSize: 28 }}>
-            {text.name}
-          </h3>
+          <div className="card-head">
+            <h3 id="card-h" style={{ fontSize: 28 }}>
+              {text.name}
+              {text.draft && <span className="draft-tag">Experimental</span>}
+            </h3>
+            {canUndo && (
+              <button type="button" className="btn btn-small btn-quiet" onClick={undo}>
+                Undo
+              </button>
+            )}
+          </div>
           <p className="muted">{text.explanation}</p>
+          {text.draft && (
+            <p className="small muted">
+              One of the eight designs added Oct 24, 2026. The structure is settled; the words are a draft.
+            </p>
+          )}
         </div>
 
         {why ? (
@@ -486,11 +598,33 @@ export default function SessionDesigner({
                   <tbody>
                     {rowsOf(card.sets).map((row) => {
                       const s = row.s;
+                      const felt = feltNote(row);
+                      const open = editing === s.n - 1;
+                      const e = card.values && (edits[key]?.[s.n - 1] ?? {});
+                      const repsN =
+                        s.reps.kind === "fixed" || s.reps.kind === "upTo"
+                          ? s.reps.n
+                          : s.reps.kind === "cluster"
+                            ? s.reps.parts[0]
+                            : s.reps.kind === "toStop"
+                              ? s.reps.about
+                              : null;
                       return (
-                        <tr key={row.first}>
+                        <Fragment key={row.first}>
+                        <tr className={s.edited ? "edited" : undefined}>
                           <td className="set-name">
                             {setsLabel(row)}
                             <small>{s.group}</small>
+                            {row.first === row.last && (
+                              <button
+                                type="button"
+                                className="link-btn small"
+                                aria-expanded={open}
+                                onClick={() => setEditing(open ? null : s.n - 1)}
+                              >
+                                {open ? "Done" : s.edited ? "Edited" : "Edit"}
+                              </button>
+                            )}
                           </td>
                           <td>
                             <strong>{bar(s.pct)}</strong>
@@ -501,6 +635,7 @@ export default function SessionDesigner({
                           <td>
                             {repsLabel(s)}
                             <small className="cell-note">{rpeLabel(s)}</small>
+                            {felt && <small className="cell-note felt">{felt}</small>}
                           </td>
                           <td>
                             {ms(s.stopV)}
@@ -521,6 +656,68 @@ export default function SessionDesigner({
                             )}
                           </td>
                         </tr>
+                        {open && (
+                          <tr className="edit-row">
+                            <td colSpan={6}>
+                              <div className="knobs">
+                                <Stepper
+                                  label={`Set ${s.n} load`}
+                                  value={s.pct}
+                                  show={(x) => `${loadText(x)} · ${bar(x)}`}
+                                  min={40}
+                                  max={97}
+                                  step={1}
+                                  onChange={(x) => editSet(s.n - 1, { pct: x })}
+                                />
+                                {repsN != null && (
+                                  <Stepper
+                                    label={`Set ${s.n} ${s.reps.kind === "cluster" ? "reps per mini-set" : s.reps.kind === "fixed" ? "reps" : "reps, about"}`}
+                                    value={repsN}
+                                    show={(x) => `${x}`}
+                                    min={1}
+                                    max={20}
+                                    step={1}
+                                    onChange={(x) => editSet(s.n - 1, { reps: x })}
+                                  />
+                                )}
+                                {s.next > 0 && (
+                                  <Stepper
+                                    label={s.clock ? `Set ${s.n} clock` : `Rest after set ${s.n}`}
+                                    value={s.next}
+                                    show={clock}
+                                    min={15}
+                                    max={600}
+                                    step={15}
+                                    onChange={(x) => editSet(s.n - 1, { next: x })}
+                                  />
+                                )}
+                                {s.edited && (
+                                  <div className="knob">
+                                    <span className="field-label">&nbsp;</span>
+                                    <button
+                                      type="button"
+                                      className="btn btn-small btn-quiet"
+                                      onClick={() => {
+                                        remember();
+                                        setEdits((all) => {
+                                          const next = { ...all[key] };
+                                          delete next[s.n - 1];
+                                          return { ...all, [key]: next };
+                                        });
+                                      }}
+                                    >
+                                      Back to the recipe
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                              {Object.keys(e).length === 0 && (
+                                <p className="small muted">Changing a knob above rebuilds the sets and drops hand edits. Undo brings them back.</p>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
                   </tbody>

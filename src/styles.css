@@ -1469,3 +1469,58 @@ td.set-name small,
     animation: none !important;
   }
 }
+
+/* ---------- designer additions: shape filter, drafts, set edits ---------- */
+
+.segmented-quiet button {
+  min-height: 34px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.draft-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px dashed var(--rule-strong);
+  font: 600 11px/1.5 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+td.set-name .link-btn {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+tr.edited td:first-child {
+  box-shadow: inset 3px 0 0 var(--signal);
+}
+
+.cell-note.felt {
+  color: var(--signal);
+}
+
+tr.edit-row > td {
+  background: var(--paper);
+  padding: 14px 16px 10px;
+}
+
+tr.edit-row .knobs {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+
+tr.edit-row .knob .btn {
+  justify-self: start;
+}

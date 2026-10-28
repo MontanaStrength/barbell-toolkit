@@ -9,7 +9,7 @@ import { dropRep, intensityForRPE, maxRepsAt, rpeAt, rpeCeiling } from "./effort
 
 const a = analyze(EXAMPLE_PROBE);
 const ctx = contextFor(a, "bench", EXAMPLE_PROBE.mvt);
-const card = (key: string, input = {}, c: DesignCtx = ctx) => buildCard(designByKey(key)!, c, input);
+const card = (key: string, input = {}, c: DesignCtx = ctx, edits = {}) => buildCard(designByKey(key)!, c, input, edits);
 const repsOf = (s: PlanSet) =>
   s.reps.kind === "fixed" || s.reps.kind === "upTo" ? s.reps.n : s.reps.kind === "cluster" ? s.reps.parts.join("+") : s.reps.kind;
 const shape = (sets: PlanSet[]) => sets.map((s) => `${s.pct}×${repsOf(s)}`);
@@ -266,5 +266,40 @@ describe("the card", () => {
       if (d.lifts || d.unavailable?.(none)) continue;
       expect(buildCard(d, none).sets.every((s) => s.road === null), d.key).toBe(true);
     }
+  });
+});
+
+describe("how a session feels, and hand edits", () => {
+  it("has straight sets climb about half an RPE a set, and strength sets stay flat", () => {
+    const felt = card("straightSets").sets.map((s) => s.felt!);
+    for (let i = 1; i < felt.length; i++) {
+      expect(felt[i] - felt[i - 1]).toBeGreaterThan(0.3);
+      expect(felt[i] - felt[i - 1]).toBeLessThan(0.7);
+    }
+    const table = card("strengthPrescriptionTable").sets.map((s) => s.felt!);
+    expect(table[table.length - 1] - table[0]).toBeLessThan(0.5);
+  });
+
+  it("reads a set's felt RPE as null once the stop decides the reps", () => {
+    const k = card("restPauseHarvest");
+    expect(k.sets[0].felt).toBeNull();
+  });
+
+  it("applies a set edit and re-reads its effort, stop and road", () => {
+    const base = card("topSetBackoff");
+    const k = card("topSetBackoff", {}, ctx, { 1: { pct: 60, reps: 8, next: 60 } });
+    expect(k.sets[1].pct).toBe(60);
+    expect(k.sets[1].reps).toEqual({ kind: "fixed", n: 8 });
+    expect(k.sets[1].next).toBe(60);
+    expect(k.sets[1].road).toBe("fatigue");
+    expect(k.sets[1].rpe).toBe(rpeAt(8, 60));
+    expect(k.sets[1].edited).toBe(true);
+    expect(k.sets[2]).toMatchObject({ pct: base.sets[2].pct, edited: false });
+    // The last set's rest can't be edited into existence.
+    expect(card("topSetBackoff", {}, ctx, { 3: { next: 90 } }).sets[3].next).toBe(0);
+  });
+
+  it("gives every design a shape", () => {
+    for (const d of DESIGNS) expect(["constant", "rising", "falling", "arc", "clustered", "interleaved"], d.key).toContain(d.shape);
   });
 });
