@@ -118,7 +118,7 @@ export function computeProfile(input: ProfileInput): Profile {
       sets: "3–5",
       stop: stopVelocity(vAt(lstar), mvt, stops.power),
       neural: null,
-      note: "Below L*. Move it fast; this work isn't counted toward the neural dose.",
+      note: "Below L*. Max intent; not counted toward the neural dose.",
     });
     const edges = [0, 1, 2, 3, 4].map((i) => lstar + ((TOP_LOAD - lstar) * i) / 4);
     const names = ["Entry strength", "Primary strength", "Heavy strength", "Max strength"];
@@ -167,7 +167,7 @@ export function computeProfile(input: ProfileInput): Profile {
         neural: neuralLoad(repsMid, sets, mid),
         note:
           mid < lstar
-            ? "Mostly below L*. Take these sets to the deep stop or they're junk volume."
+            ? "Mostly below L*. Take these sets to the deep stop."
             : "Above L*. The load drives recruitment; reps fall.",
       };
     });

@@ -37,7 +37,7 @@ export default function Probe() {
       <div className="stack">
         <h1>Run the probe</h1>
         <p className="lede">
-          Log each rep as you go. Everything saves in this browser, so you can close the page between sets.
+          Log each rep as you go. Saves in this browser between sets.
         </p>
       </div>
       <ProbeHistory />
@@ -101,13 +101,14 @@ function ProbeHistory() {
         </div>
       )}
       <p className="field-hint">
-        Start a new probe after each training block. Earlier ones stay saved here
+        One probe per training block.
         {sameLift >= 2 ? (
           <>
-            , and the report's <Link to="/report/compare">Compare page</Link> shows what changed between them.
+            {" "}
+            <Link to="/report/compare">Compare</Link> shows what changed between them.
           </>
         ) : (
-          ", and once you have two of the same lift the report shows what changed between them."
+          " With two of the same lift, the report shows what changed."
         )}
       </p>
       {note && (
@@ -322,38 +323,32 @@ function ProbeEditor() {
           </div>
         </div>
         <p className="field-hint">
-          MVT is the mean velocity of a true grinding single; about 0.15 m/s for bench and 0.30 for squat if you don't
-          know yours. The line defaults to {LIFTS[mine.lift].recruitLine}% for the {LIFTS[mine.lift].name.toLowerCase()}.
+          MVT: mean velocity of a grinding single; 0.15 m/s bench, 0.30 squat if unknown. Line: {LIFTS[mine.lift].recruitLine}%
+          for the {LIFTS[mine.lift].name.toLowerCase()} by default.
         </p>
       </section>
 
       <details className="protocol" open={mine.reps.length === 0}>
-        <summary>How to run the probe</summary>
+        <summary>Protocol</summary>
         <div className="protocol-body stack">
-          <p>
-            One lift, about forty minutes, rested. The ladder only counts if it's fresh, so don't run it after a hard
-            session. Each rep gives three numbers off the sensor: peak force, mean velocity and peak velocity.
-          </p>
+          <p>One lift, about forty minutes, fresh. Each rep logs peak force, mean velocity and peak velocity.</p>
           <ol>
-            <li>Warm up fully to 60%.</li>
+            <li>Warm up to 60%.</li>
             <li>
-              <strong>Ladder at 60%.</strong> Two or three singles, every one as fast as you can move it, with the same
-              technique and full range. About a minute between singles. Log each.
+              <strong>Ladder at 60%.</strong> Two or three singles, max intent, same technique, full range. About a
+              minute between. Log each.
             </li>
             <li>
-              <strong>Ladder at 70, 80 and 90%.</strong> The same, with two or three minutes between loads so each
-              stays fresh.
+              <strong>Ladder at 70, 80 and 90%.</strong> The same, two or three minutes between loads.
             </li>
             <li>
-              <strong>All-out set at 60%.</strong> Rest three to five minutes after the 90% singles, switch the phase to
-              AMRAP, and do one set: fast intent every rep, until the bar grinds to a near stop or form slips. Log
-              every rep; 15 to 25 is normal.
+              <strong>All-out set at 60%.</strong> After three to five minutes, phase AMRAP, one set: fast intent every
+              rep until the bar nearly stops or form slips. Log every rep; 15 to 25 is typical.
             </li>
           </ol>
           <p className="muted">
-            Within a week or two, repeat it on another day as round 2: that measures your day-to-day noise and puts
-            error bars on the profile. After a training block, start a new probe instead and compare the two. One
-            misgrooved rep won't ruin either: log it and keep going.
+            Round 2 within a week or two, on another day, puts error bars on the profile. After a training block, start
+            a new probe. A misgrooved rep is logged and kept.
           </p>
         </div>
       </details>
@@ -459,10 +454,10 @@ function ProbeEditor() {
           </div>
           {live && floor != null && draft.phase === "ladder" && live.multiple < floor && (
             <p className="flag flag-warn">
-              A max-intent single at this load usually reaches {fmt(floor, 2)}×. If this one felt soft, repeat it.
+              A max-intent single at this load usually reaches {fmt(floor, 2)}×. Repeat it if it felt soft.
             </p>
           )}
-          {!mine.e1rm && <p className="flag flag-warn">Enter your e1RM above to see Effective Intensity and suggested bar weights.</p>}
+          {!mine.e1rm && <p className="flag flag-warn">Effective Intensity and bar weights need an e1RM.</p>}
         </section>
       </div>
 
@@ -529,8 +524,7 @@ function ProbeEditor() {
         {mine.reps.length === 0 ? (
           <div className="empty stack">
             <p style={{ margin: "0 auto" }}>
-              No reps yet. Log your first ladder single above, import a probe-log CSV, or load the example to see how it
-              works.
+              No reps yet. Log a ladder single, import a CSV, or load the example.
             </p>
           </div>
         ) : (
@@ -561,14 +555,14 @@ function ProbeEditor() {
             </table>
           </div>
         )}
-        <p className="small muted">CSV columns: round, date, phase, load_pct, load_lb, set, rep, peak_force_n, mean_vel, peak_vel. The probe-log spreadsheet's own headers import too.</p>
+        <p className="small muted">CSV columns: round, date, phase, load_pct, load_lb, set, rep, peak_force_n, mean_vel, peak_vel.</p>
       </section>
 
       <div className="panel btn-row" style={{ justifyContent: "space-between" }}>
         <p>
           {usable
-            ? "You have enough to draw a profile. More loads and a second round make it trustworthy."
-            : "The report needs your e1RM and reps at two or more loads."}
+            ? "Enough for a profile. More loads and a second round tighten it."
+            : "The report needs an e1RM and reps at two or more loads."}
         </p>
         {usable ? (
           <button

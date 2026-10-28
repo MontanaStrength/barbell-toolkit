@@ -1,4 +1,4 @@
-// Qualification copy: what each reading is good for, and when it breaks.
+// Qualification copy: what each reading is for, and when it breaks.
 // Edit freely; nothing else depends on the wording.
 
 export interface Qualification {
@@ -9,91 +9,90 @@ export interface Qualification {
 export const QUAL: Record<string, Qualification> = {
   rep: {
     useFor: [
-      "Checking whether a single rep produced enough force to clear your lift's recruitment line.",
-      "Comparing reps at the same load: a higher Multiple is more force in reserve.",
+      "Whether one rep cleared the lift's recruitment line.",
+      "Comparing reps at one load: a higher Multiple is more force in reserve.",
     ],
     breaksWhen: [
-      "Your e1RM is stale. Effective Intensity scales with it one for one, so a max that's 5% off moves EI by about 5 points.",
-      "The rep wasn't a max-intent effort. A lazy rep reads as low force, not as low capability.",
-      "The bar is above about 85% of your max. There EI clears the line on load alone, so it tells you nothing new.",
+      "The e1RM is stale. EI scales with it one for one.",
+      "The rep wasn't max intent. A lazy rep reads as low force.",
+      "The bar is above about 85% of max. EI clears the line on load alone.",
     ],
   },
   "force-load": {
     useFor: [
-      "Seeing how much force you have in reserve at each load, and how fast it shrinks as the bar gets heavier.",
-      "Comparing your profile against a population line for the same lift.",
+      "Force in reserve at each load, and how fast it shrinks.",
+      "Your slope against the population line for the lift.",
     ],
     breaksWhen: [
-      "The ladder singles weren't fresh and fast. Fatigue or a soft rep pulls a point down and tilts the line.",
-      "Fewer than three loads are tested. Two points always make a perfect line.",
-      "The profile is curved. A straight line through a curve looks fine on R² and still misplaces L*; check the residuals.",
+      "A ladder single wasn't fresh and fast. It pulls its point down and tilts the line.",
+      "Fewer than three loads. Two points always fit a line.",
+      "The profile is curved. R² stays high and L* still moves; check the residuals.",
     ],
   },
   drive: {
     useFor: [
-      "Typing a lifter: how quickly explosive headroom collapses as load rises.",
-      "Comparing the same lifter across training blocks.",
+      "Typing a lifter by how fast explosive headroom collapses with load.",
+      "The same lifter across training blocks.",
     ],
     breaksWhen: [
-      "α is read as a real ceiling. It's the curve projected below the tested range: modeled, not measured.",
-      "A load shows zero or negative surplus. It drops out of the fit, which then rests on fewer points.",
+      "α is read as a real ceiling. It is the curve projected below the tested range.",
+      "A load shows zero or negative surplus. It drops out of the fit.",
     ],
   },
   "l-star": {
     useFor: [
-      "Dividing the load axis: below L*, light work only counts if it's fast or taken deep; above L*, the load does the recruiting.",
-      "Setting the floor of a strength block in pounds rather than in a borrowed percentage.",
+      "Dividing the load axis: below L*, light work counts only if fast or taken deep; above it, the load recruits.",
+      "The floor of a strength block, in pounds.",
     ],
     breaksWhen: [
-      "The e1RM is off. L* moves with it (use the slider on this page to see by how much).",
-      "It's read as a fiber count. L* is inferred from force, a band divider with wide error bars, not a measurement of muscle.",
-      "The recruitment line is wrong for the lift. The line is a convention: 85 for presses, 90 for squat and deadlift. You can set your own on the probe page.",
+      "The e1RM is off. L* moves with it; the sensitivity slider shows by how much.",
+      "It's read as a fiber count. L* is inferred from force, with wide error bars.",
+      "The recruitment line is wrong for the lift. 85 for presses, 90 for squat and deadlift, by convention; set your own on the probe page.",
     ],
   },
   decay: {
     useFor: [
-      "Choosing which velocity to stop a set on: the one that tracks force loss best.",
-      "Seeing how many reps hold near your fresh force before drive fades.",
+      "Which velocity to stop a set on: the one that tracks force loss.",
+      "How many reps hold near fresh force before drive fades.",
     ],
     breaksWhen: [
-      "A single AMRAP is the only sample. One misgrooved rep, where mean velocity craters but force doesn't, can swing the correlation.",
-      "Sets at different loads are pooled. The pooled number mixes how decay behaves at each load.",
+      "One AMRAP is the only sample. A single misgrooved rep can swing the correlation.",
+      "Sets at different loads are pooled.",
     ],
   },
   reliability: {
     useFor: [
-      "Knowing which points are confirmed across separate days, and how far apart the days landed.",
-      "Deciding where to spend the next probe session: on the loads with one round.",
+      "Which points are confirmed on separate days, and how far apart the days landed.",
+      "Where the next probe session is worth spending: loads with one round.",
     ],
     breaksWhen: [
-      "Rounds differ in warm-up, time of day, or fatigue. Then the spread measures the day, not the lifter.",
-      "A load has one round. It has no error bar yet, however tidy it looks.",
+      "Rounds differ in warm-up, time of day or fatigue. The spread then measures the day.",
+      "A load has one round. It has no error bar yet.",
     ],
   },
   sessions: {
     useFor: [
-      "A starting prescription: loads, rep ranges, set counts and a stop velocity for each goal.",
-      "Turning L* into concrete pounds for a training block.",
+      "A starting prescription: loads, reps, sets and a stop velocity for each set.",
+      "L* as concrete bar weights for a block.",
     ],
     breaksWhen: [
-      "The stop fractions are taken as exact. They are coaching starting points (0.2 power, 0.3 strength, 0.6 / 0.4 hypertrophy below / above L*), not measured from you.",
-      "A design's RPE is read as a stop velocity through a fixed map (RPE 6.5 → 0.2, 7.5 → 0.3, 8 → 0.4, 9 → 0.6 of the way to your MVT). It's a starting point; your own sets will tell you where it's off.",
-      "Hypertrophy reps are read as personal. They come from a population reps-to-failure table, not your data.",
-      "A design's loads are read as personal. Each comes from its reps and RPE on a population curve (Nuzzo et al., 2023, the one Strength Architect's solvers use), not from your own sets.",
-      "Set counts are followed past recovery. The neural-dose targets are coaching ranges, not limits.",
+      "Stop fractions are taken as exact. They are coaching starting points (power 0.2, strength 0.3, hypertrophy 0.6 below L* and 0.4 above), not measured from you.",
+      "A design's RPE is read as a stop through a fixed map (6.5 → 0.2, 7.5 → 0.3, 8 → 0.4, 9 → 0.6 of the way to MVT). Your own sets will show where it's off.",
+      "Reps and loads are read as personal. They come from a population curve (Nuzzo 2023), not your data.",
+      "Set counts are followed past recovery. Neural-dose targets are ranges, not limits.",
     ],
   },
   compare: {
     useFor: [
-      "Deciding whether a training block moved your profile enough to re-set your session bands.",
-      "Telling a bigger max apart from a changed profile: L* in pounds can rise while L* as a percentage stays put.",
-      "Checking force and bar speed at the same bar weight, the readings that don't depend on the max you entered.",
+      "Whether a block moved the profile enough to re-set the bands.",
+      "A bigger max against a changed profile: L* in pounds can rise while L* in percent holds.",
+      "Force and bar speed at the same bar weight, which don't depend on the max entered.",
     ],
     breaksWhen: [
-      "The probes used different sensors, setups or rep styles. The change may be the instrument, not you.",
-      "Either probe was run tired. Fatigue lowers every fresh point and reads as lost force.",
-      "Your e1RM entries are stale. Every percentage moves with them, L* included; force and speed at a fixed bar don't.",
-      "No load was repeated on a second day. The noise band then comes from singles within one session, and day-to-day noise is usually larger, so treat a narrow call as provisional.",
+      "Different sensors, setups or rep styles. The change may be the instrument.",
+      "Either probe was run tired. Every fresh point reads low.",
+      "Stale e1RM entries. Every percentage moves with them; force and speed at a fixed bar don't.",
+      "No load was repeated on a second day. The noise band then comes from within one session, and day-to-day noise is usually larger.",
     ],
   },
 };

@@ -384,18 +384,15 @@ export default function SessionDesigner({
           Design a session
         </h2>
         <p>
-          Pick one of {DESIGNS.length} set structures. Each fills in from this
-          profile: bar weights from the max, a stop velocity for every set from
-          the fresh speed at that load, and the road each set is on from L*.
+          {DESIGNS.length} set structures, filled in from this profile: bar
+          weights from the max, a stop velocity per set from fresh speed at
+          that load, and each set's road from L*.
           {ctx.lstar != null
-            ? " Bars above the red line are on the load road; grey ones below it are on the fatigue road."
-            : " This probe has no L*, so the roads stay blank, and designs that start at L* + 1 use a standard floor instead."}
+            ? " Dark bars sit on the load road, above the red line; grey bars on the fatigue road."
+            : " No L* on this probe: roads are blank and L*-floored designs use a standard floor."}
         </p>
         {!speeds && (
-          <p className="flag">
-            This probe has no bar speeds, so the card can give loads, reps
-            and effort but no stop velocities.
-          </p>
+          <p className="flag">No bar speeds on this probe, so no stop velocities.</p>
         )}
       </div>
 
@@ -475,9 +472,7 @@ export default function SessionDesigner({
           </div>
           <p className="muted">{text.explanation}</p>
           {text.draft && (
-            <p className="small muted">
-              One of the eight designs added Oct 24, 2026. The structure is settled; the words are a draft.
-            </p>
+            <p className="small muted">Added Oct 24, 2026. The structure is settled; the words are a draft.</p>
           )}
         </div>
 
@@ -712,7 +707,7 @@ export default function SessionDesigner({
                                 )}
                               </div>
                               {Object.keys(e).length === 0 && (
-                                <p className="small muted">Changing a knob above rebuilds the sets and drops hand edits. Undo brings them back.</p>
+                                <p className="small muted">A knob change rebuilds the sets and drops hand edits; Undo restores them.</p>
                               )}
                             </td>
                           </tr>

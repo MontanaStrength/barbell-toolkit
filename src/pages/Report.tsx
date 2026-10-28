@@ -22,14 +22,14 @@ import { isUsable, useStore } from "../store";
 import NotFound from "./NotFound";
 
 const SECTIONS = [
-  { id: "", nav: "Overview", title: "The one-screen read" },
-  { id: "force-load", nav: "Force–Load", title: "Force capability across the load axis" },
-  { id: "drive", nav: "Drive compression", title: "How surplus force collapses under load" },
-  { id: "l-star", nav: "L*", title: "Where the load starts pulling in fast-twitch" },
-  { id: "decay", nav: "Within-set decay", title: "How drive fades inside a set, and what tracks it" },
-  { id: "reliability", nav: "Reliability", title: "How much to trust each point" },
-  { id: "sessions", nav: "Sessions", title: "Turning the numbers into sessions" },
-  { id: "compare", nav: "Compare", title: "What changed between probes" },
+  { id: "", nav: "Overview", title: "Overview" },
+  { id: "force-load", nav: "Force–Load", title: "Force–Load line" },
+  { id: "drive", nav: "Drive compression", title: "Drive compression" },
+  { id: "l-star", nav: "L*", title: "L*, the recruitment threshold" },
+  { id: "decay", nav: "Within-set decay", title: "Within-set decay" },
+  { id: "reliability", nav: "Reliability", title: "Reliability" },
+  { id: "sessions", nav: "Sessions", title: "Sessions" },
+  { id: "compare", nav: "Compare", title: "Compare probes" },
 ] as const;
 
 export default function Report() {
@@ -100,8 +100,8 @@ export default function Report() {
 
 function Says({ children }: { children: ReactNode }) {
   return (
-    <section className="stack" aria-label="What it says">
-      <h2 style={{ fontSize: 26 }}>What it says</h2>
+    <section className="stack" aria-label="Reading">
+      <h2 style={{ fontSize: 26 }}>Reading</h2>
       {children}
     </section>
   );
@@ -169,10 +169,7 @@ function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
   }
   return (
     <>
-      <p className="lede">
-        Six readings from {a.probe.reps.length} logged reps. Each links to the page that shows the evidence and says when
-        not to trust it.
-      </p>
+      <p className="lede">Six readings from {a.probe.reps.length} logged reps. Each opens its evidence.</p>
       <div className="readings">
         {rows.map((r) => (
           <Link key={r.label} to={r.to} className="reading" style={{ textDecoration: "none" }}>
@@ -219,26 +216,26 @@ function ForceLoad({ a }: { a: Analysis }) {
       <ForceLoadChart a={a} />
       <Says>
         <p>
-          <strong>Multiple</strong> is peak force divided by bar weight. As the bar gets heavier the Multiple falls
-          {a.fl.r2 != null && a.fl.r2 > 0.9 ? ", here in a near-straight line" : ""}. The slope is how much force reserve
-          you lose for each percent of e1RM added.
+          <strong>Multiple</strong> is peak force over bar weight. It falls as the bar gets heavier
+          {a.fl.r2 != null && a.fl.r2 > 0.9 ? ", here in a near-straight line" : ""}; the slope is force reserve lost per
+          percent of e1RM.
         </p>
         {(bowed || sagged) && (
           <p>
-            Read the line as provisional: the points {bowed ? "bow above it in the middle" : "sag below it in the middle"},
-            so a gentle curve is being fit with a straight line.
+            The points {bowed ? "bow above the line in the middle" : "sag below the line in the middle"}: a gentle curve
+            fit with a straight line. Read the slope as provisional.
           </p>
         )}
         {steeperLight && (
           <p>
-            Between the two lightest loads the drop is steeper ({fmt(a.cleanSlope, 4)} per %) than the overall line, so
-            the flatter overall slope comes from the heavy end.
+            The drop between the two lightest loads ({fmt(a.cleanSlope, 4)} per %) is steeper than the overall line; the
+            heavy end flattens it.
           </p>
         )}
         <p>
           Your line {a.fl.m != null && a.fl.m > -0.0114 ? "falls more slowly than" : "falls faster than"} the population
-          line, which means you {a.fl.m != null && a.fl.m > -0.0114 ? "keep more" : "lose more"} force reserve as load
-          rises than the average lifter in the model.
+          line: you {a.fl.m != null && a.fl.m > -0.0114 ? "keep more" : "lose more"} force reserve as load rises than
+          the model's average lifter.
         </p>
       </Says>
       <KV
@@ -263,13 +260,13 @@ function Drive({ a }: { a: Analysis }) {
       <DriveChart a={a} />
       <Says>
         <p>
-          <strong>Surplus</strong> is force made above the bar's weight, as a percent of that weight. Plotted against load
-          it traces how explosive headroom shrinks as the bar gets heavy.
+          <strong>Surplus</strong> is force above the bar's weight, as a percent of that weight. Against load, it
+          traces how explosive headroom shrinks.
         </p>
         <p>
-          Two fitted numbers describe the curve, and both are modeled, not measured. <strong>α ≈ {fmt(a.alpha, 0)}%</strong>{" "}
-          is the curve projected below the tested range: a way to type lifters, not a real ceiling.{" "}
-          <strong>β ≈ {fmt(a.beta, 2)}</strong> is the curvature. Trust the measured points over both.
+          Two fitted numbers describe the curve. <strong>α ≈ {fmt(a.alpha, 0)}%</strong> is its projection below the
+          tested range, for typing lifters, not a ceiling. <strong>β ≈ {fmt(a.beta, 2)}</strong> is the curvature.
+          Both are modeled; the points are measured.
         </p>
       </Says>
       <KV
@@ -294,15 +291,14 @@ function LStar({ a, unit }: { a: Analysis; unit: Unit }) {
       <EIChart a={a} />
       <Says>
         <p>
-          <strong>Effective Intensity</strong> is peak force divided by e1RM: how much force a rep drives relative to
-          your max. Where it crosses the <strong>{a.probe.recruitLine}% line</strong> is <strong>L*</strong>, the
-          fast-twitch threshold. Above it, making that much force off a sub-max bar needs high-threshold motor units.
-          It's inferred from the force signature, not counted from fibers.
+          <strong>Effective Intensity</strong> is peak force over e1RM. Where it crosses the{" "}
+          <strong>{a.probe.recruitLine}% line</strong> is <strong>L*</strong>: above it, producing that force off a
+          sub-max bar takes high-threshold motor units. Inferred from force, not counted from fibers.
         </p>
         <p>
           Here <strong>L* = {fmt(a.lstar, 1)}%</strong>
-          {a.lstarLb != null ? <> (about {wt(a.lstarLb, unit)})</> : null}. Below it, lighter reps only build that drive if you
-          move them fast or take the set deep. Above it, the load itself pulls in the fast-twitch fibers.
+          {a.lstarLb != null ? <> ({wt(a.lstarLb, unit)})</> : null}. Below it, a rep reaches the line only if fast or
+          taken deep. Above it, the load gets there by itself.
         </p>
       </Says>
       <KV
@@ -316,10 +312,8 @@ function LStar({ a, unit }: { a: Analysis; unit: Unit }) {
         ]}
       />
       <section className="panel stack" aria-labelledby="sens-h">
-        <h2 id="sens-h" style={{ fontSize: 26 }}>If your max is off</h2>
-        <p>
-          The bars you lifted don't change, but every percentage does. Slide the e1RM to see how far L* moves.
-        </p>
+        <h2 id="sens-h" style={{ fontSize: 26 }}>Sensitivity to e1RM</h2>
+        <p>The bars lifted don't change; every percentage does. Slide the e1RM to see how far L* moves.</p>
         <div className="field">
           <label htmlFor="sens">
             e1RM: <strong>{wt(e1rm, unit)}</strong>
@@ -355,7 +349,7 @@ function Decay({ a, unit }: { a: Analysis; unit: Unit }) {
     return (
       <div className="empty">
         <p style={{ margin: "0 auto" }}>
-          No all-out set logged yet. Finish the probe with one AMRAP at 60% and log every rep.
+          No all-out set logged. One AMRAP at 60%, every rep logged, completes the probe.
         </p>
       </div>
     );
@@ -377,18 +371,17 @@ function Decay({ a, unit }: { a: Analysis; unit: Unit }) {
       <DecayChart set={set} />
       <Says>
         <p>
-          Drive peaks at {fmt(set.freshCeiling, 0)}% surplus{holdNear >= 3 ? " and holds near it through the early reps" : ""},
-          then fades as fatigue builds: the within-set decay a rep count hides. Stop a set where mean velocity crosses
-          its floor, not at a fixed rep number.
+          Drive peaks at {fmt(set.freshCeiling, 0)}% surplus{holdNear >= 3 ? ", holds through the early reps" : ""}, then
+          fades. A rep count hides this decay; a velocity floor doesn't.
         </p>
         {a.decoupling.corrMean != null && (
           <p>
-            Across every all-out set ({a.decoupling.n} reps), surplus loss tracks mean-velocity loss at r ={" "}
+            Across all-out sets ({a.decoupling.n} reps), surplus loss tracks mean-velocity loss at r ={" "}
             {fmt(a.decoupling.corrMean, 2)} and peak-velocity loss at r = {fmt(a.decoupling.corrPeak, 2)}.
             {a.decoupling.corrPeak != null && a.decoupling.corrPeak > a.decoupling.corrMean
-              ? " Peak velocity scores higher partly because it comes from the same instant as peak force, so the two share noise."
+              ? " Peak velocity shares an instant, and noise, with peak force."
               : ""}{" "}
-            The velocity stops in the session bands are built on mean velocity, the steadier reading rep to rep.
+            Stops use mean velocity, the steadier reading.
           </p>
         )}
       </Says>
@@ -412,12 +405,10 @@ function Reliability({ a, unit }: { a: Analysis; unit: Unit }) {
       <ReliabilityChart a={a} />
       <Says>
         <p>
-          A trustworthy reading shows its error bars. Loads with two or more clean ladder rounds are confirmed across
-          separate days, so they aren't a one-day artifact. Their spread is the coefficient of variation (CV) below.
+          Loads with two or more clean ladder rounds are confirmed on separate days; their spread is the coefficient of
+          variation (CV) below. A load with one round has no error bar yet.
         </p>
-        <p>
-          Loads with a single round are directionally sound, but their error margins fill in only as rounds accumulate.
-          AMRAP openers are shown for reference and left out of the profile, because they're not max-intent singles.
+        <p>AMRAP openers are shown for reference and left out of the profile.
         </p>
       </Says>
       <div className="table-wrap">
@@ -470,15 +461,15 @@ function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
           <div className="empty">
             <p style={{ margin: "0 auto" }}>
               {a.fl.m == null
-                ? "The bands start at L*, which comes from the Force–Load line. That line needs singles at two or more loads."
-                : `The bands start at L*, where Effective Intensity crosses the ${a.probe.recruitLine}% line. On this probe it doesn't cross anywhere from 30 to 100% of max, so there are no bands to show.`}
+                ? "Bands start at L*, which needs a Force–Load line: singles at two or more loads."
+                : `Bands start at L*. On this probe Effective Intensity never crosses the ${a.probe.recruitLine}% line between 30 and 100% of max.`}
             </p>
           </div>
         ) : (
           <>
             <p>
               Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to
-              the Hanley neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
+              the neural dose, and a stop velocity.
             </p>
             <h3>Strength and speed</h3>
             <BandTable bands={a.bands} unit={unit} />
@@ -491,10 +482,9 @@ function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
       <section className="stack" aria-labelledby="stops-h">
         <h3 id="stops-h">Stop velocities at your tested loads</h3>
         <p>
-          The stop moves toward your MVT ({fmt(a.probe.mvt, 2)} m/s) by a fraction set by the goal:{" "}
-          {STOP_FRACTION.power} for power, {STOP_FRACTION.strength} for strength, and for hypertrophy{" "}
-          {STOP_FRACTION.hypertrophyBelowLstar} below L* and {STOP_FRACTION.hypertrophyAboveLstar} above it, because
-          light sets only recruit high-threshold fibers when taken deep. Stop = (1 − f) × fresh velocity + f × MVT.
+          Stop = (1 − f) × fresh velocity + f × MVT, with MVT {fmt(a.probe.mvt, 2)} m/s and f = {STOP_FRACTION.power}{" "}
+          power, {STOP_FRACTION.strength} strength, {STOP_FRACTION.hypertrophyBelowLstar} hypertrophy below L* and{" "}
+          {STOP_FRACTION.hypertrophyAboveLstar} above it.
         </p>
         <div className="table-wrap">
           <table>
@@ -585,9 +575,8 @@ function Compare({ unit }: { unit: Unit }) {
     return (
       <div className="empty stack">
         <p style={{ margin: "0 auto" }}>
-          Compare lines up two of your own probes of the same lift: force and bar speed at the same weight, L*, and your
-          session bands, each with a noise band so you can tell a real change from measurement wobble. The worked
-          example is a single probe, so there's nothing to compare it with.
+          Compare sets two probes of the same lift side by side: force and bar speed at the same weight, L*, and the
+          bands, each change against its noise band. The example is a single probe.
         </p>
         <p style={{ margin: "0 auto" }}>
           <Link to="/probe" className="btn">
@@ -601,9 +590,8 @@ function Compare({ unit }: { unit: Unit }) {
     return (
       <div className="empty stack">
         <p style={{ margin: "0 auto" }}>
-          This is your only {LIFTS[viewed.probe.lift].name.toLowerCase()} probe so far. After your next training block,
-          press <strong>New probe</strong> on the probe page and run it again. This one stays saved, and this page will
-          show what changed.
+          One {LIFTS[viewed.probe.lift].name.toLowerCase()} probe so far. After the next block, start a{" "}
+          <strong>New probe</strong> on the probe page; this one stays saved and the change shows here.
         </p>
         <p style={{ margin: "0 auto" }}>
           <Link to="/probe" className="btn btn-quiet">
@@ -719,11 +707,11 @@ function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: Sav
         ))}
       </div>
       <p className="small muted">
-        Noise bands are 95% ranges on each change, sized from how much your repeated singles at each load disagree
+        Noise bands: 95% ranges on each change, from the spread of repeated singles at each load
         {days === 0
-          ? ". Neither probe repeated a load on a second day, so that spread comes from within a session; day-to-day noise is usually larger."
-          : ": across days where you repeated a load, within a session elsewhere."}
-        {unsized ? " Readings without a band rest on loads with a single rep each." : ""}
+          ? ". No load was repeated on a second day, so the spread is within-session; day-to-day noise is usually larger."
+          : ", across days where a load was repeated and within a session elsewhere."}
+        {unsized ? " Readings without a band rest on loads with one rep each." : ""}
       </p>
 
       <Says>
@@ -755,14 +743,14 @@ function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: Sav
         )}
         <p>
           {real(ch.lstar)
-            ? "L* has shifted by more than the noise, so your session bands have moved with it. Train from the newer probe's bands."
+            ? "L* moved by more than the noise; the bands moved with it. Train from the newer probe."
             : real(ch.forceAt) || real(ch.vAt)
               ? `${
                   real(ch.forceAt)
-                    ? `You're making ${ch.forceAt.delta! > 0 ? "more" : "less"} force at the same bar`
-                    : `Your bar speed at the same weight is ${ch.vAt.delta! > 0 ? "up" : "down"}`
-                } by more than the noise, but L* hasn't moved beyond its own. The newer probe is still your best estimate of where you are; its bands are below.`
-              : "Nothing here moved more than the noise. That doesn't prove nothing changed; it means these two probes can't show it. Repeating each load on a second day (round 2) narrows the band."}
+                    ? `${ch.forceAt.delta! > 0 ? "More" : "Less"} force at the same bar`
+                    : `Bar speed at the same weight ${ch.vAt.delta! > 0 ? "up" : "down"}`
+                } by more than the noise; L* within its own. Train from the newer probe.`
+              : "Nothing moved by more than the noise. A second round at each load narrows the band."}
         </p>
       </Says>
 
@@ -771,7 +759,7 @@ function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: Sav
 
       <section className="stack" aria-labelledby="cmp-bands-h">
         <h2 id="cmp-bands-h" style={{ fontSize: 26 }}>
-          What changes in your sessions
+          Bands, before and after
         </h2>
         <div className="table-wrap">
           <table>

@@ -21,9 +21,8 @@ export default function Home() {
             <h1>Find the load that starts pulling in your fast-twitch.</h1>
           </div>
           <p className="lede">
-            Barbell Toolkit turns one session of readings from your velocity sensor into a force–velocity profile: how
-            much force you make at each load, the load where the bar starts recruiting high-threshold fibers, and when
-            to stop a set for power, strength or hypertrophy. Every number comes with how far to trust it.
+            One session of sensor readings becomes a force–velocity profile: force at each load, the load where the
+            bar starts recruiting high-threshold fibers, and a stop velocity for every set.
           </p>
           <div className="btn-row">
             <Link to="/probe" className="btn">
@@ -34,65 +33,60 @@ export default function Home() {
             </Link>
           </div>
           <p className="muted small">
-            Just want one number? <Link to="/rep">Read a single rep</Link>.
+            Or <Link to="/rep">read a single rep</Link>.
           </p>
         </div>
         <figure className="hero-figure panel">
           <EIChart a={a} compact />
           <figcaption>
-            Example: John's bench press. The dots are his ladder singles, plotted as Effective Intensity, peak force as
-            a share of his {wt(EXAMPLE_PROBE.e1rm, unit)} max. Above {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}), the
-            load alone carries a rep past the red recruitment line. Below it, reps only get there if they're fast or
-            taken close to failure.
+            Example bench press, {wt(EXAMPLE_PROBE.e1rm, unit)} max. Ladder singles as Effective Intensity, peak force
+            over max. The curve crosses the recruitment line at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}).
           </figcaption>
         </figure>
       </section>
 
       <section className="facts panel" aria-label="Before you start">
         <div>
-          <h2>What you need</h2>
+          <h2>Sensor</h2>
           <p>
-            A sensor that reports <strong>peak force</strong>, <strong>mean velocity</strong> and{" "}
-            <strong>peak velocity</strong> for each rep (a Tendo unit, for example), and a recent max for the lift.
+            Any unit that reports <strong>peak force</strong>, <strong>mean velocity</strong> and{" "}
+            <strong>peak velocity</strong> per rep, such as a Tendo.
           </p>
         </div>
         <div>
-          <h2>It isn't a tracker</h2>
-          <p>
-            You enter your sensor's numbers, rep by rep or as a CSV. Phone-camera tracking is too noisy for peak force,
-            so the toolkit doesn't use it.
-          </p>
+          <h2>Input</h2>
+          <p>Readings entered rep by rep, or imported as CSV. A recent max for the lift.</p>
         </div>
         <div>
-          <h2>Free, no account</h2>
-          <p>Your probe stays in this browser. Nothing is uploaded, and you can export it as a CSV any time.</p>
+          <h2>Data</h2>
+          <p>Stays in this browser. Export as CSV any time. No account.</p>
         </div>
       </section>
 
       <section className="section">
         <div className="section-head">
-          <h2>One session, about forty minutes</h2>
-          <p className="muted">Rest the day before; the singles only count if they're fresh.</p>
+          <h2>The probe: one session, about forty minutes</h2>
+          <p className="muted">Fresh. Rest the day before.</p>
         </div>
         <ol className="steps">
           <li>
             <h3>Set up</h3>
-            <p>Pick the lift and enter your e1RM. It doesn't need to be exact; bar speed cross-checks it.</p>
+            <p>Choose the lift and enter an e1RM. Bar speed cross-checks it.</p>
           </li>
           <li>
             <h3>Ladder</h3>
-            <p>Two or three max-intent singles at 60, 70, 80 and 90%. Log peak force and velocity for each.</p>
+            <p>Two or three max-intent singles at 60, 70, 80 and 90%. Log each.</p>
           </li>
           <li>
             <h3>All-out set</h3>
-            <p>After a few minutes' rest, one set at 60% for as many fast reps as you can. Log every rep.</p>
+            <p>One set at 60%, fast intent, as many reps as hold. Log every rep.</p>
           </li>
           <li>
             <h3>Read the report</h3>
             <p>
-              Your <Link to="/report/force-load">Force–Load line</Link>, <Link to="/report/l-star">L*</Link>,{" "}
-              <Link to="/report/decay">how drive fades in a set</Link>, and{" "}
-              <Link to="/report/sessions">session bands</Link> with stop velocities.
+              <Link to="/report/force-load">Force–Load line</Link>, <Link to="/report/l-star">L*</Link>,{" "}
+              <Link to="/report/decay">within-set decay</Link>, and <Link to="/report/sessions">sessions</Link> with
+              stop velocities.
             </p>
           </li>
         </ol>
@@ -100,17 +94,13 @@ export default function Home() {
 
       <section className="section split">
         <div className="stack">
-          <h2>Every number says when not to trust it</h2>
+          <h2>Operating limits</h2>
           <p>
-            A velocity sensor gives readings, not truths. Each page of the report pairs its number with what it's good
-            for and the conditions that break it, the way an instrument ships with its operating limits.
-          </p>
-          <p>
-            Here's the card for L*. The math behind it is tested against the original probe spreadsheet to six
-            decimal places.
+            Each reading in the report carries what it's for and the conditions that break it. This is the card for
+            L*.
           </p>
           <p className="muted">
-            Definitions for every number are on the <Link to="/metrics">metrics page</Link>.
+            Formulas for every number are on the <Link to="/metrics">metrics page</Link>.
           </p>
         </div>
         <QualCard id="l-star" />

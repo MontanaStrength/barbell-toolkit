@@ -24,14 +24,14 @@ export default function RepReadout() {
   const r = readRep(barLb ?? NaN, parseFloat(force), e1rmLb);
   const pos = (x: number) => ((Math.min(Math.max(x, SCALE[0]), SCALE[1]) - SCALE[0]) / (SCALE[1] - SCALE[0])) * 100;
 
-  let verdict = "Enter a bar weight, a peak force and your e1RM.";
+  let verdict = "Enter a bar weight, a peak force and an e1RM.";
   if (r && r.ei != null && r.loadPct != null) {
     if (r.loadPct >= 85) {
-      verdict = `At ${fmt(r.loadPct, 0)}% of your max the load clears the ${line}% line by itself, so this rep's EI adds little.`;
+      verdict = `At ${fmt(r.loadPct, 0)}% of max, the load clears the ${line}% line by itself.`;
     } else if (r.ei >= line) {
-      verdict = `This rep drove ${fmt(r.ei, 1)}% of your max force off a ${fmt(r.loadPct, 0)}% bar: past the ${line}% line. By this model, intent brought in high-threshold fibers the load alone wouldn't.`;
+      verdict = `EI ${fmt(r.ei, 1)}% off a ${fmt(r.loadPct, 0)}% bar: past the ${line}% line. Intent recruited what the load alone wouldn't.`;
     } else {
-      verdict = `This rep drove ${fmt(r.ei, 1)}% of your max force, ${fmt(line - r.ei, 1)} points under the ${line}% line. At this load the work only counts toward recruitment if it's faster or taken closer to failure.`;
+      verdict = `EI ${fmt(r.ei, 1)}%, ${fmt(line - r.ei, 1)} points under the ${line}% line. At this load, a rep gets there only if faster or taken closer to failure.`;
     }
   }
 
@@ -40,7 +40,7 @@ export default function RepReadout() {
       <div className="stack">
         <h1>Read a rep</h1>
         <p className="lede">
-          One rep off your sensor, turned into the numbers the report uses. No protocol needed.
+          One rep off the sensor, read against the lift's recruitment line.
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export default function RepReadout() {
               <WeightInput id="e1rm" valueLb={e1rmLb} unit={unit} onChangeLb={setE1rmLb} />
             </div>
           </div>
-          <p className="field-hint">Peak force in newtons, as most sensors report it.</p>
+          <p className="field-hint">Peak force in newtons.</p>
         </form>
 
         <div className="stack" aria-live="polite">
@@ -110,7 +110,7 @@ export default function RepReadout() {
       <QualCard id="rep" />
 
       <p className="muted">
-        A single rep is one sample. For a profile you can program from, <Link to="/probe">run the probe</Link>.
+        One rep is one sample. For a profile, <Link to="/probe">run the probe</Link>.
       </p>
     </div>
   );

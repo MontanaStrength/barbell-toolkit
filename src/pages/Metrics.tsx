@@ -66,8 +66,8 @@ export default function Metrics() {
       <div className="stack">
         <h1>Metrics</h1>
         <p className="lede">
-          Every number the toolkit reports, with its formula. Store the raw readings; everything here is derived from
-          them, and rounding happens only on screen.
+          Every number the toolkit reports, with its formula. All are derived from the raw readings; rounding is on
+          screen only.
         </p>
       </div>
       <div className="table-wrap">
@@ -101,8 +101,8 @@ export default function Metrics() {
         <div className="stack">
           <h2>Recruitment lines by lift</h2>
           <p>
-            The line is the Effective Intensity a rep has to reach to count as recruiting high-threshold units. It's set
-            per lift and you can override it on the probe page.
+            The Effective Intensity a rep must reach to count as recruiting high-threshold units. Per lift; editable
+            on the probe page.
           </p>
         </div>
         <div className="table-wrap">
@@ -128,8 +128,7 @@ export default function Metrics() {
       </section>
 
       <p className="muted">
-        See them on real data in the <Link to="/report">example report</Link>, or work out one rep on the{" "}
-        <Link to="/rep">rep readout</Link>.
+        On real data: the <Link to="/report">example report</Link>. One rep: the <Link to="/rep">rep readout</Link>.
       </p>
     </div>
   );
