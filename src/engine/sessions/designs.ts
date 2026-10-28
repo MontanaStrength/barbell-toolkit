@@ -348,7 +348,8 @@ export const DESIGNS: Design[] = [
     params: [
       // Every rep a quality rep: reps stop at the drop rep, so loads that allow only one are out.
       loadKnob("load", "Load", span(...STRENGTH).filter((p) => dropRep(p) > 1), 82),
-      knob("sets", "Sets", span(3, 6), 5),
+      // SA's strength solver clamps at 12 sets (MAX_STRENGTH_SETS_PER_EXERCISE); the 3–6 was its display default.
+      knob("sets", "Sets", span(3, 12), 5),
     ],
     build: (v) => {
       const reps = dropRep(v.load);
