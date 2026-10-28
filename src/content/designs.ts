@@ -24,37 +24,37 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
     name: "Strength Table",
     summary: "Percentage-based sets × reps",
     explanation:
-      "Percentage-based sets and reps, with the rep cap taken from the peak-force model and generous rests between sets. Aim for consistent reps: if the last rep of set 5 looks different from the first rep of set 1, adjust the prescription.",
+      "Percentage-based sets and reps from a lookup table calibrated to the peak-force model. Rest is long enough to clear phosphate and preserve cross-bridge quality. Every rep should look the same — if the last rep of set 5 looks different from the first rep of set 1, the prescription was too aggressive.",
   },
   sawtooth: {
     name: "Sawtooth",
     summary: "Alternating rep counts at one weight",
     explanation:
-      "Alternating rep counts at the same weight. Perform sets run about three reps short of failure; the shorter Practice sets between them leave more room to rehearse your setup. On Practice sets, take time to brace your trunk, build full-body tension and work your cues. On Perform sets, trust your setup and move the bar.",
+      "Alternating rep counts at the same weight. Perform sets run about three reps short of failure; the Practice sets between them are a deliberate underload, so the next Perform set stays crisp. On Practice sets, slow down — brace your trunk, build full-body tension, work your cues. On Perform sets, trust your setup and just move the bar.",
   },
   topSetBackoff: {
     name: "Top Set + Back-off",
     summary: "One 1–5 rep top set, then a meaningful load drop",
     explanation:
-      "One heavy top set provides specific skill practice, from five reps down to a single. The back-offs use a meaningful load drop to add volume. Adjust the top set and back-offs together to change the session's blend of heavy practice and repeated work.",
+      "One heavy top set provides specific skill practice, progressing from five reps toward a single as intensity rises through the block. The back-offs use a meaningful load drop to accumulate quality volume while the nervous system is still primed.",
   },
   pureCluster: {
     name: "Strength Cluster",
     summary: "Heavy clusters with short intra-set rest",
     explanation:
-      "Cluster work breaks a heavy set into small efforts with short rests inside the cluster and longer rests between clusters. The aim is to sustain rep quality while distributing the work differently from straight sets.",
+      "Cluster work breaks a heavy set into smaller high-quality efforts with very short rests inside the cluster. That preserves force output and technique, letting you accumulate more demanding reps than straight sets would usually tolerate at the same load.",
   },
   doublePyramid: {
     name: "Double Pyramid",
     summary: "Symmetric arc: ascend, peak at up to RPE 9, descend",
     explanation:
-      "Sets 1–3 ascend a point of RPE at a time to a peak of up to RPE 9, then sets 4–5 descend at slightly lighter loads than the mirrored ascent sets. The peak adds a heavier exposure; the surrounding sets add volume. Choose the rep count and peak effort to suit the session.",
+      "The full pyramid shape for strength phases. Sets 1–3 ascend a point of RPE at a time to a peak exposure of up to RPE 9, then sets 4–5 descend at RPE-symmetric loads slightly under the mirrored ascent sets to honor accrued fatigue. The peak set gives a genuine near-max neural exposure; the back-offs capture potentiated volume while the nervous system is still primed. Intensification and realization phases only — too peaky for accumulation, too voluminous for meet week.",
   },
   singles: {
     name: "Singles",
     summary: "Single-rep skill, straight or on an EMOM clock",
     explanation:
-      "Singles accumulate one-rep practice in two presentations: straight singles with longer rests or EMOM singles under a fixed clock. Every working set is exactly one rep. Ramping singles with follow-up doubles or triples are a separate design, Ramping Singles + Back-off Sets.",
+      "Singles accumulate technically precise one-rep skill in two presentations: straight singles with full recovery or EMOM singles under a fixed clock. Every working set is exactly one rep. Ramping singles with follow-up doubles or triples are a separate design, Ramping Singles + Back-off Sets.",
   },
   rampingSingles: {
     name: "Ramping Singles + Back-off Sets",
@@ -66,23 +66,23 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
     name: "Threaded Singles",
     summary: "Moderate sets with a heavy single threaded into each rest",
     explanation:
-      "Moderate sets alternate with heavy singles, combining repeated work and heavier practice in one session. Keep the singles crisp and use the rests to judge whether the next effort is ready.",
+      "Buy recruitment with fresh moderate sets and tension with heavy singles threaded into the rests, so each is bought in its cheapest state within one session. No single is ever a near-max.",
     cue: "Every single should move like a crisp first rep. Plan plates so the swap is one plate a side.",
     draft: true,
   },
   routeSwap: {
     name: "Route Swap",
-    summary: "Heavy doubles and a higher-effort volume block, in either order",
+    summary: "Heavy fresh doubles and a near-failure volume block, in either order",
     explanation:
-      "A heavy block and a moderate block taken two reps short, each cut by its own velocity rule. Heavy first is the default; running volume first lets you compare how well the doubles hold their speed afterward.",
+      "A heavy fresh block and a moderate block taken two reps short, each cut by its own velocity rule. Heavy first is the default; running volume first shows whether the doubles hold their speed after fatigue.",
     cue: "Doubles crisp. The lighter sets stop two reps short, not at failure.",
     draft: true,
   },
   recruitmentCrossover: {
     name: "Recruitment Crossover",
-    summary: "Heavy doubles, moderate volume, one lighter finisher",
+    summary: "Heavy doubles, quality volume, one finisher below L*",
     explanation:
-      "Heavy doubles anchor the session, moderate sets add volume, and one lighter finisher is taken two reps short. Read each load against your own L*; the finisher's position relative to it depends on your profile.",
+      "Heavy doubles anchor the session, moderate sets add quality volume, and one finisher below L* is taken two reps short: the fatigue route, after the load route has done its work.",
     cue: "Three jobs: heavy practice, quality volume, one honest finisher two reps short.",
     draft: true,
   },
@@ -100,61 +100,61 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
     name: "Tapered Sets",
     summary: "Lead sets, then shorter taper sets at the same weight",
     explanation:
-      "Lead sets do more reps, followed by shorter taper sets at the same load. The taper reduces the rep demand while adding work after the lead sets. It drops the reps, not the weight; use the effort and stop rules to judge the later sets.",
+      "Lead sets build peak tension at high effort. Taper sets extend time under metabolic stress at the same load — more stimulus without more fatigue. The taper sets drop the reps, not the weight, and feel harder than their reps suggest because the lead sets came first.",
   },
   ascendingPyramid: {
     name: "Ascending Pyramid",
     summary: "Reps fall while load rises set to set",
     explanation:
-      "The early sets use lighter loads and more reps. As reps fall, the load climbs toward a heavier top set. This gives compound lifts a classic pyramid structure and combines repeated work with progressively heavier practice.",
+      "The early sets accumulate productive hypertrophy work without asking every set to be heavy. As reps fall, the load climbs into a stronger tension-biased top set. It gives compound lifts a classic pyramid feel while still respecting the session’s fatigue budget.",
   },
   reversePyramid: {
     name: "Reverse Pyramid",
     summary: "Heaviest first, progressive drops with rising reps",
     explanation:
-      "The ascending pyramid in reverse: your heaviest set comes first, then the load drops and the reps rise. Rest between sets and treat each as its own effort. The wider load spread combines a heavier opening set with lighter volume afterward.",
+      "The ascending pyramid in reverse. Your heaviest, highest-quality set comes first — when your nervous system is fresh and every rep can produce peak force. Subsequent sets drop the load and raise the reps, accumulating volume while the potentiation from the top set is still live. Distinct from drop sets: full rest between sets, wide load spread, and every set is its own committed effort rather than a shared fatigue cascade.",
   },
   volumePyramid: {
     name: "Volume Pyramid",
     summary: "Build to a peak, then descend at fixed reps",
     explanation:
-      "The full pyramid shape — ascend, peak, descend — with a fixed rep count. Each set climbs a point of RPE toward a peak at RPE 8 (7.5 for sets of six or more), then two back-off sets add volume. The descent uses slightly lighter loads than the mirrored ascent sets.",
+      "The full pyramid shape — ascend, peak, descend. Each set climbs a point of RPE toward a single peak set at RPE 8 (7.5 for sets of six or more), then two RPE-symmetric back-off sets capture potentiated volume as fatigue accrues. Load on the descent is slightly lighter than the mirrored ascent set to honor the fatigue curve.",
   },
   straightSets: {
     name: "Straight Sets",
     summary: "Classic fixed sets × reps",
     explanation:
-      "The classic: same weight, same reps, every set. Later sets may feel harder as work accumulates. Adjust load, set count and rest while watching the session's modeled contributions and your actual rep quality.",
+      "The classic. Same weight, same reps, every set. The metabolic cost compounds across sets — set 4 at the same load is physiologically more expensive than set 1.",
   },
   dropSet: {
     name: "Drop Sets",
-    summary: "Descending weight across repeated tiers",
+    summary: "Descending weight, minimal rest",
     explanation:
-      "Descending load tiers with repeated sets at each weight. Each drop lowers the bar weight while earlier work still influences how the next set feels. Follow the listed rests and effort rules throughout the sequence.",
+      "Descending intensity tiers with short rest. Each drop reduces the load while accrued fatigue carries across the sequence, extending time under tension and metabolite accumulation beyond what a single straight set could achieve.",
   },
   mechanicalTension: {
     name: "Mechanical Tension",
-    summary: "Short sets capped by the peak-force model",
+    summary: "Fewer reps, every rep at peak force",
     explanation:
-      "Reps are capped at the model's peak-force drop-off estimate, leaving a short set at each load. The intent is consistent high-force work with room in reserve. Load, rep count and rest determine how much repeated work and heavier practice the session contains.",
+      "Every rep produces near-maximal cross-bridge force. Reps are capped at the peak-force drop-off point so there is zero degraded work — the stimulus comes from high force output, not fatigue. RPE stays low because the sets end before chemistry shifts. This is hypertrophy through mechanical tension, not metabolic stress.",
   },
   eccentricAccentuated: {
     name: "Eccentric Accentuated",
     summary: "Extended 3–5 s eccentric on every rep",
     explanation:
-      "Use a deliberate 3–5 s controlled descent on every rep, then drive the bar up. Moderate loads leave room for the longer eccentric. Keep the prescribed tempo consistent so the sets remain comparable.",
+      "Muscles produce 20–50% more force during lengthening contractions than shortening ones — and the eccentric phase is the primary driver of muscle damage, the third pillar of hypertrophy. This scheme biases the stimulus toward that phase with a deliberate 3–5 s controlled descent on every rep. Load stays moderate because the tempo is where the work happens, not the weight on the bar.",
   },
   forceMetabolic: {
     name: "Force/Metabolic Interleave",
     summary: "Force and metabolic sets interleaved at one load",
     explanation:
-      "Alternate short, crisp sets with longer sets at the same weight. The shorter sets emphasize rep quality; the longer sets add repeated work. Adjust their mix and rests while comparing both modeled contributions across the whole session.",
+      "Two stimulus types in one session, at one weight. Force sets (low rep, crisp) drive mechanical tension and motor unit recruitment. Metabolic sets (more reps, same weight) exploit that recruitment for metabolite accumulation. Interleaving them prevents neural fatigue from compounding on either block.",
   },
   hypertrophyCluster: {
     name: "Hypertrophy Cluster",
     summary: "Moderate-load clusters with short intra-set rest",
     explanation:
-      "Each working set is broken into 2–3 mini-sets with 10–20 s rests inside the cluster. The load stays constant while the short pauses distribute the effort. Compare the mini-set size and rests with straight sets at the same load and total reps.",
+      "True cluster sets — distinct from the Force/Metabolic Interleave hybrid. Each working set is broken into 2–3 mini-sets with 10–20 s intra-set rest, letting you accumulate more reps at a harder load than straight sets can sustain. Sits between straight sets (same weight, fatigue drift) and drop sets (descending load, cross-tier fatigue) by keeping load constant but buying back force quality with short rests.",
   },
   densitySet: {
     name: "Density Block",
@@ -164,9 +164,9 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
   },
   clockedSets: {
     name: "Ceiling Walk",
-    summary: "Many short sets at one load, on a clock",
+    summary: "Many short sets just above L*, on a clock",
     explanation:
-      "Many short sets at one load on a fixed start-to-start clock. Use L* as context for the load, and the effort ceiling to keep each set short. The first-rep rule can end the session before the planned set count.",
+      "Many short sets at one load just above L* on a fixed start-to-start clock: fully recruited reps at the lowest load, and the most productive work per minute. No rep comes near failure. The first-rep floor, not the set count, says when fresh has ended.",
     cue: "Same bar speed every set. When the first rep slows, rest one extra interval; if it is still slow, stop.",
     draft: true,
   },
@@ -174,7 +174,7 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
     name: "Rest-Pause Harvest",
     summary: "An activation set, then short mini-sets one rep short",
     explanation:
-      "An activation set is followed by short mini-sets at the same moderate load. Brief rests make this a compact way to add work close to failure. Use the effort ceilings and first-rep rule to end the block when the next mini-set is already too hard.",
+      "Buys reps close to failure at a moderate load in the most time-efficient structure, gated by velocity so no rep is a failure or a grind. The highest peripheral cost in the catalogue.",
     cue: "The activation set stops two reps short. Each mini-set stops one short. No rep is a grind.",
     draft: true,
   },
@@ -190,7 +190,7 @@ export const DESIGN_TEXT: Record<string, DesignText> = {
     name: "Recovery Islands",
     summary: "Small groups of doubles with short rests inside",
     explanation:
-      "Blocks of three doubles with short rests between them and longer rests between blocks. The pauses group the volume into small efforts. Check whether each long rest restores rep speed before starting another block.",
+      "Blocks of three doubles with short rests between them and long rests between blocks: fully recruited volume in small groups, at the lowest peripheral cost of any grouped structure.",
     cue: "Every pair looks like the first. If the long rest doesn't bring the speed back, you're done.",
     draft: true,
   },

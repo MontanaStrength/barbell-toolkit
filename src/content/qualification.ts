@@ -72,14 +72,15 @@ export const QUAL: Record<string, Qualification> = {
   },
   sessions: {
     useFor: [
-      "Building one session and comparing its modeled strength and hypertrophy contributions together.",
-      "Turning a recipe into loadable weights, rep and effort rules, rest intervals and profile-based velocity references.",
+      "A starting prescription: loads, rep ranges, set counts and a stop velocity for each goal.",
+      "Turning L* into concrete pounds for a training block.",
     ],
     breaksWhen: [
-      "Modeled benefits are read as measured adaptations. The scores compare prescriptions; they do not predict how much strength or muscle you will gain.",
-      "The effort estimates are read as personal. Reps, load and RPE use a population curve; your probe supplies the force and velocity profile, not a calibrated fatigue response.",
-      "A stop velocity is treated as exact. Its fresh-speed reference comes from your profile, but the RPE-to-stop mapping is a coaching starting point to check against your own sets.",
-      "L* is treated as a boundary between strength and hypertrophy. It is an inferred load reference, and both modeled contributions can occur in the same set.",
+      "The stop fractions are taken as exact. They are coaching starting points (0.2 power, 0.3 strength, 0.6 / 0.4 hypertrophy below / above L*), not measured from you.",
+      "A design's RPE is read as a stop velocity through a fixed map (RPE 6.5 → 0.2, 7.5 → 0.3, 8 → 0.4, 9 → 0.6 of the way to your MVT). It's a starting point; your own sets will tell you where it's off.",
+      "Hypertrophy reps are read as personal. They come from a population reps-to-failure table, not your data.",
+      "A design's loads are read as personal. Each comes from its reps and RPE on a population curve (Nuzzo et al., 2023, the one Strength Architect's solvers use), not from your own sets.",
+      "Set counts are followed past recovery. The neural-dose targets are coaching ranges, not limits.",
     ],
   },
   compare: {

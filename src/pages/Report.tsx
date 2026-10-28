@@ -15,7 +15,7 @@ import SessionDesigner from "../components/SessionDesigner";
 import SourceBar from "../components/SourceBar";
 import { analyze, type Analysis } from "../engine/analyze";
 import { compareProbes, noiseBasis, sharedRange, type Change } from "../engine/compare";
-import { LIFTS, N_TO_LBF } from "../engine/constants";
+import { LIFTS, N_TO_LBF, STOP_FRACTION } from "../engine/constants";
 import { fmt, force, fromUnit, ms, pct, plateStep, signed, suggestBarLb, toUnit, usePageTitle, wt, wtRange, type Unit } from "../format";
 import { byDateDesc, probeDate, probeWhen, type SavedProbe } from "../probes";
 import { isUsable, useStore } from "../store";
@@ -460,57 +460,109 @@ function Reliability({ a, unit }: { a: Analysis; unit: Unit }) {
 function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
   return (
     <>
-      <p className="lede">
-        A session can contribute to strength and hypertrophy together. Start from a familiar recipe, then adjust its
-        load, reps, effort and rest while comparing both modeled contributions.
-      </p>
       <SessionDesigner a={a} unit={unit} />
 
-      <details className="protocol">
-        <summary>Profile reference</summary>
-        <div className="protocol-body stack">
-          {a.lstar == null ? (
-            <p>
+      <section className="stack" aria-labelledby="bands-h">
+        <h2 id="bands-h" style={{ fontSize: 30 }}>
+          Your bands
+        </h2>
+        {a.lstar == null ? (
+          <div className="empty">
+            <p style={{ margin: "0 auto" }}>
               {a.fl.m == null
-                ? "L* is not available yet: the Force–Load line needs singles at two or more loads."
-                : `This probe's Effective Intensity does not cross the ${a.probe.recruitLine}% reference between 30 and 100% of max, so it has no L* in that range.`}
+                ? "The bands start at L*, which comes from the Force–Load line. That line needs singles at two or more loads."
+                : `The bands start at L*, where Effective Intensity crosses the ${a.probe.recruitLine}% line. On this probe it doesn't cross anywhere from 30 to 100% of max, so there are no bands to show.`}
             </p>
-          ) : (
-            <p>
-              <strong>L* = {fmt(a.lstar, 1)}%</strong> ({wt(a.lstarLb, unit)}): where Effective Intensity derived from your
-              fitted Force–Load line crosses the {a.probe.recruitLine}% reference. It gives context for the load you choose; it
-              does not divide strength work from hypertrophy work.
-            </p>
-          )}
-          <p>
-            Your entered e1RM is <strong>{wt(a.probe.e1rm, unit)}</strong> and your MVT is{" "}
-            <strong>{ms(a.probe.mvt)}</strong>. The profile's velocity–load line supplies the fresh-speed reference for
-            the session's effort-based stop velocities. These are the mean speeds at your tested loads.
-          </p>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Tested load</th>
-                  <th>Fresh mean velocity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {a.loadPoints.map((p) => (
-                  <tr key={p.lb}>
-                    <td>
-                      {fmt(p.load, 1)}% ({wt(p.lb, unit)})
-                    </td>
-                    <td>{ms(p.v)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
+        ) : (
+          <>
+            <p>
+              Bands start at L* = {fmt(a.lstar, 1)}% ({wt(a.lstarLb, unit)}). Each has a rep range, a set count tuned to
+              the Hanley neural dose, and a stop velocity: end the set when a rep's mean velocity falls below it.
+            </p>
+            <h3>Strength and speed</h3>
+            <BandTable bands={a.bands} unit={unit} />
+            <h3>Hypertrophy</h3>
+            <BandTable bands={a.hypBands} unit={unit} />
+          </>
+        )}
+      </section>
+
+      <section className="stack" aria-labelledby="stops-h">
+        <h3 id="stops-h">Stop velocities at your tested loads</h3>
+        <p>
+          The stop moves toward your MVT ({fmt(a.probe.mvt, 2)} m/s) by a fraction set by the goal:{" "}
+          {STOP_FRACTION.power} for power, {STOP_FRACTION.strength} for strength, and for hypertrophy{" "}
+          {STOP_FRACTION.hypertrophyBelowLstar} below L* and {STOP_FRACTION.hypertrophyAboveLstar} above it, because
+          light sets only recruit high-threshold fibers when taken deep. Stop = (1 − f) × fresh velocity + f × MVT.
+        </p>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Load</th>
+                <th>Fresh mean v</th>
+                <th>Power stop</th>
+                <th>Strength stop</th>
+                <th>Hypertrophy stop</th>
+              </tr>
+            </thead>
+            <tbody>
+              {a.stopsAtTested.map((s) => (
+                <tr key={s.lb}>
+                  <td>
+                    {fmt(s.load, 1)}% ({wt(s.lb, unit)})
+                  </td>
+                  <td>{ms(s.v)}</td>
+                  <td>{ms(s.power)}</td>
+                  <td>{ms(s.strength)}</td>
+                  <td>{ms(s.hypertrophy)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </details>
+      </section>
       <QualCard id="sessions" />
     </>
+  );
+}
+
+function BandTable({ bands, unit }: { bands: Analysis["bands"]; unit: Unit }) {
+  return (
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Band</th>
+            <th>Load</th>
+            <th>Bar</th>
+            <th>Reps</th>
+            <th>Sets</th>
+            <th>Stop below</th>
+            <th>Neural dose</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bands.map((b) => (
+            <tr key={b.label}>
+              <td className="band-name">
+                {b.label}
+                {b.note ? <small>{b.note}</small> : null}
+              </td>
+              <td>
+                {fmt(b.lo, 0)}–{fmt(b.hi, 0)}%
+              </td>
+              <td>{wtRange(b.loLb, b.hiLb, unit)}</td>
+              <td>{b.reps}</td>
+              <td>{b.sets}</td>
+              <td>{ms(b.stop)}</td>
+              <td>{b.neural != null ? fmt(b.neural, 0) : "not counted"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
