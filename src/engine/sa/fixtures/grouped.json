@@ -1,0 +1,104 @@
+[
+  {
+    "id": "clusters",
+    "sourceCommit": "f6fc5ac220c54e553f3433052d6ab9a9ebfaafb1",
+    "prescription": {
+      "id": "clusters",
+      "groups": 2,
+      "parts": [
+        2,
+        2,
+        2
+      ],
+      "pct": 80,
+      "intra": 20,
+      "between": 180,
+      "structure": "cluster"
+    },
+    "projectedRpes": [
+      4.7,
+      4.740123042288174,
+      4.776313329470664,
+      4.743241881247806,
+      4.779126777350623,
+      4.811501146320104
+    ],
+    "rawBenefits": {
+      "hypertrophy": 2.4,
+      "strength": 3.95134825125914,
+      "power": 0,
+      "localEndurance": 0
+    },
+    "benefits": {
+      "hypertrophy": 2.295369841578404,
+      "strength": 2.542750893172285,
+      "power": 0,
+      "localEndurance": 0
+    },
+    "costs": {
+      "localMuscular": 53.56382515366545,
+      "lastingCentral": 142.8571428571429
+    },
+    "groupCosts": [
+      {
+        "localMuscular": 26.781912576832724,
+        "lastingCentral": 71.42857142857144
+      },
+      {
+        "localMuscular": 26.781912576832724,
+        "lastingCentral": 71.42857142857144
+      }
+    ]
+  },
+  {
+    "id": "recovery-islands",
+    "sourceCommit": "f6fc5ac220c54e553f3433052d6ab9a9ebfaafb1",
+    "prescription": {
+      "id": "recovery-islands",
+      "groups": 2,
+      "parts": [
+        2,
+        2,
+        2
+      ],
+      "pct": 72,
+      "intra": 45,
+      "between": 180,
+      "structure": "repeated_mini_sets"
+    },
+    "projectedRpes": [
+      1.8,
+      1.8177878987936327,
+      1.8315664475511215,
+      1.8193669276670714,
+      1.8327895828379324,
+      1.8431870417085099
+    ],
+    "rawBenefits": {
+      "hypertrophy": 1.495959440002482,
+      "strength": 3.0299878602205745,
+      "power": 0,
+      "localEndurance": 0
+    },
+    "benefits": {
+      "hypertrophy": 1.4817491801593323,
+      "strength": 2.2751907408361056,
+      "power": 0,
+      "localEndurance": 0
+    },
+    "costs": {
+      "localMuscular": 23.12250656859574,
+      "lastingCentral": 119.16612607029796
+    },
+    "groupCosts": [
+      {
+        "localMuscular": 11.56125328429787,
+        "lastingCentral": 59.583063035148975
+      },
+      {
+        "localMuscular": 11.56125328429787,
+        "lastingCentral": 59.583063035148975
+      }
+    ]
+  }
+]

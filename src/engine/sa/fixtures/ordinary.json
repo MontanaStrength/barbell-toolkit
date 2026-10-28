@@ -1,0 +1,441 @@
+{
+  "source": {
+    "repository": "Barbell-Hacks/StrengthArchitect-",
+    "commit": "f6fc5ac220c54e553f3433052d6ab9a9ebfaafb1",
+    "loadCurveModelVersion": "load-curve-nuzzo-low-rep-capacity-v1"
+  },
+  "fixtures": [
+    {
+      "id": "top-backoff",
+      "e1rmLb": 365,
+      "setSumVector": {
+        "hypertrophy": 3.6,
+        "strength": 4.145037076961797,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "sessionAdjustedVector": {
+        "hypertrophy": 3.230836803000797,
+        "strength": 2.5849562563500807,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "costVector": {
+        "localMuscular": 75.63776961724565,
+        "lastingCentral": 421.7274695576524
+      },
+      "sets": [
+        {
+          "index": 1,
+          "reps": 3,
+          "loadLb": 320,
+          "intensityPct": 87.67123287671232,
+          "restAfterSeconds": 270,
+          "freshEstimateRpe": 8.3,
+          "projectedRpe": 8.3,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 2,
+          "reps": 5,
+          "loadLb": 295,
+          "intensityPct": 80.82191780821918,
+          "restAfterSeconds": 210,
+          "freshEstimateRpe": 8,
+          "projectedRpe": 8.051390229089748,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 3,
+          "reps": 5,
+          "loadLb": 295,
+          "intensityPct": 80.82191780821918,
+          "restAfterSeconds": 210,
+          "freshEstimateRpe": 8,
+          "projectedRpe": 8.107640319906084,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 4,
+          "reps": 5,
+          "loadLb": 295,
+          "intensityPct": 80.82191780821918,
+          "restAfterSeconds": 0,
+          "freshEstimateRpe": 8,
+          "projectedRpe": 8.125877296296274,
+          "projectionStatus": "predicted"
+        }
+      ]
+    },
+    {
+      "id": "six-fours-180",
+      "e1rmLb": 365,
+      "setSumVector": {
+        "hypertrophy": 3.9999999999999996,
+        "strength": 4.8531954408090225,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "sessionAdjustedVector": {
+        "hypertrophy": 3.511805781127684,
+        "strength": 2.7087142514537152,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "costVector": {
+        "localMuscular": 35.500592365970164,
+        "lastingCentral": 322.22532209521336
+      },
+      "sets": [
+        {
+          "index": 1,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 2,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.041902624070314,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 3,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.057110365281757,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 4,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.062631086609809,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 5,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.064635403365469,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 6,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 0,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.0653631014749685,
+          "projectionStatus": "predicted"
+        }
+      ]
+    },
+    {
+      "id": "six-fours-90",
+      "e1rmLb": 365,
+      "setSumVector": {
+        "hypertrophy": 3.9999999999999996,
+        "strength": 4.8522472167556305,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "sessionAdjustedVector": {
+        "hypertrophy": 3.511805781127684,
+        "strength": 2.7085761166340223,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "costVector": {
+        "localMuscular": 35.500592365970164,
+        "lastingCentral": 322.22532209521336
+      },
+      "sets": [
+        {
+          "index": 1,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 2,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.070471532740902,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 3,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.113490863842494,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 4,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.139765101981554,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 5,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.155817190872133,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 6,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 0,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.165626003748892,
+          "projectionStatus": "predicted"
+        }
+      ]
+    },
+    {
+      "id": "four-sixes-180",
+      "e1rmLb": 365,
+      "setSumVector": {
+        "hypertrophy": 4,
+        "strength": 3.543049945304726,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "sessionAdjustedVector": {
+        "hypertrophy": 3.511805781127684,
+        "strength": 2.4391926247757385,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "costVector": {
+        "localMuscular": 92.97774191087426,
+        "lastingCentral": 310.19866148551864
+      },
+      "sets": [
+        {
+          "index": 1,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 2,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7.0942809041582064,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 3,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 180,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7.1296210244018,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 4,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 0,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7.142884403924144,
+          "projectionStatus": "predicted"
+        }
+      ]
+    },
+    {
+      "id": "four-sixes-90",
+      "e1rmLb": 365,
+      "setSumVector": {
+        "hypertrophy": 4,
+        "strength": 3.541452268679805,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "sessionAdjustedVector": {
+        "hypertrophy": 3.511805781127684,
+        "strength": 2.4387444513732897,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "costVector": {
+        "localMuscular": 92.97774191087426,
+        "lastingCentral": 319.79292784116615
+      },
+      "sets": [
+        {
+          "index": 1,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 2,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7.15856094866703,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 3,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 90,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7.258580062810058,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 4,
+          "reps": 6,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 0,
+          "freshEstimateRpe": 7,
+          "projectedRpe": 7.321833107695523,
+          "projectionStatus": "predicted"
+        }
+      ]
+    },
+    {
+      "id": "six-fours-108",
+      "e1rmLb": 365,
+      "setSumVector": {
+        "hypertrophy": 3.9999999999999996,
+        "strength": 4.852526351736546,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "sessionAdjustedVector": {
+        "hypertrophy": 3.511805781127684,
+        "strength": 2.70861678709588,
+        "power": 0,
+        "localEndurance": 0
+      },
+      "costVector": {
+        "localMuscular": 35.500592365970164,
+        "lastingCentral": 322.22532209521336
+      },
+      "sets": [
+        {
+          "index": 1,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 108,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 2,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 108,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.063512501483632,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 3,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 108,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.098453995642461,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 4,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 108,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.117685398794412,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 5,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 108,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.128272700504913,
+          "projectionStatus": "predicted"
+        },
+        {
+          "index": 6,
+          "reps": 4,
+          "loadLb": 275,
+          "intensityPct": 75.34246575342466,
+          "restAfterSeconds": 0,
+          "freshEstimateRpe": 5,
+          "projectedRpe": 5.134102019924342,
+          "projectionStatus": "predicted"
+        }
+      ]
+    }
+  ]
+}
