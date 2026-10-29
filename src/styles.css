@@ -1553,63 +1553,13 @@ tr.edit-row .knob .btn {
   overflow: hidden;
 }
 
-.rt-field,
 .rt-tally {
   display: block;
   max-width: 100%;
 }
 
-.rt-halo {
-  paint-order: stroke;
-  stroke: var(--surface);
-  stroke-width: 3px;
-  stroke-linejoin: round;
-}
-
-.rt-cell,
-.rt-rep,
 .rt-strip-cell {
   fill: var(--ink);
-}
-
-.rt-rep {
-  stroke: var(--surface);
-  stroke-width: 1;
-}
-
-.rt-rep-halo {
-  fill: var(--surface);
-}
-
-.rt-col {
-  stroke: var(--ink);
-  stroke-width: 1.5;
-}
-
-.rt-col-halo {
-  stroke: var(--surface);
-  stroke-width: 5;
-}
-
-.rt-lstar {
-  stroke: var(--signal);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 4;
-}
-
-.rt-lstar-label {
-  fill: var(--signal);
-  font: 600 12px var(--font-body);
-}
-
-.rt-regime {
-  fill: var(--ink);
-  font-weight: 600;
-}
-
-.rt-col-credit {
-  fill: var(--ink);
-  font-weight: 600;
 }
 
 .rt-to-full {

@@ -6,7 +6,7 @@ import { EXAMPLE_PROBE } from "../example";
 import { buildCard, contextFor } from "./card";
 import { designByKey, DESIGNS, resolve, type Design, type DesignCtx, type PlanSet, type Values } from "./designs";
 import { dropRep, intensityForRPE, maxRepsAt, rpeAt, rpeCeiling } from "./effort";
-import { priceSession, repShare, repsToFull, RT, sessionValue, setCredit, SHARE_FULL } from "./rt";
+import { priceSession, repsToFull, RT, sessionValue, setCredit } from "./rt";
 import { effectiveSetsPhrase, ledgerRows, priceInputs } from "../../components/EffectiveSets";
 
 const a = analyze(EXAMPLE_PROBE);
@@ -433,26 +433,6 @@ describe("effective sets, as the page explains them", () => {
     expect(first).toMatchObject({ reps: 12, pct: 60, nearLstar: true });
     expect(first.route).not.toBe("load");
   }, 60_000);
-
-  it("draws the field as each rep's share of a hard set, smooth across loads", () => {
-    // Above L* a rep is one share in as many as a hard set has at that load, and
-    // a fifth from about 80% on, the most a rep can be worth.
-    expect(repShare(70, 6, ctx.lstar)).toBeCloseTo(1 / (maxRepsAt(70) - 2), 1);
-    expect(repShare(80, 4, ctx.lstar)).toBeGreaterThanOrEqual(SHARE_FULL * 0.9);
-    expect(repShare(82, 4, ctx.lstar)).toBeGreaterThanOrEqual(SHARE_FULL);
-    expect(repShare(90, 2, ctx.lstar)).toBeGreaterThanOrEqual(SHARE_FULL);
-    // Below L* a rep far from failure is worth nearly nothing; at RIR 2 it is a fifth or more.
-    expect(repShare(55, 8, ctx.lstar)).toBeLessThan(0.02);
-    expect(repShare(55, 2, ctx.lstar)).toBeGreaterThan(SHARE_FULL);
-    // No step where the ledger's whole-rep reference loses a rep (73, 76, 79%);
-    // past 80% the field is saturated anyway.
-    for (let pct = 66; pct < 80; pct += 0.5) {
-      expect(Math.abs(repShare(pct + 0.5, 6, ctx.lstar) - repShare(pct, 6, ctx.lstar)), `${pct}%`).toBeLessThan(0.012);
-    }
-    // A column's exact shares add up to the set's ratio, so the dots sum to the credit before the cap.
-    const s = price("ascendingPyramid").sets[1];
-    expect(s.stimuli.reduce((t, r) => t + r.stimulus / s.referenceRaw, 0)).toBeCloseTo(s.ratio, 9);
-  });
 
   it("says how many more reps would make a set full", () => {
     expect(repsToFull(12, 60, 6.5, ctx.lstar)).toBe(2);

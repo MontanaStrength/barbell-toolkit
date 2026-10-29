@@ -7,7 +7,7 @@ import { buildCard, contextFor } from "../engine/sessions/card";
 import { designByKey } from "../engine/sessions/designs";
 import { fmt, suggestBarLb, wt, type Unit } from "../format";
 import { useStore } from "../store";
-import { Field, Ledger, RT_WORDS, rulesOfThumb, Tally, usePricing, type Basis } from "./EffectiveSets";
+import { Ledger, RT_WORDS, rulesOfThumb, Tally, usePricing, type Basis } from "./EffectiveSets";
 import QualCard from "./QualCard";
 
 /** Sets at this effort or harder count as "hard" in the usual tally. */
@@ -125,37 +125,24 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
         </ol>
       </section>
 
-      <section className="stack" aria-labelledby="rt-field-h">
-        <h2 id="rt-field-h" style={{ fontSize: 26 }}>
-          1. What each rep earns
-        </h2>
-        <p>
-          Darkness is the share of a full set a rep earns, from nothing to a fifth, the most a rep can be worth. A set
-          is a column: it starts high in reserve and descends toward failure, one dot a rep, and its dots add up to the
-          credit above it, before the cap. Right of L*, every rep earns a share, and a bigger one the heavier the bar,
-          because a hard set has fewer reps there: one share in as many as a hard set has at that load, a fifth from
-          about 80% up. Left of L*, only the reps near the line earn anything.
-          {ctx.lstar == null ? " This probe has no L*, so only the fatigue route prices." : ""}
-        </p>
-        <Field pricing={pricing} lstar={ctx.lstar} />
-        <p className="small muted">{RT_WORDS.routes}</p>
-      </section>
-
       <section className="stack" aria-labelledby="rt-ledger-h">
         <h2 id="rt-ledger-h" style={{ fontSize: 26 }}>
-          2. Each set against a hard set
+          1. Each set against a hard set
         </h2>
         <p>
-          A set's reps are summed and divided by the same load taken to two reps in reserve. The red tick is the cap:
-          short sets earn at most reps ÷ 5. Each row says what would make it a full set.
+          Each strip is a set, one cell a rep from first to last, darker the more it earns. Above L* the load recruits
+          and every rep earns; below it only the last few do. A set's reps are summed and divided by the same load taken
+          to two reps in reserve. The red tick is the cap: short sets earn at most reps ÷ 5. Each row says what would
+          make it a full set.
+          {ctx.lstar == null ? " This probe has no L*, so only the fatigue route prices." : ""}
         </p>
-        <Ledger pricing={pricing} bar={bar} />
-        <p className="small muted">{RT_WORDS.cap}</p>
+        <Ledger pricing={pricing} bar={bar} lstar={ctx.lstar} />
+        <p className="small muted">{RT_WORDS.rep}</p>
       </section>
 
       <section className="stack" aria-labelledby="rt-tally-h">
         <h2 id="rt-tally-h" style={{ fontSize: 26 }}>
-          3. The tally
+          2. The tally
         </h2>
         <p>Grey is the sum of the credits. Dark is what the session is credited after each set, as later sets add less.</p>
         <Tally pricing={pricing} />
