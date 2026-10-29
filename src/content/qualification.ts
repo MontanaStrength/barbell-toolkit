@@ -82,6 +82,18 @@ export const QUAL: Record<string, Qualification> = {
       "Set counts are followed past recovery. Neural-dose targets are ranges, not limits.",
     ],
   },
+  "effective-sets": {
+    useFor: [
+      "Seeing why a session counts as the effective sets it does: which reps recruit, through which route, and where the count saturates.",
+      "Comparing two designs at the same volume by what they buy, not by reps.",
+    ],
+    breaksWhen: [
+      "The credit is read as muscle gained. It is SA's pricing of stimulus, calibrated by coaching judgement, not measured growth.",
+      "The seeds are taken as settled. The L* band, decay rates, the 5-rep cap and the session curve are coaching assumptions marked for calibration.",
+      "Sets are priced at their written RPE. A set that runs harder or easier than written earns differently; the felt basis is one estimate of that.",
+      "L* is the lifter's own here. SA prices with a population L* per lift class, so SA's figure for the same session can differ.",
+    ],
+  },
   compare: {
     useFor: [
       "Whether a block moved the profile enough to re-set the bands.",

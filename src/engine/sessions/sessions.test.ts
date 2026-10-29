@@ -6,6 +6,7 @@ import { EXAMPLE_PROBE } from "../example";
 import { buildCard, contextFor } from "./card";
 import { designByKey, DESIGNS, resolve, type Design, type DesignCtx, type PlanSet, type Values } from "./designs";
 import { dropRep, intensityForRPE, maxRepsAt, rpeAt, rpeCeiling } from "./effort";
+import { priceSession, sessionValue, setCredit } from "./rt";
 
 const a = analyze(EXAMPLE_PROBE);
 const ctx = contextFor(a, "bench", EXAMPLE_PROBE.mvt);
@@ -301,5 +302,47 @@ describe("how a session feels, and hand edits", () => {
 
   it("gives every design a shape", () => {
     for (const d of DESIGNS) expect(["constant", "rising", "falling", "arc", "clustered", "interleaved"], d.key).toContain(d.shape);
+  });
+});
+
+describe("effective sets, as SA prices them", () => {
+  it("prices a hard set at about one at any load, and far-from-failure light work at about zero", () => {
+    for (const pct of [55, 65, 75, 85]) {
+      const hard = setCredit(Math.max(5, Math.floor(maxRepsAt(pct) - 2)), pct, 8, ctx.lstar);
+      expect(hard.credit, `${pct}%`).toBeCloseTo(1, 6);
+    }
+    expect(setCredit(5, 50, 4, ctx.lstar).credit).toBeLessThan(0.1);
+  });
+
+  it("caps short sets at reps over five, and a single at 0.2", () => {
+    expect(setCredit(1, 90, 8, ctx.lstar).credit).toBeCloseTo(0.2, 6);
+    expect(setCredit(2, 85, 6.4, ctx.lstar)).toMatchObject({ capped: true, credit: 0.4, route: "load" });
+  });
+
+  it("opens the load route only with an L*", () => {
+    const withL = setCredit(3, 85, 6, ctx.lstar);
+    const without = setCredit(3, 85, 6, null);
+    expect(withL.route).toBe("load");
+    expect(without.credit).toBeLessThan(withL.credit);
+    expect(without.stimuli.every((r) => r.rRoute === "fatigue")).toBe(true);
+  });
+
+  it("bends the session after the first full set", () => {
+    expect(sessionValue(0.5)).toBe(0.5);
+    expect(sessionValue(1)).toBe(1);
+    expect(sessionValue(2)).toBeCloseTo(1 + 4 * Math.log1p(0.25), 9);
+    expect(sessionValue(6) - sessionValue(5)).toBeLessThan(sessionValue(2) - sessionValue(1));
+  });
+
+  it("prices a designed session, mini-set by mini-set, and leaves timed work out", () => {
+    const k = card("pureCluster");
+    const p = priceSession(k.sets.map((s) => ({ n: s.n, group: s.group, pct: s.pct, rpe: s.rpe, parts: s.reps.kind === "cluster" ? s.reps.parts : null })), ctx.lstar);
+    expect(p.sets).toHaveLength(12);
+    expect(p.sets.every((s) => s.credit === 0.2)).toBe(true);
+    expect(p.raw).toBeCloseTo(2.4, 9);
+    expect(p.credited).toBeCloseTo(sessionValue(2.4), 9);
+    const d = card("densitySet", {}, { ...ctx, lift: "deadlift" });
+    const q = priceSession(d.sets.map((s) => ({ n: s.n, group: s.group, pct: s.pct, rpe: s.rpe, parts: null })), ctx.lstar);
+    expect(q).toMatchObject({ partial: true, raw: 0, credited: 0 });
   });
 });

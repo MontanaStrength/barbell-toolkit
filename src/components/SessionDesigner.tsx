@@ -23,6 +23,9 @@ import {
 } from "../engine/sessions/designs";
 import { halfPoint } from "../engine/sessions/effort";
 import { fmt, ms, suggestBarLb, wt, type Unit } from "../format";
+import { Link } from "react-router-dom";
+import { useStore } from "../store";
+import { usePricing } from "./EffectiveSets";
 
 const SPOTTER_KEY = "barbell-toolkit/spotter/v1";
 
@@ -282,11 +285,14 @@ export default function SessionDesigner({
   const lift = a.probe.lift;
   const e1rm = a.probe.e1rm;
   const ctx = useMemo(() => contextFor(a, lift, a.probe.mvt), [a, lift]);
-  const [family, setFamily] = useState<Family>("strength");
-  const [key, setKey] = useState("topSetBackoff");
-  const [inputs, setInputs] = useState<Record<string, Partial<Values>>>({});
+  const { design: chosen, setDesign } = useStore();
+  const { key, inputs, edits } = chosen;
+  const [family, setFamily] = useState<Family>(() => designByKey(key)?.family ?? "strength");
+  const setKey = (k: string) => setDesign((d) => ({ ...d, key: k }));
+  const setInputs = (f: (all: Record<string, Partial<Values>>) => Record<string, Partial<Values>>) =>
+    setDesign((d) => ({ ...d, inputs: f(d.inputs) }));
+  const setEdits = (f: (all: Record<string, Edits>) => Record<string, Edits>) => setDesign((d) => ({ ...d, edits: f(d.edits) }));
   const [shape, setShape] = useState<ShapeKey | "all">("all");
-  const [edits, setEdits] = useState<Record<string, Edits>>({});
   const [history, setHistory] = useState<Array<{ key: string; inputs: Partial<Values>; edits: Edits }>>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [spotter, setSpotter] = useState(() => loadFlag(SPOTTER_KEY));
@@ -309,6 +315,7 @@ export default function SessionDesigner({
     [why, design, ctx, inputs, edits, key],
   );
   const speeds = ctx.fresh(75) != null;
+  const pricing = usePricing(card?.sets ?? [], "label", ctx.lstar);
 
   const bar = (pct: number) => wt(suggestBarLb(e1rm, pct, unit), unit);
   // Every change is one undo step: the knobs and set edits of this design as they were.
@@ -330,9 +337,7 @@ export default function SessionDesigner({
     const last = history[history.length - 1];
     if (!last) return;
     setHistory((h) => h.slice(0, -1));
-    setKey(last.key);
-    setInputs((all) => ({ ...all, [last.key]: last.inputs }));
-    setEdits((all) => ({ ...all, [last.key]: last.edits }));
+    setDesign((d) => ({ key: last.key, inputs: { ...d.inputs, [last.key]: last.inputs }, edits: { ...d.edits, [last.key]: last.edits } }));
     setEditing(null);
   };
   const canUndo = history.length > 0 && history[history.length - 1].key === key;
@@ -719,7 +724,19 @@ export default function SessionDesigner({
                 </table>
               </div>
 
-              <p className="totals">{totalsText(card, design.family)}</p>
+              <p className="totals">
+                {totalsText(card, design.family)}
+                {pricing.sets.length > 0 && (
+                  <>
+                    {" "}
+                    About {fmt(pricing.credited, 1)} effective set{pricing.credited >= 1.95 || pricing.credited < 1.05 ? "s" : ""}
+                    {pricing.partial ? " from the counted sets" : ""}.{" "}
+                    <Link to="/report/effective-sets" className="totals-link">
+                      How it's counted
+                    </Link>
+                  </>
+                )}
+              </p>
 
               {card.rules.length > 0 && (
                 <ul className="rules">

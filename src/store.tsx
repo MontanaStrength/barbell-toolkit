@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { analyze, type Analysis, type Probe } from "./engine/analyze";
 import { EXAMPLE_PROBE } from "./engine/example";
+import type { Edits } from "./engine/sessions/card";
+import type { Values } from "./engine/sessions/designs";
 import { defaultUnit, type Unit } from "./format";
 import {
   addProbe,
@@ -73,6 +75,15 @@ interface Store {
   analysis: Analysis;
   unit: Unit;
   setUnit: (u: Unit) => void;
+  /** The session on the designer: which design, its knobs and any set edits, per design key. */
+  design: DesignState;
+  setDesign: (next: DesignState | ((d: DesignState) => DesignState)) => void;
+}
+
+export interface DesignState {
+  key: string;
+  inputs: Record<string, Partial<Values>>;
+  edits: Record<string, Edits>;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -100,6 +111,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveBook(book), [book]);
 
   const [unit, setUnitState] = useState<Unit>(loadUnit);
+  const [design, setDesign] = useState<DesignState>({ key: "topSetBackoff", inputs: {}, edits: {} });
   const setUnit = useCallback((u: Unit) => {
     setUnitState(u);
     try {
@@ -135,8 +147,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       analysis,
       unit,
       setUnit,
+      design,
+      setDesign,
     }),
-    [mine, setMine, hasMine, viewed, book.probes, current.id, selectProbe, newProbe, deleteProbe, source, active, analysis, unit, setUnit],
+    [mine, setMine, hasMine, viewed, book.probes, current.id, selectProbe, newProbe, deleteProbe, source, active, analysis, unit, setUnit, design],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -12,6 +12,7 @@ import {
 import QualCard from "../components/QualCard";
 import { KV } from "../components/Readings";
 import SessionDesigner from "../components/SessionDesigner";
+import EffectiveSetsSection from "../components/EffectiveSetsSection";
 import SourceBar from "../components/SourceBar";
 import { analyze, type Analysis } from "../engine/analyze";
 import { compareProbes, noiseBasis, sharedRange, type Change } from "../engine/compare";
@@ -29,6 +30,7 @@ const SECTIONS = [
   { id: "decay", nav: "Within-set decay", title: "Within-set decay" },
   { id: "reliability", nav: "Reliability", title: "Reliability" },
   { id: "sessions", nav: "Sessions", title: "Sessions" },
+  { id: "effective-sets", nav: "Effective sets", title: "Effective sets" },
   { id: "compare", nav: "Compare", title: "Compare probes" },
 ] as const;
 
@@ -75,6 +77,7 @@ export default function Report() {
           {section === "decay" && <Decay a={a} unit={unit} />}
           {section === "reliability" && <Reliability a={a} unit={unit} />}
           {section === "sessions" && <Sessions a={a} unit={unit} />}
+          {section === "effective-sets" && <EffectiveSetsSection a={a} unit={unit} />}
           {section === "compare" && <Compare unit={unit} />}
           <nav className="pager" aria-label="Previous and next section">
             {prev ? (

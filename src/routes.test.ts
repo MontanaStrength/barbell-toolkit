@@ -7,7 +7,7 @@ describe("the worker's routes", () => {
   const paths = [...sitemap.matchAll(/<loc>https:\/\/barbelltoolkit\.com([^<]*)<\/loc>/g)].map((m) => m[1]);
 
   it("answer every page in the sitemap, with or without a trailing slash", () => {
-    expect(paths.length).toBe(12);
+    expect(paths.length).toBe(13);
     for (const p of paths) {
       expect(isAppRoute(p), p).toBe(true);
       if (p !== "/") expect(isAppRoute(`${p}/`), `${p}/`).toBe(true);
