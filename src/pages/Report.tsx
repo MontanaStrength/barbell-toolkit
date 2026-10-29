@@ -13,7 +13,8 @@ import { KV } from "../components/Readings";
 import SessionDesigner from "../components/SessionDesigner";
 import EffectiveSetsSection from "../components/EffectiveSetsSection";
 import SourceBar from "../components/SourceBar";
-import { analyze, type Analysis } from "../engine/analyze";
+import { analyze, velocityNoise, type Analysis } from "../engine/analyze";
+import { repsToFailure } from "../engine/metrics";
 import { compareProbes, noiseBasis, sharedRange, type Change } from "../engine/compare";
 import { LIFTS, N_TO_LBF, STOP_FRACTION } from "../engine/constants";
 import { fmt, force, fromUnit, ms, pct, plateStep, signed, suggestBarLb, toUnit, usePageTitle, wt, wtRange, type Unit } from "../format";
@@ -228,7 +229,7 @@ function ForceLoad({ a }: { a: Analysis }) {
         )}
         <p>
           Your line {a.fl.m != null && a.fl.m > -0.0114 ? "falls more slowly than" : "falls faster than"} the population
-          line: you {a.fl.m != null && a.fl.m > -0.0114 ? "keep more" : "lose more"} force reserve as load rises than
+          line: you lose force reserve {a.fl.m != null && a.fl.m > -0.0114 ? "more slowly" : "faster"} as load rises than
           the model's average lifter.
         </p>
       </Says>
@@ -255,14 +256,15 @@ function LStar({ a, unit }: { a: Analysis; unit: Unit }) {
       <EIChart a={a} />
       <Says>
         <p>
-          <strong>Effective Intensity</strong> is peak force over e1RM. Where it crosses the{" "}
+          <strong>Effective Intensity</strong> is peak force over e1RM. Where a fresh max-intent rep's EI crosses the{" "}
           <strong>{a.probe.recruitLine}% line</strong> is <strong>L*</strong>: above it, producing that force off a
           sub-max bar takes high-threshold motor units. Inferred from force, not counted from fibers.
         </p>
         <p>
           Here <strong>L* = {fmt(a.lstar, 1)}%</strong>
-          {a.lstarLb != null ? <> ({wt(a.lstarLb, unit)})</> : null}. Below it, a rep reaches the line only if fast or
-          taken deep. Above it, the load gets there by itself.
+          {a.lstarLb != null ? <> ({wt(a.lstarLb, unit)})</> : null}. Above it, a fresh rep reaches the line; from{" "}
+          {a.probe.recruitLine}% of max, the bar's weight alone does. Below it, no fresh rep gets there: recruitment
+          comes through fatigue, in the last reps of a hard set, and EI doesn't show it.
         </p>
       </Says>
       <KV
@@ -308,6 +310,7 @@ function LStar({ a, unit }: { a: Analysis; unit: Unit }) {
 
 function Decay({ a, unit }: { a: Analysis; unit: Unit }) {
   const [id, setId] = useState<string | null>(a.decayDefault);
+  const noise = useMemo(() => velocityNoise(a.probe.reps), [a.probe.reps]);
   const set = a.decaySets.find((s) => s.id === (id ?? a.decayDefault)) ?? null;
   if (!set) {
     return (
@@ -342,10 +345,13 @@ function Decay({ a, unit }: { a: Analysis; unit: Unit }) {
           <p>
             Across all-out sets ({a.decoupling.n} reps), surplus loss tracks mean-velocity loss at r ={" "}
             {fmt(a.decoupling.corrMean, 2)} and peak-velocity loss at r = {fmt(a.decoupling.corrPeak, 2)}.
-            {a.decoupling.corrPeak != null && a.decoupling.corrPeak > a.decoupling.corrMean
-              ? " Peak velocity shares an instant, and noise, with peak force."
+            {noise
+              ? ` Across repeated singles, ${noise.peak < noise.mean ? "peak" : "mean"} velocity was the steadier reading: ${fmt(Math.min(noise.peak, noise.mean) * 100, 1)}% rep to rep against ${fmt(Math.max(noise.peak, noise.mean) * 100, 1)}%.`
               : ""}{" "}
-            Stops use mean velocity, the steadier reading.
+            Stops use mean velocity because MVT and the velocity-loss literature are written in it
+            {noise && noise.peak < noise.mean && a.decoupling.corrPeak != null && a.decoupling.corrMean != null && a.decoupling.corrPeak > a.decoupling.corrMean
+              ? "; on this probe, a peak-velocity stop is worth testing against your own sets."
+              : "."}
           </p>
         )}
       </Says>
@@ -413,6 +419,12 @@ function Reliability({ a, unit }: { a: Analysis; unit: Unit }) {
 }
 
 function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
+  // The lifter's all-out sets, longest per load, against the table the bands use.
+  const amraps = useMemo(() => {
+    const byLoad = new Map<number, number>();
+    for (const s of a.decaySets) byLoad.set(Math.round(s.load), Math.max(byLoad.get(Math.round(s.load)) ?? 0, s.reps.length));
+    return [...byLoad].sort((x, y) => x[0] - y[0]).map(([load, reps]) => ({ load, reps, table: repsToFailure(load) }));
+  }, [a.decaySets]);
   return (
     <>
       <SessionDesigner a={a} unit={unit} />
@@ -439,6 +451,13 @@ function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
             <BandTable bands={a.bands} unit={unit} />
             <h3>Hypertrophy</h3>
             <BandTable bands={a.hypBands} unit={unit} />
+            {amraps.length > 0 && (
+              <p className="small muted">
+                The rep ranges come from a population reps-to-failure table. Your own all-out sets ran{" "}
+                {amraps.map((x, i) => `${x.reps} at ${fmt(x.load, 0)}%${i < amraps.length - 1 ? ", " : ""}`)}, against the
+                table's {amraps.map((x, i) => `${Math.round(x.table)}${i < amraps.length - 1 ? ", " : ""}`)}.
+              </p>
+            )}
           </>
         )}
       </section>

@@ -26,12 +26,12 @@ export default function RepReadout() {
 
   let verdict = "Enter a bar weight, a peak force and an e1RM.";
   if (r && r.ei != null && r.loadPct != null) {
-    if (r.loadPct >= 85) {
+    if (r.loadPct >= line) {
       verdict = `At ${fmt(r.loadPct, 0)}% of max, the load clears the ${line}% line by itself.`;
     } else if (r.ei >= line) {
       verdict = `EI ${fmt(r.ei, 1)}% off a ${fmt(r.loadPct, 0)}% bar: past the ${line}% line. Intent recruited what the load alone wouldn't.`;
     } else {
-      verdict = `EI ${fmt(r.ei, 1)}%, ${fmt(line - r.ei, 1)} points under the ${line}% line. At this load, a rep gets there only if faster or taken closer to failure.`;
+      verdict = `EI ${fmt(r.ei, 1)}%, ${fmt(line - r.ei, 1)} points under the ${line}% line. More intent closes part of that gap; below L*, the rest comes only through fatigue, late in a hard set.`;
     }
   }
 

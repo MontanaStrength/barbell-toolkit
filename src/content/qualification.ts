@@ -15,7 +15,7 @@ export const QUAL: Record<string, Qualification> = {
     breaksWhen: [
       "The e1RM is stale. EI scales with it one for one.",
       "The rep wasn't max intent. A lazy rep reads as low force.",
-      "The bar is above about 85% of max. EI clears the line on load alone.",
+      "The bar is at or above the line's own percentage. EI clears it on bar weight alone.",
     ],
   },
   "force-load": {
@@ -31,7 +31,7 @@ export const QUAL: Record<string, Qualification> = {
   },
   "l-star": {
     useFor: [
-      "Dividing the load axis: below L*, light work counts only if fast or taken deep; above it, the load recruits.",
+      "Dividing the load axis: above L*, the load recruits on a fresh rep; below it, only the last reps of a hard set do.",
       "The floor of a strength block, in pounds.",
     ],
     breaksWhen: [
@@ -42,7 +42,7 @@ export const QUAL: Record<string, Qualification> = {
   },
   decay: {
     useFor: [
-      "Which velocity to stop a set on: the one that tracks force loss.",
+      "Which velocity tracks force loss, and which is steadier rep to rep.",
       "How many reps hold near fresh force before drive fades.",
     ],
     breaksWhen: [

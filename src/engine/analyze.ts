@@ -286,3 +286,34 @@ export function defaultProbe(lift: LiftKey = "bench"): Probe {
   const spec = LIFTS[lift];
   return { lift, e1rm: 0, mvt: spec.mvt, recruitLine: spec.recruitLine, reps: [] };
 }
+
+/**
+ * Rep-to-rep noise of each velocity reading, as the coefficient of variation
+ * across repeated ladder singles at one load in one round, averaged over the
+ * loads that have two or more. Which reading is steadier is a fact about the
+ * lifter and sensor, not a convention.
+ */
+export function velocityNoise(reps: Rep[]): { mean: number; peak: number; loads: number } | null {
+  const groups = new Map<string, Rep[]>();
+  for (const r of reps) {
+    if (r.phase !== "ladder" || r.meanV == null || r.peakV == null) continue;
+    const k = `${r.lb}|${r.round}`;
+    groups.set(k, [...(groups.get(k) ?? []), r]);
+  }
+  const cv = (xs: number[]) => {
+    const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1));
+    return m > 0 ? sd / m : 0;
+  };
+  const means: number[] = [];
+  const peaks: number[] = [];
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    means.push(cv(g.map((r) => r.meanV as number)));
+    peaks.push(cv(g.map((r) => r.peakV as number)));
+  }
+  if (!means.length) return null;
+  const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  return { mean: avg(means), peak: avg(peaks), loads: means.length };
+}
+

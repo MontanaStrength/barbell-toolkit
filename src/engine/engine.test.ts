@@ -146,3 +146,15 @@ describe("toolkit behavior", () => {
     expect(r.reps[0].lb).toBe(210);
   });
 });
+
+describe("which velocity is steadier", () => {
+  it("measures rep-to-rep noise of each reading across repeated singles", async () => {
+    const { velocityNoise } = await import("./analyze");
+    const { EXAMPLE_PROBE } = await import("./example");
+    const n = velocityNoise(EXAMPLE_PROBE.reps)!;
+    expect(n.loads).toBe(5);
+    // On the example probe peak velocity is the steadier reading, by a wide margin.
+    expect(n.peak).toBeLessThan(n.mean / 2);
+    expect(velocityNoise([])).toBeNull();
+  });
+});

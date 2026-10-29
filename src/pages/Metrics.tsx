@@ -25,13 +25,13 @@ const METRICS = [
     name: "Effective Intensity (EI)",
     formula: "Peak force ÷ e1RM  =  load % × Multiple",
     unit: "% of e1RM",
-    meaning: "How much force a rep drives relative to your max. A recruitment proxy: a fast light rep and a slow heavy one can reach the same EI.",
+    meaning: "How much force a rep drives relative to your max. A recruitment proxy on the load route: intent raises it, but a fast light rep still drives less force than a heavy one.",
   },
   {
     name: "L*, fast-twitch threshold",
     formula: "Load % where EI from your Force–Load line crosses the recruitment line",
     unit: "% of e1RM",
-    meaning: "Below L*, reps need speed or proximity to failure to reach the line. Above it, the load gets there by itself.",
+    meaning: "Above L*, a fresh max-intent rep reaches the line. Below it, no fresh rep does; recruitment there comes through fatigue, late in a hard set, which EI doesn't measure.",
   },
   {
     name: "Velocity stop",
