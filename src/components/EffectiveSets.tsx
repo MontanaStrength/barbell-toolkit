@@ -2,7 +2,7 @@
 // its reference, and the running tally through diminishing returns.
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { CardSet } from "../engine/sessions/card";
-import { priceSession, repStimulus, RT, sessionValue, type PricedSet, type PriceInput, type SessionPricing } from "../engine/sessions/rt";
+import { priceSession, repShare, RT, sessionValue, SHARE_FULL, type PricedSet, type PriceInput, type SessionPricing } from "../engine/sessions/rt";
 import { halfPoint } from "../engine/sessions/effort";
 import { fmt } from "../format";
 
@@ -73,7 +73,7 @@ export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: numb
       const pct = LO + ((i + 0.5) / cols) * (HI - LO);
       for (let j = 0; j < rows; j++) {
         const rir = ((j + 0.5) / rows) * topRir;
-        out.push({ x: m.l + i * cw, y: H - m.b - (j + 1) * rh, v: repStimulus(pct, rir, lstar).stimulus });
+        out.push({ x: m.l + i * cw, y: H - m.b - (j + 1) * rh, v: Math.min(1, repShare(pct, rir, lstar) / SHARE_FULL) });
       }
     }
     return out;
@@ -103,7 +103,7 @@ export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: numb
         width={W}
         height={H}
         role="img"
-        aria-label="Stimulus per rep by load and reps in reserve, with this session's sets drawn on it"
+        aria-label="Each rep's share of a hard set by load and reps in reserve, with this session's sets drawn on it"
       >
         {cells.map((c, i) => (
           <rect key={i} x={c.x} y={c.y} width={cw + 0.5} height={rh + 0.5} className="rt-cell" style={{ fillOpacity: 0.04 + 0.7 * c.v }} />
@@ -147,7 +147,13 @@ export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: numb
               {s.stimuli.map((r, j) => (
                 <g key={j}>
                   <circle cx={cx} cy={y(r.rir)} r={6.5} className="rt-rep-halo" />
-                  <circle cx={cx} cy={y(r.rir)} r={5} className="rt-rep" style={{ fillOpacity: 0.12 + 0.88 * r.stimulus }} />
+                  <circle
+                    cx={cx}
+                    cy={y(r.rir)}
+                    r={5}
+                    className="rt-rep"
+                    style={{ fillOpacity: 0.12 + 0.88 * Math.min(1, (s.referenceRaw > 0 ? r.stimulus / s.referenceRaw : 0) / SHARE_FULL) }}
+                  />
                 </g>
               ))}
               <text x={cx} y={top - 21} className="rt-axis rt-mid rt-halo">
@@ -406,7 +412,7 @@ export function Tally({ pricing }: { pricing: SessionPricing }) {
 
 /** The parameters in a line, for the page's captions. */
 export const RT_WORDS = {
-  routes: `R is 1 above L* (blended over ±${RT.LSTAR_BAND} points) or at RIR 2 and under; T climbs from ${RT.T_AT_LSTAR} at L* to 1 at 100%, or is 1 at RIR 1 and under. The reference is at the same load, so above L* the tension term cancels: the darker right side raises stimulus per rep, not a set's credit.`,
+  routes: `Stimulus per rep is R × T: R is 1 above L* (blended over ±${RT.LSTAR_BAND} points) or at RIR 2 and under; T climbs from ${RT.T_AT_LSTAR} at L* to 1 at 100%, or is 1 at RIR 1 and under. The field draws each rep's stimulus over a hard set's at the same load, so the tension term cancels above L* and what is left is the hard set's rep count. Between whole reps the field is smoothed; the ledger counts whole reps.`,
   cap: `A set earns at most ${RT.STIM_FULL_REPS === 5 ? "reps ÷ 5" : `reps ÷ ${RT.STIM_FULL_REPS}`}, so a single is 0.2 at most. The reference counts whole reps, so the credit steps where a hard set loses one.`,
   session: `The first full set counts in full; after that, 1 + ${RT.SESSION_LOG_SCALE} · ln(1 + (dose − 1) ÷ ${RT.SESSION_LOG_SCALE}).`,
 };

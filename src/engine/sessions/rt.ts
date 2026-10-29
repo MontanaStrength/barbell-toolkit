@@ -82,6 +82,25 @@ export function setStimuli(reps: number, pct: number, terminalRir: number, lstar
   return Array.from({ length: reps }, (_, i) => repStimulus(pct, terminalRir + (reps - 1 - i), lstar));
 }
 
+/** The most a rep can be worth: a fifth of a set, the cap's share. */
+export const SHARE_FULL = 1 / RT.STIM_FULL_REPS;
+
+/**
+ * A rep's share of a hard set at its load: its stimulus over what the same
+ * load taken to RIR 2 sums to. This is what the field draws, so a column's
+ * dots add up to its credit before the cap. The reference here runs to a
+ * fractional rep, so the picture is smooth across loads; the ledger's numbers
+ * count whole reps (setCredit), and step where a hard set loses one.
+ */
+export function repShare(pct: number, rir: number, lstar: number | null): number {
+  const n = Math.min(RT.REP_CAP, Math.max(1, maxRepsAt(pct) - 2));
+  const whole = Math.floor(n);
+  const frac = n - whole;
+  let ref = setStimuli(whole, pct, 2, lstar).reduce((s, x) => s + x.stimulus, 0);
+  if (frac > 0) ref += frac * repStimulus(pct, 2 + whole, lstar).stimulus;
+  return ref > 0 ? repStimulus(pct, rir, lstar).stimulus / ref : 0;
+}
+
 export interface SetCredit {
   reps: number;
   pct: number;

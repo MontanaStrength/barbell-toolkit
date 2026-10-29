@@ -130,9 +130,11 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
           1. What each rep earns
         </h2>
         <p>
-          Darker is more stimulus. A set is a column: it starts high in reserve and descends toward failure, one dot a
-          rep, with its credit above it. Right of L*, the load recruits and every rep counts. Left of it, only the reps
-          near the line do.
+          Darkness is the share of a full set a rep earns, from nothing to a fifth, the most a rep can be worth. A set
+          is a column: it starts high in reserve and descends toward failure, one dot a rep, and its dots add up to the
+          credit above it, before the cap. Right of L*, every rep earns a share, and a bigger one the heavier the bar,
+          because a hard set has fewer reps there: one share in as many as a hard set has at that load, a fifth from
+          about 80% up. Left of L*, only the reps near the line earn anything.
           {ctx.lstar == null ? " This probe has no L*, so only the fatigue route prices." : ""}
         </p>
         <Field pricing={pricing} lstar={ctx.lstar} />
