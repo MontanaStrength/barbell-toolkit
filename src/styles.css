@@ -1602,6 +1602,34 @@ tr.edit-row .knob .btn {
   font: 600 12px var(--font-body);
 }
 
+.rt-regime {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.rt-col-credit {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.rt-to-full {
+  display: block;
+  margin-top: 2px;
+}
+
+.rt-rules h2 {
+  margin-bottom: 4px;
+}
+
+.rt-rules .rules {
+  gap: 8px;
+}
+
+.rt-basis-note {
+  max-width: 34ch;
+  margin: 0;
+}
+
 .rt-floor {
   stroke: var(--rule-strong);
   stroke-width: 1;

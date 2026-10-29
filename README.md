@@ -20,6 +20,11 @@ headers import too).
 2. The recruitment line is set per lift (`LIFTS` in `constants.ts`).
 3. Loads are plotted as the bar actually lifted ÷ the current e1RM, not the
    planned percentage.
+4. Effective sets (`sessions/rt.ts`) are a port of Strength Architect's R × T
+   pricing of hypertrophy stimulus, with the lifter's own L*. The route label
+   and the "reps to a full set" counterfactual are this site's, for the
+   explanation, and change no number. `sessions.test.ts` pins every design's
+   default count so the port can't drift.
 
 `engine.test.ts` pins a hand-validated reference report and the v4
 probe-log spreadsheet's numbers (Force–Load fit, L*, decoupling), so a change

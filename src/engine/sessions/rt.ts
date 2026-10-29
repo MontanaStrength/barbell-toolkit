@@ -5,7 +5,8 @@
 // session-adaptation-v1). The equations and seeds are SA's. One change: SA
 // reads L* off a population curve per lift class; here it is the lifter's
 // own, from the probe. Without an L*, only the fatigue route prices, as SA
-// does for a lift with no curve.
+// does for a lift with no curve. The route label and repsToFull are for the
+// page's explanation and change no number.
 //
 // Per rep, stimulus = R × T. R asks whether the high-threshold units are in
 // play; T asks how hard they are firing. Each takes the stronger of two
@@ -97,9 +98,20 @@ export interface SetCredit {
   cap: number;
   credit: number;
   capped: boolean;
-  /** The route most of the set's R came through. */
-  route: "load" | "fatigue" | "none";
+  /** The share of the set's stimulus carried by reps whose R came through the load route. */
+  loadShare: number;
+  /** Inside the L* ± 5 blend, where the load route recruits only in part. */
+  nearLstar: boolean;
+  /**
+   * The route the credit came through. Outside L* ± 5 a set's reps all take one
+   * route; inside the band the two blend, and when neither carries three
+   * quarters of the stimulus the set is "both".
+   */
+  route: "load" | "fatigue" | "both" | "none";
 }
+
+/** Below this share of the stimulus, the minority route isn't named. */
+const ROUTE_CLEAR = 0.75;
 
 /** SA's effectiveSetCredit, keeping every intermediate. */
 export function setCredit(reps: number, pctIn: number, rpe: number, lstar: number | null): SetCredit {
@@ -113,8 +125,11 @@ export function setCredit(reps: number, pctIn: number, rpe: number, lstar: numbe
   const ratio = referenceRaw > 0 ? raw / referenceRaw : 0;
   const cap = Math.min(1, reps / RT.STIM_FULL_REPS);
   const credit = Math.min(cap, ratio);
-  const byLoad = stimuli.filter((x) => x.rRoute === "load" && x.r > 0).length;
-  const byFatigue = stimuli.filter((x) => x.rRoute === "fatigue" && x.r > 0).length;
+  // Weighed by stimulus, not counted by rep: inside the L* band the many
+  // far-from-failure reps carry almost nothing, and the few near the floor
+  // carry the credit.
+  const byLoad = stimuli.filter((x) => x.rRoute === "load").reduce((s, x) => s + x.stimulus, 0);
+  const loadShare = raw > 1e-9 ? byLoad / raw : 0;
   return {
     reps,
     pct,
@@ -128,8 +143,26 @@ export function setCredit(reps: number, pctIn: number, rpe: number, lstar: numbe
     cap,
     credit,
     capped: ratio > cap,
-    route: raw <= 1e-9 ? "none" : byLoad >= byFatigue ? "load" : "fatigue",
+    loadShare,
+    nearLstar: lstar != null && Math.abs(pct - lstar) < RT.LSTAR_BAND,
+    route: raw <= 1e-9 ? "none" : loadShare >= ROUTE_CLEAR ? "load" : loadShare <= 1 - ROUTE_CLEAR ? "fatigue" : "both",
   };
+}
+
+/** A credit this close to 1 reads as 1.00, so the set is full. */
+const FULL = 1 - 0.005;
+
+/**
+ * Reps more, each ending a rep closer to failure, that would make this a full
+ * set (credit 1): 0 when it already is, null when no set at this load and
+ * effort can be, because it would have to pass failure first.
+ */
+export function repsToFull(reps: number, pct: number, rpe: number, lstar: number | null): number | null {
+  const rir = Math.min(9, Math.max(0, 10 - rpe));
+  for (let k = 0; k <= Math.floor(rir); k++) {
+    if (setCredit(reps + k, pct, rpe + k, lstar).credit >= FULL) return k;
+  }
+  return null;
 }
 
 /** SA's hypertrophy session value: a shifted log after the first full set. */
@@ -150,6 +183,8 @@ export interface PricedSet extends SetCredit {
   creditedAfter: number;
   /** What this set added to the session after diminishing returns. */
   marginal: number;
+  /** Reps more, ending that much closer to failure, for a full set; 0 when it is one; null when none at this load can be. */
+  toFull: number | null;
 }
 
 export interface SessionPricing {
@@ -194,6 +229,7 @@ export function priceSession(inputs: PriceInput[], lstar: number | null): Sessio
         creditedBefore: sessionValue(rawBefore),
         creditedAfter: sessionValue(raw),
         marginal: sessionValue(raw) - sessionValue(rawBefore),
+        toFull: repsToFull(reps, s.pct, s.rpe, lstar),
       });
     });
   }

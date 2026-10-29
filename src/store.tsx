@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { analyze, type Analysis, type Probe } from "./engine/analyze";
 import { EXAMPLE_PROBE } from "./engine/example";
 import type { Edits } from "./engine/sessions/card";
-import type { Values } from "./engine/sessions/designs";
+import { designByKey, type Values } from "./engine/sessions/designs";
 import { defaultUnit, type Unit } from "./format";
 import {
   addProbe,
@@ -26,6 +26,31 @@ function loadUnit(): Unit {
     // Storage blocked: fall back to the locale default.
   }
   return defaultUnit();
+}
+
+const DESIGN_KEY = "barbell-toolkit/design/v1";
+const DEFAULT_DESIGN: DesignState = { key: "topSetBackoff", inputs: {}, edits: {} };
+
+/** The designed session, so a reload or a shared report link prices the session the lifter built. */
+function loadDesign(): DesignState {
+  try {
+    const raw = localStorage.getItem(DESIGN_KEY);
+    if (!raw) return DEFAULT_DESIGN;
+    const d = JSON.parse(raw) as Partial<DesignState>;
+    if (typeof d.key !== "string" || !designByKey(d.key)) return DEFAULT_DESIGN;
+    const record = (x: unknown) => (x && typeof x === "object" && !Array.isArray(x) ? (x as Record<string, never>) : {});
+    return { key: d.key, inputs: record(d.inputs), edits: record(d.edits) };
+  } catch {
+    return DEFAULT_DESIGN;
+  }
+}
+
+function saveDesign(d: DesignState) {
+  try {
+    localStorage.setItem(DESIGN_KEY, JSON.stringify(d));
+  } catch {
+    // Storage blocked: the design lives for this visit only.
+  }
 }
 
 function loadBook(): ProbeBook {
@@ -111,7 +136,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => saveBook(book), [book]);
 
   const [unit, setUnitState] = useState<Unit>(loadUnit);
-  const [design, setDesign] = useState<DesignState>({ key: "topSetBackoff", inputs: {}, edits: {} });
+  const [design, setDesign] = useState<DesignState>(loadDesign);
+  useEffect(() => saveDesign(design), [design]);
   const setUnit = useCallback((u: Unit) => {
     setUnitState(u);
     try {
