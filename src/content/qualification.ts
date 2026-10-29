@@ -89,8 +89,10 @@ export const QUAL: Record<string, Qualification> = {
     ],
     breaksWhen: [
       "The credit is read as muscle gained. It is SA's pricing of stimulus, calibrated by coaching judgement, not measured growth.",
+      "A strength session is read as a poor one. It prices growth stimulus; a session of hard singles is meant to score low here and high on neural dose.",
       "The seeds are taken as settled. The L* band, decay rates, the 5-rep cap and the session curve are coaching assumptions marked for calibration.",
-      "Sets are priced at their written RPE. A set that runs harder or easier than written earns differently; the felt basis is one estimate of that.",
+      "Sets are priced at their written reps and RPE. At the stop you may get fewer reps, and a shorter set earns less; a set that runs harder than written earns more, which the felt basis estimates.",
+      "The reference counts whole reps, so a set's credit steps where a hard set at its load loses a rep, around 73, 76 and 79% on the population curve.",
       "L* is the lifter's own here. SA prices with a population L* per lift class, so SA's figure for the same session can differ.",
     ],
   },

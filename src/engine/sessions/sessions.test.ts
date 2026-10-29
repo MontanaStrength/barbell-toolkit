@@ -6,7 +6,8 @@ import { EXAMPLE_PROBE } from "../example";
 import { buildCard, contextFor } from "./card";
 import { designByKey, DESIGNS, resolve, type Design, type DesignCtx, type PlanSet, type Values } from "./designs";
 import { dropRep, intensityForRPE, maxRepsAt, rpeAt, rpeCeiling } from "./effort";
-import { priceSession, sessionValue, setCredit } from "./rt";
+import { priceSession, repShare, repsToFull, RT, sessionValue, setCredit, SHARE_FULL } from "./rt";
+import { effectiveSetsPhrase, ledgerRows, priceInputs } from "../../components/EffectiveSets";
 
 const a = analyze(EXAMPLE_PROBE);
 const ctx = contextFor(a, "bench", EXAMPLE_PROBE.mvt);
@@ -344,5 +345,140 @@ describe("effective sets, as SA prices them", () => {
     const d = card("densitySet", {}, { ...ctx, lift: "deadlift" });
     const q = priceSession(d.sets.map((s) => ({ n: s.n, group: s.group, pct: s.pct, rpe: s.rpe, parts: null })), ctx.lstar);
     expect(q).toMatchObject({ partial: true, raw: 0, credited: 0 });
+  });
+});
+
+describe("effective sets, as the page explains them", () => {
+  // Every design's default session, raw and credited, so the port can't drift.
+  const pinned: Record<string, [number, number]> = {
+    strengthPrescriptionTable: [3.0, 2.62],
+    sawtooth: [2.4, 2.2],
+    topSetBackoff: [3.6, 3.0],
+    pureCluster: [2.4, 2.2],
+    doublePyramid: [3.0, 2.62],
+    singles: [1.0, 1.0],
+    rampingSingles: [2.24, 2.08],
+    threadedSingles: [4.33, 3.42],
+    routeSwap: [3.6, 3.0],
+    recruitmentCrossover: [3.13, 2.7],
+    boundedDescent: [2.46, 2.25],
+    tapered: [3.96, 3.21],
+    ascendingPyramid: [3.3, 2.82],
+    reversePyramid: [2.85, 2.52],
+    volumePyramid: [4.1, 3.29],
+    straightSets: [3.52, 2.95],
+    dropSet: [5.64, 4.08],
+    mechanicalTension: [3.74, 3.09],
+    eccentricAccentuated: [2.49, 2.27],
+    forceMetabolic: [4.31, 3.41],
+    hypertrophyCluster: [6.43, 4.43],
+    densitySet: [0.0, 0.0],
+    clockedSets: [4.99, 3.77],
+    restPauseHarvest: [4.9, 3.72],
+    shrinkingSets: [3.98, 3.23],
+    recoveryIslands: [2.99, 2.62],
+  };
+  const price = (key: string, c: DesignCtx = ctx) => {
+    const d = designByKey(key)!;
+    const k = buildCard(d, { ...c, lift: d.lifts?.[0] ?? c.lift });
+    return priceSession(priceInputs(k.sets, "label"), c.lstar);
+  };
+
+  it("prices every design's default session as it did on Oct 29, 2026", () => {
+    for (const d of DESIGNS) {
+      const p = price(d.key);
+      expect(p.raw, `${d.key} raw`).toBeCloseTo(pinned[d.key][0], 2);
+      expect(p.credited, `${d.key} credited`).toBeCloseTo(pinned[d.key][1], 2);
+    }
+  });
+
+  it("names the route the credit came through, not the one most reps took", () => {
+    // Outside L* ± 5 every rep takes one route, and it is the card's road. Inside,
+    // the label follows the share of stimulus each route carries.
+    const lifters: Array<[string, DesignCtx]> = [
+      ["example", ctx],
+      ["L* 55", { ...ctx, lstar: 55 }],
+      ["L* 75.2", { ...ctx, lstar: 75.2 }],
+    ];
+    const wrong: string[] = [];
+    for (const d of DESIGNS) {
+      const lift = d.lifts?.[0] ?? "bench";
+      for (const [who, base] of lifters) {
+        const c = { ...base, lift };
+        if (d.unavailable?.(c)) continue;
+        for (const v of everyConfig(d, c)) {
+          const k = buildCard(d, c, v);
+          const p = priceSession(priceInputs(k.sets, "label"), c.lstar);
+          for (const s of p.sets) {
+            const road = k.sets[s.n - 1].road;
+            const bad = (what: string) => wrong.push(`${d.key} ${who} ${JSON.stringify(v)} set ${s.n}: ${what}`);
+            if (s.route === "none") continue;
+            if (Math.abs(s.pct - c.lstar!) >= RT.LSTAR_BAND) {
+              if (s.route !== road) bad(`route ${s.route}, road ${road}`);
+              if (s.nearLstar) bad("near L* outside the band");
+            } else {
+              if (!s.nearLstar) bad("not near L* inside the band");
+              if (s.route === "load" && s.loadShare < 0.75) bad(`load with share ${s.loadShare.toFixed(2)}`);
+              if (s.route === "fatigue" && s.loadShare > 0.25) bad(`fatigue with share ${s.loadShare.toFixed(2)}`);
+              if (s.route === "both" && (s.loadShare < 0.25 || s.loadShare > 0.75)) bad(`both with share ${s.loadShare.toFixed(2)}`);
+            }
+          }
+        }
+      }
+    }
+    expect(wrong.slice(0, 10)).toEqual([]);
+    // The case that was mislabelled: twelve reps at 60% on a 63.6% L*, where the
+    // load route gives every rep R = 0.05 and the last reps carry the credit.
+    const first = price("ascendingPyramid").sets[0];
+    expect(first).toMatchObject({ reps: 12, pct: 60, nearLstar: true });
+    expect(first.route).not.toBe("load");
+  }, 60_000);
+
+  it("draws the field as each rep's share of a hard set, smooth across loads", () => {
+    // Above L* a rep is one share in as many as a hard set has at that load, and
+    // a fifth from about 80% on, the most a rep can be worth.
+    expect(repShare(70, 6, ctx.lstar)).toBeCloseTo(1 / (maxRepsAt(70) - 2), 1);
+    expect(repShare(80, 4, ctx.lstar)).toBeGreaterThanOrEqual(SHARE_FULL * 0.9);
+    expect(repShare(82, 4, ctx.lstar)).toBeGreaterThanOrEqual(SHARE_FULL);
+    expect(repShare(90, 2, ctx.lstar)).toBeGreaterThanOrEqual(SHARE_FULL);
+    // Below L* a rep far from failure is worth nearly nothing; at RIR 2 it is a fifth or more.
+    expect(repShare(55, 8, ctx.lstar)).toBeLessThan(0.02);
+    expect(repShare(55, 2, ctx.lstar)).toBeGreaterThan(SHARE_FULL);
+    // No step where the ledger's whole-rep reference loses a rep (73, 76, 79%);
+    // past 80% the field is saturated anyway.
+    for (let pct = 66; pct < 80; pct += 0.5) {
+      expect(Math.abs(repShare(pct + 0.5, 6, ctx.lstar) - repShare(pct, 6, ctx.lstar)), `${pct}%`).toBeLessThan(0.012);
+    }
+    // A column's exact shares add up to the set's ratio, so the dots sum to the credit before the cap.
+    const s = price("ascendingPyramid").sets[1];
+    expect(s.stimuli.reduce((t, r) => t + r.stimulus / s.referenceRaw, 0)).toBeCloseTo(s.ratio, 9);
+  });
+
+  it("says how many more reps would make a set full", () => {
+    expect(repsToFull(12, 60, 6.5, ctx.lstar)).toBe(2);
+    expect(repsToFull(6, 77, 7.5, ctx.lstar)).toBe(0);
+    // A hard set at RIR 2.5 prices at 0.997: full, as its 1.00 on the page says.
+    expect(repsToFull(8, 71, 7.5, ctx.lstar)).toBe(0);
+    expect(repsToFull(3, 85, 8, ctx.lstar)).toBe(2);
+    // A single can't be a full set at any effort: it would have to pass failure.
+    expect(repsToFull(1, 87, 7.5, ctx.lstar)).toBeNull();
+    expect(price("pureCluster").sets.every((s) => s.toFull === null)).toBe(true);
+  });
+
+  it("reads a cluster as one row and labels one set at a time", () => {
+    const rows = ledgerRows(price("pureCluster").sets);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ first: 1, last: 4, count: 12 });
+    expect(ledgerRows(price("topSetBackoff").sets).map((r) => [r.first, r.last, r.count])).toEqual([
+      [1, 1, 1],
+      [2, 4, 3],
+    ]);
+  });
+
+  it("writes the card's line with the plural the number asks for", () => {
+    expect(effectiveSetsPhrase(0.8)).toBe("About 0.8 effective sets");
+    expect(effectiveSetsPhrase(1.04)).toBe("About 1.0 effective set");
+    expect(effectiveSetsPhrase(1.5)).toBe("About 1.5 effective sets");
+    expect(effectiveSetsPhrase(2)).toBe("About 2.0 effective sets");
   });
 });

@@ -25,7 +25,7 @@ import { halfPoint } from "../engine/sessions/effort";
 import { fmt, ms, suggestBarLb, wt, type Unit } from "../format";
 import { Link } from "react-router-dom";
 import { useStore } from "../store";
-import { usePricing } from "./EffectiveSets";
+import { effectiveSetsPhrase, usePricing } from "./EffectiveSets";
 
 const SPOTTER_KEY = "barbell-toolkit/spotter/v1";
 
@@ -729,7 +729,7 @@ export default function SessionDesigner({
                 {pricing.sets.length > 0 && (
                   <>
                     {" "}
-                    About {fmt(pricing.credited, 1)} effective set{pricing.credited >= 1.95 || pricing.credited < 1.05 ? "s" : ""}
+                    {effectiveSetsPhrase(pricing.credited)}
                     {pricing.partial ? " from the counted sets" : ""}.{" "}
                     <Link to="/report/effective-sets" className="totals-link">
                       How it's counted

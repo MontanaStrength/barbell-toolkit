@@ -2,7 +2,7 @@
 // its reference, and the running tally through diminishing returns.
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { CardSet } from "../engine/sessions/card";
-import { priceSession, repStimulus, RT, type PricedSet, type PriceInput, type SessionPricing } from "../engine/sessions/rt";
+import { priceSession, repShare, RT, sessionValue, SHARE_FULL, type PricedSet, type PriceInput, type SessionPricing } from "../engine/sessions/rt";
 import { halfPoint } from "../engine/sessions/effort";
 import { fmt } from "../format";
 
@@ -20,6 +20,12 @@ export function priceInputs(sets: CardSet[], basis: Basis): PriceInput[] {
 
 export function usePricing(sets: CardSet[], basis: Basis, lstar: number | null): SessionPricing {
   return useMemo(() => priceSession(priceInputs(sets, basis), lstar), [sets, basis, lstar]);
+}
+
+/** The session card's line: singular only when it rounds to exactly one. */
+export function effectiveSetsPhrase(credited: number): string {
+  const n = fmt(credited, 1);
+  return `About ${n} effective set${n === "1.0" ? "" : "s"}`;
 }
 
 const f2 = (x: number) => fmt(x, 2);
@@ -48,11 +54,13 @@ const loadText = (pct: number) => `${fmt(pct, Number.isInteger(pct) ? 0 : 1)}%`;
 export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: number | null }) {
   const [ref, W] = useWidth();
   const narrow = W < 480;
-  const H = narrow ? 260 : 320;
+  const H = narrow ? 270 : 330;
   const m = { l: 40, r: 12, t: 14, b: 40 };
   const LO = 40;
   const HI = 100;
-  const topRir = Math.max(10, ...pricing.sets.map((s) => s.terminalRir + s.reps - 1 + 1));
+  // Room above the tallest column for its labels, and a top row for the regime words.
+  const tallest = Math.max(0, ...pricing.sets.map((s) => s.terminalRir + s.reps - 1));
+  const topRir = Math.max(10, Math.ceil(tallest) + (narrow ? 4 : 3));
   const x = (pct: number) => m.l + ((pct - LO) / (HI - LO)) * (W - m.l - m.r);
   const y = (rir: number) => H - m.b - (rir / topRir) * (H - m.t - m.b);
   const cols = narrow ? 40 : 60;
@@ -65,7 +73,7 @@ export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: numb
       const pct = LO + ((i + 0.5) / cols) * (HI - LO);
       for (let j = 0; j < rows; j++) {
         const rir = ((j + 0.5) / rows) * topRir;
-        out.push({ x: m.l + i * cw, y: H - m.b - (j + 1) * rh, v: repStimulus(pct, rir, lstar).stimulus });
+        out.push({ x: m.l + i * cw, y: H - m.b - (j + 1) * rh, v: Math.min(1, repShare(pct, rir, lstar) / SHARE_FULL) });
       }
     }
     return out;
@@ -83,63 +91,99 @@ export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: numb
     return [...seen.values()];
   }, [pricing.sets]);
 
+  const showLstar = lstar != null && lstar >= LO && lstar <= HI;
+  // The L* label sits at the foot of its line, on whichever side has room.
+  const lstarRight = showLstar && lstar! < 82;
+
   return (
     <div ref={ref} className="rt-frame">
-    <svg className="rt-field" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="Stimulus per rep by load and reps in reserve, with this session's sets drawn on it">
-      {cells.map((c, i) => (
-        <rect key={i} x={c.x} y={c.y} width={cw + 0.5} height={rh + 0.5} className="rt-cell" style={{ fillOpacity: 0.04 + 0.7 * c.v }} />
-      ))}
-      {lstar != null && lstar >= LO && lstar <= HI && (
-        <>
-          <line x1={x(lstar)} x2={x(lstar)} y1={m.t} y2={H - m.b} className="rt-lstar" />
-          <text x={x(lstar) + 5} y={m.t + 12} className="rt-lstar-label rt-halo">
-            L* {fmt(lstar, 1)}%
-          </text>
-        </>
-      )}
-      {/* RIR 2: the top of the near-failure zone */}
-      <line x1={m.l} x2={W - m.r} y1={y(2)} y2={y(2)} className="rt-floor" />
-      <text x={m.l + 4} y={y(2) - 4} className="rt-axis">
-        RIR 2, the near-failure floor
-      </text>
-      {columns.map(({ s, count }, i) => {
-        const cx = x(s.pct);
-        const top = y(s.terminalRir + s.reps - 1);
-        const bot = y(s.terminalRir);
-        return (
-          <g key={i}>
-            <line x1={cx} x2={cx} y1={top} y2={bot} className="rt-col-halo" />
-            <line x1={cx} x2={cx} y1={top} y2={bot} className="rt-col" />
-            {s.stimuli.map((r, j) => (
-              <g key={j}>
-                <circle cx={cx} cy={y(r.rir)} r={6.5} className="rt-rep-halo" />
-                <circle cx={cx} cy={y(r.rir)} r={5} className="rt-rep" style={{ fillOpacity: 0.12 + 0.88 * r.stimulus }} />
-              </g>
-            ))}
-            <text x={cx} y={top - 10} className="rt-axis rt-mid rt-halo">
-              {s.reps} rep{s.reps === 1 ? "" : "s"}
-              {count > 1 ? ` × ${count}` : ""}
+      <svg
+        className="rt-field"
+        viewBox={`0 0 ${W} ${H}`}
+        width={W}
+        height={H}
+        role="img"
+        aria-label="Each rep's share of a hard set by load and reps in reserve, with this session's sets drawn on it"
+      >
+        {cells.map((c, i) => (
+          <rect key={i} x={c.x} y={c.y} width={cw + 0.5} height={rh + 0.5} className="rt-cell" style={{ fillOpacity: 0.04 + 0.7 * c.v }} />
+        ))}
+        {/* RIR 2: where the near-failure zone begins */}
+        <line x1={m.l} x2={W - m.r} y1={y(2)} y2={y(2)} className="rt-floor" />
+        <text x={m.l + 4} y={y(2) + 12} className="rt-axis rt-halo">
+          {narrow ? "RIR 2" : "RIR 2, the near-failure line"}
+        </text>
+        {showLstar && (
+          <>
+            <line x1={x(lstar!)} x2={x(lstar!)} y1={m.t} y2={H - m.b} className="rt-lstar" />
+            <text
+              x={x(lstar!) + (lstarRight ? 5 : -5)}
+              y={H - m.b - 6}
+              className={lstarRight ? "rt-lstar-label rt-halo" : "rt-lstar-label rt-halo rt-right"}
+            >
+              L* {fmt(lstar!, 1)}%
             </text>
-          </g>
-        );
-      })}
-      {(narrow ? [40, 60, 80, 100] : [40, 50, 60, 70, 80, 90, 100]).map((p) => (
-        <text key={p} x={x(p)} y={H - m.b + 16} className="rt-axis rt-mid">
-          {p}%
+            {/* The two regimes, named on the field itself. */}
+            {x(lstar!) - m.l > (narrow ? 90 : 150) && (
+              <text x={m.l + 4} y={m.t + 12} className="rt-axis rt-halo rt-regime">
+                {narrow ? "only the last reps count" : "left of L*: only the reps near the line count"}
+              </text>
+            )}
+            {W - m.r - x(lstar!) > (narrow ? 90 : 150) && (
+              <text x={W - m.r - 4} y={m.t + 12} className="rt-axis rt-halo rt-right rt-regime">
+                {narrow ? "every rep counts" : "right of L*: the load recruits, every rep counts"}
+              </text>
+            )}
+          </>
+        )}
+        {columns.map(({ s, count }, i) => {
+          const cx = x(s.pct);
+          const top = y(s.terminalRir + s.reps - 1);
+          const bot = y(s.terminalRir);
+          return (
+            <g key={i}>
+              <line x1={cx} x2={cx} y1={top} y2={bot} className="rt-col-halo" />
+              <line x1={cx} x2={cx} y1={top} y2={bot} className="rt-col" />
+              {s.stimuli.map((r, j) => (
+                <g key={j}>
+                  <circle cx={cx} cy={y(r.rir)} r={6.5} className="rt-rep-halo" />
+                  <circle
+                    cx={cx}
+                    cy={y(r.rir)}
+                    r={5}
+                    className="rt-rep"
+                    style={{ fillOpacity: 0.12 + 0.88 * Math.min(1, (s.referenceRaw > 0 ? r.stimulus / s.referenceRaw : 0) / SHARE_FULL) }}
+                  />
+                </g>
+              ))}
+              <text x={cx} y={top - 21} className="rt-axis rt-mid rt-halo">
+                {s.reps} rep{s.reps === 1 ? "" : "s"}
+                {count > 1 ? ` × ${count}` : ""}
+              </text>
+              <text x={cx} y={top - 9} className="rt-axis rt-mid rt-halo rt-col-credit">
+                {f2(s.credit)}
+                {count > 1 ? " each" : ""}
+              </text>
+            </g>
+          );
+        })}
+        {(narrow ? [40, 60, 80, 100] : [40, 50, 60, 70, 80, 90, 100]).map((p) => (
+          <text key={p} x={x(p)} y={H - m.b + 16} className="rt-axis rt-mid">
+            {p}%
+          </text>
+        ))}
+        <text x={(m.l + W - m.r) / 2} y={H - 6} className="rt-axis rt-mid rt-axis-title">
+          Load, % of max
         </text>
-      ))}
-      <text x={(m.l + W - m.r) / 2} y={H - 6} className="rt-axis rt-mid rt-axis-title">
-        Load, % of max
-      </text>
-      {Array.from({ length: Math.floor(topRir / 2) + 1 }, (_, i) => i * 2).map((r) => (
-        <text key={r} x={m.l - 6} y={y(r) + 4} className="rt-axis rt-right">
-          {r}
+        {Array.from({ length: Math.floor(topRir / 2) + 1 }, (_, i) => i * 2).map((r) => (
+          <text key={r} x={m.l - 6} y={y(r) + 4} className="rt-axis rt-right">
+            {r}
+          </text>
+        ))}
+        <text transform={`translate(11 ${(m.t + H - m.b) / 2}) rotate(-90)`} className="rt-axis rt-mid rt-axis-title">
+          Reps in reserve
         </text>
-      ))}
-      <text transform={`translate(11 ${(m.t + H - m.b) / 2}) rotate(-90)`} className="rt-axis rt-mid rt-axis-title">
-        Reps in reserve
-      </text>
-    </svg>
+      </svg>
     </div>
   );
 }
@@ -149,17 +193,19 @@ export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: numb
 interface LedgerRow {
   first: number;
   last: number;
+  /** Priced parts in the row: sets, or a cluster's mini-sets. */
   count: number;
   s: PricedSet;
   marginal: number;
 }
 
-/** Identical consecutive sets read as one row. */
-function ledgerRows(sets: PricedSet[]): LedgerRow[] {
+/** Identical consecutive parts read as one row, across sets as well as within a cluster. */
+export function ledgerRows(sets: PricedSet[]): LedgerRow[] {
   const out: LedgerRow[] = [];
   for (const s of sets) {
     const prev = out[out.length - 1];
-    if (prev && prev.s.pct === s.pct && prev.s.reps === s.reps && prev.s.rpe === s.rpe && prev.s.group === s.group && prev.s.part === s.part) {
+    const sameShape = prev && prev.s.pct === s.pct && prev.s.reps === s.reps && prev.s.rpe === s.rpe && prev.s.group === s.group;
+    if (sameShape && (prev.s.part == null) === (s.part == null)) {
       prev.last = s.n;
       prev.count++;
       prev.marginal += s.marginal;
@@ -193,14 +239,39 @@ function CreditBar({ s }: { s: PricedSet }) {
   );
 }
 
+/** Which route the credit came through, in words. */
+export function routeWords(s: PricedSet): string {
+  switch (s.route) {
+    case "none":
+      return "nothing counts: too light and too far from failure";
+    case "fatigue":
+      return "only the last reps recruit";
+    case "both":
+      return "near L*, the load recruits in part and the last reps do the rest";
+    case "load":
+      return s.nearLstar ? "near L*, the load recruits in part" : "the load recruits";
+  }
+}
+
 function why(s: PricedSet): string {
-  if (s.route === "none") return "nothing counts: too light and too far from failure";
-  const route = s.route === "load" ? "the load recruits" : "only the last reps recruit";
+  const route = routeWords(s);
+  if (s.route === "none") return route;
   if (s.capped) return s.cap >= 1 ? `${route}; capped at a full set` : `${route}; capped at ${s.reps} rep${s.reps === 1 ? "" : "s"} ÷ 5`;
   return route;
 }
 
-export function Ledger({ pricing }: { pricing: SessionPricing }) {
+/** What would make this set a full one. */
+export function toFullWords(s: PricedSet): string {
+  if (s.toFull === 0) return "A full set.";
+  if (s.toFull == null) {
+    return s.reps < RT.STIM_FULL_REPS
+      ? `Too short to be a full set: that takes ${RT.STIM_FULL_REPS} reps, so ${f2(s.cap)} at most here.`
+      : "Can't be a full set without passing failure.";
+  }
+  return `${s.toFull} more rep${s.toFull === 1 ? "" : "s"} would make it a full set.`;
+}
+
+export function Ledger({ pricing, bar }: { pricing: SessionPricing; bar?: (pct: number) => string }) {
   const rows = ledgerRows(pricing.sets);
   return (
     <div className="table-wrap">
@@ -217,13 +288,19 @@ export function Ledger({ pricing }: { pricing: SessionPricing }) {
         <tbody>
           {rows.map((r) => {
             const s = r.s;
+            const cluster = s.part != null;
             return (
               <tr key={`${r.first}-${s.part ?? 0}`}>
                 <td className="set-name">
                   {r.first === r.last ? r.first : `${r.first}–${r.last}`}
-                  {s.part != null && <small>mini-set {s.part}</small>}
+                  {cluster && (
+                    <small>
+                      {r.count} mini-set{r.count === 1 ? "" : "s"}
+                    </small>
+                  )}
                   <small>
-                    {s.reps} × {loadText(s.pct)}, RPE {halfPoint(s.rpe)}
+                    {s.reps} × {loadText(s.pct)}
+                    {bar ? ` (${bar(s.pct)})` : ""}, RPE {halfPoint(s.rpe)}
                   </small>
                 </td>
                 <td data-label="Each rep">
@@ -242,10 +319,15 @@ export function Ledger({ pricing }: { pricing: SessionPricing }) {
                     <strong>{f2(s.credit)}</strong>
                     {r.count > 1 ? ` each` : ""}: {why(s)}
                   </small>
+                  <small className="cell-note rt-to-full">{toFullWords(s)}</small>
                 </td>
                 <td data-label="Adds">
                   {f2(r.marginal)}
-                  {r.count > 1 && <small className="cell-note">over {r.count} sets</small>}
+                  {r.count > 1 && (
+                    <small className="cell-note">
+                      over {r.count} {cluster ? "mini-sets" : "sets"}
+                    </small>
+                  )}
                 </td>
               </tr>
             );
@@ -276,44 +358,86 @@ export function Tally({ pricing }: { pricing: SessionPricing }) {
   const rawPath = steps((s) => s.rawAfter);
   const credPath = steps((s) => s.creditedAfter);
   const ticks = Array.from({ length: top + 1 }, (_, i) => i);
+  // One label per set, centred over its parts, so a cluster reads as one set.
+  const labels: Array<{ n: number; from: number; to: number }> = [];
+  pricing.sets.forEach((s, i) => {
+    const last = labels[labels.length - 1];
+    if (last && last.n === s.n) last.to = i + 1;
+    else labels.push({ n: s.n, from: i, to: i + 1 });
+  });
+  const every = labels.length <= (W < 480 ? 8 : 16) ? 1 : 2;
   return (
     <div ref={ref} className="rt-frame">
-    <svg className="rt-tally" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={`Effective sets accumulating over ${n} sets: ${f2(pricing.raw)} before diminishing returns, ${f2(pricing.credited)} after`}>
-      {ticks.map((t) => (
-        <g key={t}>
-          <line x1={m.l} x2={W - m.r} y1={y(t)} y2={y(t)} className={t === 1 ? "rt-floor" : "rt-grid"} />
-          <text x={m.l - 6} y={y(t) + 4} className="rt-axis rt-right">
-            {t}
-          </text>
-        </g>
-      ))}
-      <text x={W - m.r - 4} y={y(1) - 4} className="rt-axis rt-right">
-        the first full set
-      </text>
-      <path d={rawPath} className="rt-raw" />
-      <path d={credPath} className="rt-cred" />
-      {pricing.sets.map((s, i) => (
-        <text key={i} x={(x(i) + x(i + 1)) / 2} y={H - m.b + 16} className="rt-axis rt-mid">
-          {n <= (W < 480 ? 8 : 16) || i % 2 === 0 ? s.n : ""}
+      <svg
+        className="rt-tally"
+        viewBox={`0 0 ${W} ${H}`}
+        width={W}
+        height={H}
+        role="img"
+        aria-label={`Effective sets accumulating over ${n} sets: ${f2(pricing.raw)} before diminishing returns, ${f2(pricing.credited)} after`}
+      >
+        {ticks.map((t) => (
+          <g key={t}>
+            <line x1={m.l} x2={W - m.r} y1={y(t)} y2={y(t)} className={t === 1 ? "rt-floor" : "rt-grid"} />
+            <text x={m.l - 6} y={y(t) + 4} className="rt-axis rt-right">
+              {t}
+            </text>
+          </g>
+        ))}
+        <text x={W - m.r - 4} y={y(1) - 4} className="rt-axis rt-right">
+          the first full set
         </text>
-      ))}
-      <text x={(m.l + W - m.r) / 2} y={H - 4} className="rt-axis rt-mid rt-axis-title">
-        After each set
-      </text>
-      <text x={x(n) - 4} y={y(pricing.raw) - 6} className="rt-axis rt-right rt-raw-label">
-        {f2(pricing.raw)} before
-      </text>
-      <text x={x(n) - 4} y={y(pricing.credited) + 14} className="rt-axis rt-right rt-cred-label">
-        {f2(pricing.credited)} credited
-      </text>
-    </svg>
+        <path d={rawPath} className="rt-raw" />
+        <path d={credPath} className="rt-cred" />
+        {labels.map((l, i) => (
+          <text key={l.n} x={(x(l.from) + x(l.to)) / 2} y={H - m.b + 16} className="rt-axis rt-mid">
+            {i % every === 0 ? l.n : ""}
+          </text>
+        ))}
+        <text x={(m.l + W - m.r) / 2} y={H - 4} className="rt-axis rt-mid rt-axis-title">
+          After each set
+        </text>
+        <text x={x(n) - 4} y={y(pricing.raw) - 6} className="rt-axis rt-right rt-raw-label">
+          {f2(pricing.raw)} before
+        </text>
+        <text x={x(n) - 4} y={y(pricing.credited) + 14} className="rt-axis rt-right rt-cred-label">
+          {f2(pricing.credited)} credited
+        </text>
+      </svg>
     </div>
   );
 }
 
-/** The parameters in a line, for the page's caption. */
+// ---------- the words ----------
+
+/** The parameters in a line, for the page's captions. */
 export const RT_WORDS = {
-  routes: `R is 1 above L* (blended over ±${RT.LSTAR_BAND} points) or at RIR 2 and under; T climbs from ${RT.T_AT_LSTAR} at L* to 1 at 100%, or is 1 at RIR 1 and under.`,
-  cap: `A set earns at most ${RT.STIM_FULL_REPS === 5 ? "reps ÷ 5" : `reps ÷ ${RT.STIM_FULL_REPS}`}, so a single is 0.2 at most.`,
+  routes: `Stimulus per rep is R × T: R is 1 above L* (blended over ±${RT.LSTAR_BAND} points) or at RIR 2 and under; T climbs from ${RT.T_AT_LSTAR} at L* to 1 at 100%, or is 1 at RIR 1 and under. The field draws each rep's stimulus over a hard set's at the same load, so the tension term cancels above L* and what is left is the hard set's rep count. Between whole reps the field is smoothed; the ledger counts whole reps.`,
+  cap: `A set earns at most ${RT.STIM_FULL_REPS === 5 ? "reps ÷ 5" : `reps ÷ ${RT.STIM_FULL_REPS}`}, so a single is 0.2 at most. The reference counts whole reps, so the credit steps where a hard set loses one.`,
   session: `The first full set counts in full; after that, 1 + ${RT.SESSION_LOG_SCALE} · ln(1 + (dose − 1) ÷ ${RT.SESSION_LOG_SCALE}).`,
 };
+
+/**
+ * The count's departures from the usual tally, as rules of thumb. The numbers
+ * come from RT; the light and heavy loads are picked around this lifter's L*.
+ */
+export function rulesOfThumb(lstar: number | null): string[] {
+  const marginal = (k: number) => sessionValue(k) - sessionValue(k - 1);
+  const twelve = sessionValue(12);
+  const out = [
+    `A set is worth at most reps ÷ ${RT.STIM_FULL_REPS}: a single 0.2, a double 0.4, a triple 0.6, however heavy and however hard.`,
+  ];
+  if (lstar != null) {
+    out.push(
+      `Above L*, a set is its reps as a share of a hard set's reps at that load, so a rep short of RIR 2 costs one rep's share: a tenth where a hard set is ten reps, a fifth where it is five.`,
+      `Below L*, only the last three or so reps count: a rep short of RIR 2 cuts a set to about half, two short to about a quarter. From L* − ${RT.LSTAR_BAND} to L* + ${RT.LSTAR_BAND} the load recruits in part.`,
+    );
+  } else {
+    out.push(`With no L*, every set prices by proximity alone: only the last three or so reps count, and a rep short of RIR 2 cuts a set to about half.`);
+  }
+  out.push(
+    `Reaching RIR 2 with ${RT.STIM_FULL_REPS} or more reps is a full set. RIR 1 or 0 earn no more: the last two reps buy fatigue, not credit, in this pricing.`,
+    `The fifth hard set adds about half of what the first did (${f2(marginal(5))}); the tenth, a third (${f2(marginal(10))}). Twelve hard sets are credited ${fmt(twelve, 1)}, not 12.`,
+  );
+  return out;
+}
