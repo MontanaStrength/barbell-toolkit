@@ -1,8 +1,8 @@
-// How a session counts as effective sets: the per-rep field, each set against
-// its reference, and the running tally through diminishing returns.
+// How a session counts as effective sets: each set against its reference, and
+// the running tally through diminishing returns.
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { CardSet } from "../engine/sessions/card";
-import { priceSession, repShare, RT, sessionValue, SHARE_FULL, type PricedSet, type PriceInput, type SessionPricing } from "../engine/sessions/rt";
+import { priceSession, RT, sessionValue, type PricedSet, type PriceInput, type SessionPricing } from "../engine/sessions/rt";
 import { halfPoint } from "../engine/sessions/effort";
 import { fmt } from "../format";
 
@@ -44,149 +44,6 @@ function useWidth(fallback = 640): [RefObject<HTMLDivElement>, number] {
   return [ref, w];
 }
 const loadText = (pct: number) => `${fmt(pct, Number.isInteger(pct) ? 0 : 1)}%`;
-
-// ---------- the field ----------
-
-/**
- * Stimulus per rep over load and reps in reserve, with the session's sets as
- * columns descending toward failure.
- */
-export function Field({ pricing, lstar }: { pricing: SessionPricing; lstar: number | null }) {
-  const [ref, W] = useWidth();
-  const narrow = W < 480;
-  const H = narrow ? 270 : 330;
-  const m = { l: 40, r: 12, t: 14, b: 40 };
-  const LO = 40;
-  const HI = 100;
-  // Room above the tallest column for its labels, and a top row for the regime words.
-  const tallest = Math.max(0, ...pricing.sets.map((s) => s.terminalRir + s.reps - 1));
-  const topRir = Math.max(10, Math.ceil(tallest) + (narrow ? 4 : 3));
-  const x = (pct: number) => m.l + ((pct - LO) / (HI - LO)) * (W - m.l - m.r);
-  const y = (rir: number) => H - m.b - (rir / topRir) * (H - m.t - m.b);
-  const cols = narrow ? 40 : 60;
-  const rows = Math.round(topRir * 2);
-  const cw = (W - m.l - m.r) / cols;
-  const rh = (H - m.t - m.b) / rows;
-  const cells = useMemo(() => {
-    const out: Array<{ x: number; y: number; v: number }> = [];
-    for (let i = 0; i < cols; i++) {
-      const pct = LO + ((i + 0.5) / cols) * (HI - LO);
-      for (let j = 0; j < rows; j++) {
-        const rir = ((j + 0.5) / rows) * topRir;
-        out.push({ x: m.l + i * cw, y: H - m.b - (j + 1) * rh, v: Math.min(1, repShare(pct, rir, lstar) / SHARE_FULL) });
-      }
-    }
-    return out;
-  }, [lstar, topRir, cols, rows, cw, rh, m.l, m.b]);
-
-  // One column per distinct shape, with a count.
-  const columns = useMemo(() => {
-    const seen = new Map<string, { s: PricedSet; count: number }>();
-    for (const s of pricing.sets) {
-      const k = `${s.pct}|${s.reps}|${s.terminalRir}`;
-      const e = seen.get(k);
-      if (e) e.count++;
-      else seen.set(k, { s, count: 1 });
-    }
-    return [...seen.values()];
-  }, [pricing.sets]);
-
-  const showLstar = lstar != null && lstar >= LO && lstar <= HI;
-  // The L* label sits at the foot of its line, on whichever side has room.
-  const lstarRight = showLstar && lstar! < 82;
-
-  return (
-    <div ref={ref} className="rt-frame">
-      <svg
-        className="rt-field"
-        viewBox={`0 0 ${W} ${H}`}
-        width={W}
-        height={H}
-        role="img"
-        aria-label="Each rep's share of a hard set by load and reps in reserve, with this session's sets drawn on it"
-      >
-        {cells.map((c, i) => (
-          <rect key={i} x={c.x} y={c.y} width={cw + 0.5} height={rh + 0.5} className="rt-cell" style={{ fillOpacity: 0.04 + 0.7 * c.v }} />
-        ))}
-        {/* RIR 2: where the near-failure zone begins */}
-        <line x1={m.l} x2={W - m.r} y1={y(2)} y2={y(2)} className="rt-floor" />
-        <text x={m.l + 4} y={y(2) + 12} className="rt-axis rt-halo">
-          {narrow ? "RIR 2" : "RIR 2, the near-failure line"}
-        </text>
-        {showLstar && (
-          <>
-            <line x1={x(lstar!)} x2={x(lstar!)} y1={m.t} y2={H - m.b} className="rt-lstar" />
-            <text
-              x={x(lstar!) + (lstarRight ? 5 : -5)}
-              y={H - m.b - 6}
-              className={lstarRight ? "rt-lstar-label rt-halo" : "rt-lstar-label rt-halo rt-right"}
-            >
-              L* {fmt(lstar!, 1)}%
-            </text>
-            {/* The two regimes, named on the field itself. */}
-            {x(lstar!) - m.l > (narrow ? 90 : 150) && (
-              <text x={m.l + 4} y={m.t + 12} className="rt-axis rt-halo rt-regime">
-                {narrow ? "only the last reps count" : "left of L*: only the reps near the line count"}
-              </text>
-            )}
-            {W - m.r - x(lstar!) > (narrow ? 90 : 150) && (
-              <text x={W - m.r - 4} y={m.t + 12} className="rt-axis rt-halo rt-right rt-regime">
-                {narrow ? "every rep counts" : "right of L*: the load recruits, every rep counts"}
-              </text>
-            )}
-          </>
-        )}
-        {columns.map(({ s, count }, i) => {
-          const cx = x(s.pct);
-          const top = y(s.terminalRir + s.reps - 1);
-          const bot = y(s.terminalRir);
-          return (
-            <g key={i}>
-              <line x1={cx} x2={cx} y1={top} y2={bot} className="rt-col-halo" />
-              <line x1={cx} x2={cx} y1={top} y2={bot} className="rt-col" />
-              {s.stimuli.map((r, j) => (
-                <g key={j}>
-                  <circle cx={cx} cy={y(r.rir)} r={6.5} className="rt-rep-halo" />
-                  <circle
-                    cx={cx}
-                    cy={y(r.rir)}
-                    r={5}
-                    className="rt-rep"
-                    style={{ fillOpacity: 0.12 + 0.88 * Math.min(1, (s.referenceRaw > 0 ? r.stimulus / s.referenceRaw : 0) / SHARE_FULL) }}
-                  />
-                </g>
-              ))}
-              <text x={cx} y={top - 21} className="rt-axis rt-mid rt-halo">
-                {s.reps} rep{s.reps === 1 ? "" : "s"}
-                {count > 1 ? ` × ${count}` : ""}
-              </text>
-              <text x={cx} y={top - 9} className="rt-axis rt-mid rt-halo rt-col-credit">
-                {f2(s.credit)}
-                {count > 1 ? " each" : ""}
-              </text>
-            </g>
-          );
-        })}
-        {(narrow ? [40, 60, 80, 100] : [40, 50, 60, 70, 80, 90, 100]).map((p) => (
-          <text key={p} x={x(p)} y={H - m.b + 16} className="rt-axis rt-mid">
-            {p}%
-          </text>
-        ))}
-        <text x={(m.l + W - m.r) / 2} y={H - 6} className="rt-axis rt-mid rt-axis-title">
-          Load, % of max
-        </text>
-        {Array.from({ length: Math.floor(topRir / 2) + 1 }, (_, i) => i * 2).map((r) => (
-          <text key={r} x={m.l - 6} y={y(r) + 4} className="rt-axis rt-right">
-            {r}
-          </text>
-        ))}
-        <text transform={`translate(11 ${(m.t + H - m.b) / 2}) rotate(-90)`} className="rt-axis rt-mid rt-axis-title">
-          Reps in reserve
-        </text>
-      </svg>
-    </div>
-  );
-}
 
 // ---------- the ledger ----------
 
@@ -247,9 +104,9 @@ export function routeWords(s: PricedSet): string {
     case "fatigue":
       return "only the last reps recruit";
     case "both":
-      return "near L*, the load recruits in part and the last reps do the rest";
+      return "the load recruits in part and the last reps do the rest";
     case "load":
-      return s.nearLstar ? "near L*, the load recruits in part" : "the load recruits";
+      return s.nearLstar ? "the load recruits in part" : "the load recruits";
   }
 }
 
@@ -258,6 +115,13 @@ function why(s: PricedSet): string {
   if (s.route === "none") return route;
   if (s.capped) return s.cap >= 1 ? `${route}; capped at a full set` : `${route}; capped at ${s.reps} rep${s.reps === 1 ? "" : "s"} ÷ 5`;
   return route;
+}
+
+/** Where the set's load sits against L*: the regime its reps are priced in. */
+export function positionWords(s: PricedSet, lstar: number | null): string | null {
+  if (lstar == null) return null;
+  if (s.nearLstar) return "near L*";
+  return s.pct >= lstar ? "above L*" : "below L*";
 }
 
 /** What would make this set a full one. */
@@ -271,7 +135,7 @@ export function toFullWords(s: PricedSet): string {
   return `${s.toFull} more rep${s.toFull === 1 ? "" : "s"} would make it a full set.`;
 }
 
-export function Ledger({ pricing, bar }: { pricing: SessionPricing; bar?: (pct: number) => string }) {
+export function Ledger({ pricing, bar, lstar }: { pricing: SessionPricing; bar?: (pct: number) => string; lstar: number | null }) {
   const rows = ledgerRows(pricing.sets);
   return (
     <div className="table-wrap">
@@ -301,6 +165,7 @@ export function Ledger({ pricing, bar }: { pricing: SessionPricing; bar?: (pct: 
                   <small>
                     {s.reps} × {loadText(s.pct)}
                     {bar ? ` (${bar(s.pct)})` : ""}, RPE {halfPoint(s.rpe)}
+                    {positionWords(s, lstar) ? `, ${positionWords(s, lstar)}` : ""}
                   </small>
                 </td>
                 <td data-label="Each rep">
@@ -412,8 +277,7 @@ export function Tally({ pricing }: { pricing: SessionPricing }) {
 
 /** The parameters in a line, for the page's captions. */
 export const RT_WORDS = {
-  routes: `Stimulus per rep is R × T: R is 1 above L* (blended over ±${RT.LSTAR_BAND} points) or at RIR 2 and under; T climbs from ${RT.T_AT_LSTAR} at L* to 1 at 100%, or is 1 at RIR 1 and under. The field draws each rep's stimulus over a hard set's at the same load, so the tension term cancels above L* and what is left is the hard set's rep count. Between whole reps the field is smoothed; the ledger counts whole reps.`,
-  cap: `A set earns at most ${RT.STIM_FULL_REPS === 5 ? "reps ÷ 5" : `reps ÷ ${RT.STIM_FULL_REPS}`}, so a single is 0.2 at most. The reference counts whole reps, so the credit steps where a hard set loses one.`,
+  rep: `Per rep, stimulus is R × T. R is 1 above L* (blended over ±${RT.LSTAR_BAND} points) or at RIR 2 and under, and falls by ${Math.round(100 * (1 - Math.exp(-RT.K_R)))}% a rep above that; T climbs from ${RT.T_AT_LSTAR} at L* to 1 at 100%, or is 1 at RIR 1 and under. The reference is at the same load, so above L* the tension term cancels and a set's credit is its reps over a hard set's. A set earns at most ${RT.STIM_FULL_REPS === 5 ? "reps ÷ 5" : `reps ÷ ${RT.STIM_FULL_REPS}`}, so a single is 0.2 at most. The reference counts whole reps, so the credit steps where a hard set loses one.`,
   session: `The first full set counts in full; after that, 1 + ${RT.SESSION_LOG_SCALE} · ln(1 + (dose − 1) ÷ ${RT.SESSION_LOG_SCALE}).`,
 };
 
