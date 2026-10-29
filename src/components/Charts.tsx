@@ -106,32 +106,6 @@ export function ForceLoadChart({ a }: { a: Analysis }) {
   );
 }
 
-export function DriveChart({ a }: { a: Analysis }) {
-  const domain = loadDomain(a);
-  const pts = a.points.map((p) => ({ load: +p.load.toFixed(1), surplus: +p.surplus.toFixed(1) }));
-  const curve = a.driveCurve.filter((d) => d.load >= domain[0] && d.load <= domain[1]);
-  return (
-    <>
-      <div className="chart-frame" role="img" aria-label="Surplus force against load, with the fitted compression curve">
-        <ResponsiveContainer>
-          <ComposedChart margin={margin}>
-            <CartesianGrid stroke={C.rule} strokeDasharray="2 4" />
-            {loadAxis(domain)}
-            <YAxis type="number" domain={[0, "auto"]} tick={tick} tickLine={false} axisLine={{ stroke: C.rule }} width={48} tickFormatter={(v: number) => `${v}%`} />
-            <Tooltip {...tooltipStyle} formatter={(v: number) => `${v.toFixed(1)}%`} labelFormatter={(l: number) => `${l}% of e1RM`} />
-            <Line data={curve} dataKey="fit" name="Compression curve" stroke={C.steel} strokeDasharray="6 4" strokeWidth={2} dot={false} isAnimationActive={false} />
-            <Scatter data={pts} dataKey="surplus" name="Surplus" fill={C.ink} isAnimationActive={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="legend">
-        <span><i className="swatch swatch-dot" /> Measured surplus</span>
-        <span><i className="swatch swatch-dash" /> Fitted compression curve</span>
-      </div>
-    </>
-  );
-}
-
 export function EIChart({ a, compact = false }: { a: Analysis; compact?: boolean }) {
   const domain = loadDomain(a);
   const xs = range(domain[0], domain[1], 1);

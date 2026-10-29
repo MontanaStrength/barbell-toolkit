@@ -2,7 +2,7 @@
 // app's page gets a real 404, so search engines never index a non-page as a
 // copy of the home page. Keep in step with the routes in src/App.tsx and the
 // report sections in src/pages/Report.tsx; src/routes.test.ts checks the sitemap against it.
-const SECTIONS = ["force-load", "drive", "l-star", "decay", "reliability", "sessions", "effective-sets", "compare"];
+const SECTIONS = ["force-load", "l-star", "decay", "reliability", "sessions", "effective-sets", "compare"];
 
 export function isAppRoute(pathname) {
   const p = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;

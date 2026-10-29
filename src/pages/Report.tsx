@@ -4,7 +4,6 @@ import {
   CompareEIChart,
   CompareForceChart,
   DecayChart,
-  DriveChart,
   EIChart,
   ForceLoadChart,
   ReliabilityChart,
@@ -25,7 +24,6 @@ import NotFound from "./NotFound";
 const SECTIONS = [
   { id: "", nav: "Overview", title: "Overview" },
   { id: "force-load", nav: "Force–Load", title: "Force–Load line" },
-  { id: "drive", nav: "Drive compression", title: "Drive compression" },
   { id: "l-star", nav: "L*", title: "L*, the recruitment threshold" },
   { id: "decay", nav: "Within-set decay", title: "Within-set decay" },
   { id: "reliability", nav: "Reliability", title: "Reliability" },
@@ -72,7 +70,6 @@ export default function Report() {
           <h1 style={{ fontSize: "clamp(32px, 4.6vw, 46px)" }}>{meta.title}</h1>
           {section === "" && <Overview a={a} unit={unit} />}
           {section === "force-load" && <ForceLoad a={a} />}
-          {section === "drive" && <Drive a={a} />}
           {section === "l-star" && <LStar a={a} unit={unit} />}
           {section === "decay" && <Decay a={a} unit={unit} />}
           {section === "reliability" && <Reliability a={a} unit={unit} />}
@@ -134,12 +131,6 @@ function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
       label: "Force–Load line",
       value: a.fl.m != null ? `${fmt(a.fl.m, 4)} per %` : "–",
       note: a.fl.r2 != null ? `R² ${fmt(a.fl.r2, 3)} across ${a.points.length} loads.` : "Needs two or more loads.",
-    },
-    {
-      to: "/report/drive",
-      label: "Drive compression",
-      value: a.beta != null ? `β ${fmt(a.beta, 2)}` : "–",
-      note: a.points.length ? `Surplus falls from ${fmt(a.points[0].surplus, 0)}% to ${fmt(a.points[a.points.length - 1].surplus, 0)}% across the tested loads.` : "",
     },
     {
       to: "/report/decay",
@@ -251,36 +242,6 @@ function ForceLoad({ a }: { a: Analysis }) {
         ]}
       />
       <QualCard id="force-load" />
-    </>
-  );
-}
-
-function Drive({ a }: { a: Analysis }) {
-  const first = a.points[0];
-  const last = a.points[a.points.length - 1];
-  return (
-    <>
-      <DriveChart a={a} />
-      <Says>
-        <p>
-          <strong>Surplus</strong> is force above the bar's weight, as a percent of that weight. Against load, it
-          traces how explosive headroom shrinks.
-        </p>
-        <p>
-          Two fitted numbers describe the curve. <strong>α ≈ {fmt(a.alpha, 0)}%</strong> is its projection below the
-          tested range, for typing lifters, not a ceiling. <strong>β ≈ {fmt(a.beta, 2)}</strong> is the curvature.
-          Both are modeled; the points are measured.
-        </p>
-      </Says>
-      <KV
-        rows={[
-          ["Drive ceiling α (modeled)", a.alpha != null ? `about ${fmt(a.alpha, 0)}%` : "–"],
-          ["Compression β", fmt(a.beta, 3)],
-          ...(first ? ([[`Surplus at ${fmt(first.load, 0)}%`, pct(first.surplus)]] as Array<[string, string]>) : []),
-          ...(last && last !== first ? ([[`Surplus at ${fmt(last.load, 0)}%`, pct(last.surplus)]] as Array<[string, string]>) : []),
-        ]}
-      />
-      <QualCard id="drive" />
     </>
   );
 }
@@ -638,7 +599,7 @@ function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: Sav
 
   const fUnit = unit === "kg" ? "N" : "lbf";
   const toF = (lbf: number) => (unit === "kg" ? lbf / N_TO_LBF : lbf);
-  const S: Record<"force" | "speed" | "lstar" | "lstarLb" | "slope" | "mult" | "e1rm" | "alpha" | "beta", Shown> = {
+  const S: Record<"force" | "speed" | "lstar" | "lstarLb" | "slope" | "mult" | "e1rm", Shown> = {
     force: { value: (x) => force(x, unit), delta: (x) => (x == null ? "–" : `${signed(toF(x), 0)} ${fUnit}`), mag: (x) => (x == null ? "–" : `${Math.round(toF(x))} ${fUnit}`) },
     speed: { value: (x) => ms(x), delta: (x) => `${signed(x, 2)} m/s`, mag: (x) => ms(x) },
     lstar: { value: (x) => pct(x), delta: (x) => `${signed(x, 1)} points`, mag: (x) => `${fmt(x, 1)} points` },
@@ -650,8 +611,6 @@ function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: Sav
     slope: { value: (x) => (x == null ? "–" : `${fmt(x, 4)} per %`), delta: (x) => signed(x, 4), mag: (x) => fmt(x, 4) },
     mult: { value: (x) => (x == null ? "–" : `${fmt(x, 3)}×`), delta: (x) => signed(x, 3), mag: (x) => fmt(x, 3) },
     e1rm: { value: (x) => wt(x, unit), delta: (x) => (x == null ? "–" : `${signed(toUnit(x, unit), unit === "kg" ? 1 : 0)} ${unit}`), mag: () => "" },
-    alpha: { value: (x) => (x == null ? "–" : `${fmt(x, 0)}%`), delta: (x) => `${signed(x, 0)} points`, mag: (x) => `${fmt(x, 0)} points` },
-    beta: { value: (x) => fmt(x, 2), delta: (x) => signed(x, 2), mag: (x) => fmt(x, 2) },
   };
 
   const headline: Array<{ label: string; ch: Change; s: Shown }> = [
@@ -818,8 +777,6 @@ function CompareBody({ viewed, others, unit }: { viewed: SavedProbe; others: Sav
                       ] as Array<[string, Change, Shown]>)
                     : []),
                   ["e1RM from bar speed", ch.velE1rm, { ...S.lstarLb }],
-                  ["Drive ceiling α (modeled)", ch.alpha, S.alpha],
-                  ["Compression β", ch.beta, S.beta],
                 ] as Array<[string, Change, Shown]>
               ).map(([label, x, s]) => (
                 <tr key={label}>

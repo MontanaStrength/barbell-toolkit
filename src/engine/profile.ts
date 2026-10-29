@@ -1,5 +1,5 @@
-// Force–velocity profile: Force–Load fit, velocity cross-check, L*, drive
-// compression and prescription bands. Design decisions (Oct 2026):
+// Force–velocity profile: Force–Load fit, velocity cross-check, L* and
+// prescription bands. Design decisions (Oct 2026):
 //   1. velocity stops scale by goal: v_stop = (1 − f)·v_fresh + f·MVT
 //   2. the recruitment line is set per lift
 //   3. the load axis is the actual bar weight as % of e1RM (handled by the caller)
@@ -50,9 +50,6 @@ export interface Profile {
   lstar: number | null;
   lstarLb: number | null;
   eiTop: number | null;
-  alpha: number | null;
-  beta: number | null;
-  driveCurve: Array<{ load: number; fit: number }>;
   bands: Band[];
   hypBands: Band[];
   /** Velocity predicted by the velocity–load fit at a load %. */
@@ -89,18 +86,6 @@ export function computeProfile(input: ProfileInput): Profile {
 
   // L*: where EI = Multiple · load crosses the line.
   const lstar = solveLstar(fl.m, fl.b, recruitLine);
-
-  // Drive compression: surplus = α · (1 − load/100)^β, fit in log space.
-  const drivePts = points.filter((p) => p.surplus > 0 && p.load < 100);
-  const dFit = ols(drivePts.map((p) => ({ x: Math.log(1 - p.load / 100), y: Math.log(p.surplus) })));
-  const beta = dFit.m;
-  const alpha = dFit.b != null ? Math.exp(dFit.b) : null;
-  const driveCurve: Array<{ load: number; fit: number }> = [];
-  if (alpha != null && beta != null && points.length) {
-    const lo = Math.max(50, Math.floor(points[0].load) - 5);
-    const hi = Math.min(96, Math.ceil(points[points.length - 1].load) + 5);
-    for (let L = lo; L <= hi; L++) driveCurve.push({ load: L, fit: alpha * (1 - L / 100) ** beta });
-  }
 
   // Prescription bands.
   const bands: Band[] = [];
@@ -184,9 +169,6 @@ export function computeProfile(input: ProfileInput): Profile {
     lstar,
     lstarLb: lstar != null ? lb(lstar) : null,
     eiTop: points.length ? points[points.length - 1].ei : null,
-    alpha,
-    beta,
-    driveCurve,
     bands,
     hypBands,
     vAt,

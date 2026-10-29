@@ -2,7 +2,7 @@
 
 Free, self-serve force–velocity profiling for lifters with a velocity sensor.
 Log a probe (ladder singles at 60/70/80/90% of e1RM, then one all-out set at
-60%) and get a report: Force–Load line, drive compression, L* (the load where
+60%) and get a report: Force–Load line, L* (the load where
 Effective Intensity crosses the lift's recruitment line), within-set decay,
 reliability across rounds, and session bands with velocity stops.
 

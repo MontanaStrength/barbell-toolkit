@@ -28,22 +28,10 @@ const METRICS = [
     meaning: "How much force a rep drives relative to your max. A recruitment proxy: a fast light rep and a slow heavy one can reach the same EI.",
   },
   {
-    name: "g-Index",
-    formula: "Surplus Index expressed in g",
-    unit: "g",
-    meaning: "The same surplus read as acceleration: 0.40 g is a 40% surplus.",
-  },
-  {
     name: "L*, fast-twitch threshold",
     formula: "Load % where EI from your Force–Load line crosses the recruitment line",
     unit: "% of e1RM",
     meaning: "Below L*, reps need speed or proximity to failure to reach the line. Above it, the load gets there by itself.",
-  },
-  {
-    name: "Drive compression (α, β)",
-    formula: "Surplus = α · (1 − load/100)^β",
-    unit: "",
-    meaning: "How surplus collapses with load. α is a modeled ceiling below the tested range; β is the curvature.",
   },
   {
     name: "Velocity stop",

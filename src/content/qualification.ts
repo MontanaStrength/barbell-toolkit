@@ -29,16 +29,6 @@ export const QUAL: Record<string, Qualification> = {
       "The profile is curved. R² stays high and L* still moves; check the residuals.",
     ],
   },
-  drive: {
-    useFor: [
-      "Typing a lifter by how fast explosive headroom collapses with load.",
-      "The same lifter across training blocks.",
-    ],
-    breaksWhen: [
-      "α is read as a real ceiling. It is the curve projected below the tested range.",
-      "A load shows zero or negative surplus. It drops out of the fit.",
-    ],
-  },
   "l-star": {
     useFor: [
       "Dividing the load axis: below L*, light work counts only if fast or taken deep; above it, the load recruits.",

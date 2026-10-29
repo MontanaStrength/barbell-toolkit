@@ -29,11 +29,9 @@ describe("reference report", () => {
     expect(ref.cleanSlope!).toBeCloseTo(-0.0119, 3);
   });
 
-  it("reproduces L*, drive compression and EI", () => {
+  it("reproduces L* and EI", () => {
     expect(Math.abs(ref.lstar! - 62.3)).toBeLessThan(0.3);
     expect(Math.abs(ref.lstarLb! - 218)).toBeLessThan(2);
-    expect(Math.abs(ref.alpha! - 64.2)).toBeLessThan(0.5);
-    expect(Math.abs(ref.beta! - 0.625)).toBeLessThan(0.01);
     expect(Math.abs(ref.eiTop! - 104.5)).toBeLessThan(0.2);
   });
 

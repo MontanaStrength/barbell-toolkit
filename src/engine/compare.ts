@@ -107,12 +107,10 @@ export interface Readout {
   /** Fresh mean velocity at the shared bar, m/s. */
   vAt: number | null;
   velE1rm: number | null;
-  alpha: number | null;
-  beta: number | null;
 }
 
 export type ReadoutKey = keyof Readout;
-export const READOUT_KEYS: ReadoutKey[] = ["lstar", "lstarLb", "slope", "multAt", "forceAt", "vAt", "velE1rm", "alpha", "beta"];
+export const READOUT_KEYS: ReadoutKey[] = ["lstar", "lstarLb", "slope", "multAt", "forceAt", "vAt", "velE1rm"];
 
 export function readout(pr: Profile, e1rm: number, barLb: number | null): Readout {
   const L = barLb != null && e1rm > 0 ? (barLb / e1rm) * 100 : null;
@@ -125,8 +123,6 @@ export function readout(pr: Profile, e1rm: number, barLb: number | null): Readou
     forceAt: multAt != null && barLb != null ? multAt * barLb : null,
     vAt: L != null ? pr.vAt(L) : null,
     velE1rm: pr.velE1rm,
-    alpha: pr.alpha,
-    beta: pr.beta,
   };
 }
 
