@@ -129,7 +129,7 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
           1. Each set against a hard set
         </h2>
         <p>
-          Each strip is a set, one cell a rep from first to last, darker the more it earns. Above L* the load recruits
+          Each strip is a set, one cell a rep from first to last, brighter the more it earns. Above L* the load recruits
           and every rep earns; below it only the last few do. A set's reps are summed and divided by the same load taken
           to two reps in reserve. The red tick is the cap: short sets earn at most reps ÷ 5. Each row says what would
           make it a full set.

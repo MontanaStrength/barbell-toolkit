@@ -393,7 +393,7 @@ export default function SessionDesigner({
           weights from the max, a stop velocity per set from fresh speed at
           that load, and each set's road from L*.
           {ctx.lstar != null
-            ? " Dark bars sit on the load road, above the red line; grey bars on the fatigue road."
+            ? " White bars sit on the load road, above the red line; grey bars on the fatigue road."
             : " No L* on this probe: roads are blank and L*-floored designs use a standard floor."}
         </p>
         {!speeds && (
