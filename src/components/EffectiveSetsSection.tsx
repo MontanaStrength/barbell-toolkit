@@ -37,11 +37,10 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
   }
 
   const lede = (
-    <p className="lede">
-      Effective sets price what a session buys toward growth, the way Strength Architect does. Each rep earns
-      recruitment × tension; a set's reps are summed and divided by what the same load taken to two reps in reserve
-      would sum to; a session adds its sets through a curve that bends after the first full one. The card's neural
-      dose is the strength tally; this is the hypertrophy one.
+    <p>
+      Each rep earns recruitment × tension. A set is its reps summed over the same load taken to two reps in reserve.
+      A session adds its sets through a curve that bends after the first full one. The card's neural dose is the
+      strength tally; this is the hypertrophy one.
     </p>
   );
 
@@ -68,8 +67,6 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
 
   return (
     <>
-      {lede}
-
       <section className="panel stack rt-head" aria-label="This session's count">
         <div className="rt-headline">
           <div>
@@ -114,6 +111,8 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
         </div>
       </section>
 
+      {lede}
+
       <section className="panel stack rt-rules" aria-labelledby="rt-rules-h">
         <h2 id="rt-rules-h" style={{ fontSize: 20 }}>
           Where this count parts from the usual one
@@ -137,7 +136,6 @@ export default function EffectiveSetsSection({ a, unit }: { a: Analysis; unit: U
           {ctx.lstar == null ? " This probe has no L*, so only the fatigue route prices." : ""}
         </p>
         <Ledger pricing={pricing} bar={bar} lstar={ctx.lstar} />
-        <p className="small muted">{RT_WORDS.rep}</p>
       </section>
 
       <section className="stack" aria-labelledby="rt-tally-h">

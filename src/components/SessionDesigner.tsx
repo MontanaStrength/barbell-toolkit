@@ -272,7 +272,7 @@ function totalsText(card: Card, family: Family): string {
   const where = n < lo ? "under" : n > hi ? "over" : "inside";
   return `${t.approximate ? "Up to " : ""}${t.reps} reps in ${t.sets} ${
     t.sets === 1 ? "set" : "sets"
-  }, about ${t.minutes} min. Neural dose ${n}, ${where} the ${lo}–${hi} a ${family} block aims for.`;
+  }, about ${t.minutes} min. Neural dose (intensity-weighted volume) ${n}, ${where} the ${lo}–${hi} a ${family} block aims for.`;
 }
 
 export default function SessionDesigner({
@@ -589,8 +589,8 @@ export default function SessionDesigner({
                     <tr>
                       <th>Set</th>
                       <th>Load</th>
-                      <th>Reps</th>
                       <th>Stop below</th>
+                      <th>Reps</th>
                       <th>Then</th>
                       <th>Road</th>
                     </tr>
@@ -633,17 +633,17 @@ export default function SessionDesigner({
                             </small>
                           </td>
                           <td>
-                            {repsLabel(s)}
-                            <small className="cell-note">{rpeLabel(s)}</small>
-                            {felt && <small className="cell-note felt">{felt}</small>}
-                          </td>
-                          <td>
                             {ms(s.stopV)}
                             {s.single && s.stopV != null && (
                               <small className="cell-note">
                                 a check, not a stop
                               </small>
                             )}
+                          </td>
+                          <td>
+                            {repsLabel(s)}
+                            <small className="cell-note">{rpeLabel(s)}</small>
+                            {felt && <small className="cell-note felt">{felt}</small>}
                           </td>
                           <td>{thenLabel(row)}</td>
                           <td>
