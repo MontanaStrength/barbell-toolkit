@@ -220,7 +220,7 @@ function ProbeEditor() {
     };
     setMine((p) => ({ ...p, reps: [...p.reps, rep] }));
     update({ forceN: "", meanV: "", peakV: "" });
-    setMessage(`Logged rep ${rep.rep} at ${wt(rep.lb, unit)}.`);
+    setMessage(`Logged ${rep.phase === "ladder" ? "single" : "rep"} ${rep.rep} at ${wt(rep.lb, unit)}.`);
     forceRef.current?.focus();
   }
 
@@ -296,8 +296,16 @@ function ProbeEditor() {
 
   return (
     <>
-      <section className="panel stack" aria-labelledby="setup-h">
-        <h2 id="setup-h">Set up</h2>
+      <details className="protocol" open={!mine.e1rm}>
+        <summary>
+          Set up
+          {mine.e1rm ? (
+            <span className="summary-note">
+              {LIFTS[mine.lift].name}, e1RM {wt(mine.e1rm, unit)}, MVT {mine.mvt} m/s, line {mine.recruitLine}%
+            </span>
+          ) : null}
+        </summary>
+        <div className="protocol-body stack">
         <div className="fields">
           <div className="field">
             <label htmlFor="p-lift">Lift</label>
@@ -326,7 +334,8 @@ function ProbeEditor() {
           MVT: mean velocity of a grinding single; 0.15 m/s bench, 0.30 squat if unknown. Line: {LIFTS[mine.lift].recruitLine}%
           for the {LIFTS[mine.lift].name.toLowerCase()} by default.
         </p>
-      </section>
+        </div>
+      </details>
 
       <details className="protocol" open={mine.reps.length === 0}>
         <summary>Protocol</summary>
@@ -386,10 +395,12 @@ function ProbeEditor() {
                 <label htmlFor="d-round">Round</label>
                 <input id="d-round" inputMode="numeric" value={draft.round} onChange={(e) => update({ round: num(e.target.value) ?? 1 })} />
               </div>
-              <div className="field">
-                <label htmlFor="d-set">Set</label>
-                <input id="d-set" inputMode="numeric" value={draft.set} onChange={(e) => update({ set: num(e.target.value) ?? 1 })} />
-              </div>
+              {draft.phase === "amrap" && (
+                <div className="field">
+                  <label htmlFor="d-set">Set</label>
+                  <input id="d-set" inputMode="numeric" value={draft.set} onChange={(e) => update({ set: num(e.target.value) ?? 1 })} />
+                </div>
+              )}
             </div>
             <div className="fields">
               <div className="field">
@@ -407,14 +418,19 @@ function ProbeEditor() {
             </div>
             <div className="btn-row">
               <button type="button" className="btn" onClick={logRep}>
-                Log rep {nextRep}
+                {draft.phase === "ladder" ? `Log single ${nextRep}` : `Log rep ${nextRep}`}
               </button>
-              <button type="button" className="btn btn-quiet" onClick={() => update({ set: draft.set + 1 })}>
-                Start set {draft.set + 1}
-              </button>
+              {draft.phase === "amrap" && (
+                <button type="button" className="btn btn-quiet" onClick={() => update({ set: draft.set + 1 })}>
+                  Start set {draft.set + 1}
+                </button>
+              )}
             </div>
             <p className="small muted" role="status" aria-live="polite">
-              {message ?? `Round ${draft.round}, ${draft.phase === "ladder" ? "ladder" : "AMRAP"} at ${draft.target}%, set ${draft.set}.`}
+              {message ??
+                (draft.phase === "ladder"
+                  ? `Round ${draft.round}, ladder at ${draft.target}%: single ${nextRep} next.`
+                  : `Round ${draft.round}, AMRAP at ${draft.target}%, set ${draft.set}.`)}
             </p>
           </div>
         </section>

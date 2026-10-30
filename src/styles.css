@@ -947,6 +947,9 @@ main {
 /* ---------- tables ---------- */
 
 .table-wrap {
+  /* Positioned so a visually-hidden label in a far column is clipped here,
+     not hung off the page edge. */
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--rule);
   border-radius: 10px;
@@ -1705,5 +1708,60 @@ tr.edit-row .knob .btn {
 
   .rt-head .reading-value {
     font-size: 36px;
+  }
+}
+
+/* ---------- review fixes, Oct 29 ---------- */
+
+/* Overview cards are links; say so. */
+a.reading .reading-label {
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 3px;
+}
+
+a.reading:hover .reading-label {
+  text-decoration-color: var(--ink);
+}
+
+.summary-note {
+  margin-left: 10px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+@media (max-width: 700px) {
+  /* Tables wider than the phone scroll sideways; shade the hidden edge so
+     the cut-off column reads as "more", not as a mistake. Edge shadows stay
+     put while the covers scroll with the table (background-attachment). */
+  .table-wrap {
+    --edge: rgba(20, 35, 58, 0.26);
+    background:
+      linear-gradient(90deg, var(--surface) 40%, transparent) left / 48px 100% no-repeat local,
+      linear-gradient(90deg, transparent, var(--surface) 60%) right / 48px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, var(--edge), transparent) left / 16px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, var(--edge), transparent) right / 16px 100% no-repeat scroll,
+      var(--surface);
+  }
+
+  :root[data-theme="dark"] .table-wrap {
+    --edge: rgba(0, 0, 0, 0.65);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .table-wrap {
+      --edge: rgba(0, 0, 0, 0.65);
+    }
+  }
+
+  /* Between sets the readout matters more than the inputs: put it first. */
+  .probe-grid > section[aria-label="This rep"] {
+    order: -1;
+  }
+
+  .summary-note {
+    display: block;
+    margin: 4px 0 0;
+    font-size: 14px;
   }
 }

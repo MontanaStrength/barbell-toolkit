@@ -14,8 +14,8 @@ export default function RepReadout() {
   usePageTitle("Read a rep");
   const { mine, unit } = useStore();
   const [lift, setLift] = useState<LiftKey>(mine.lift ?? "bench");
-  const [barLb, setBarLb] = useState<number | null>(() => (unit === "kg" ? fromUnit(100, "kg") : 225));
-  const [force, setForce] = useState("1350");
+  const [barLb, setBarLb] = useState<number | null>(null);
+  const [force, setForce] = useState("");
   const [e1rmLb, setE1rmLb] = useState<number | null>(() =>
     mine.e1rm > 0 ? mine.e1rm : unit === "kg" ? fromUnit(140, "kg") : 315,
   );
@@ -59,11 +59,11 @@ export default function RepReadout() {
           <div className="fields">
             <div className="field">
               <label htmlFor="bar">Bar weight ({unit})</label>
-              <WeightInput id="bar" valueLb={barLb} unit={unit} onChangeLb={setBarLb} />
+              <WeightInput id="bar" valueLb={barLb} unit={unit} onChangeLb={setBarLb} placeholder={unit === "kg" ? "e.g. 100" : "e.g. 225"} />
             </div>
             <div className="field">
               <label htmlFor="force">Peak force (N)</label>
-              <input id="force" inputMode="decimal" value={force} onChange={(e) => setForce(e.target.value)} />
+              <input id="force" inputMode="decimal" value={force} placeholder="e.g. 1350" onChange={(e) => setForce(e.target.value)} />
             </div>
             <div className="field">
               <label htmlFor="e1rm">e1RM ({unit})</label>

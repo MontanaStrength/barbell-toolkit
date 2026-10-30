@@ -16,7 +16,7 @@ import SourceBar from "../components/SourceBar";
 import { analyze, velocityNoise, type Analysis } from "../engine/analyze";
 import { repsToFailure } from "../engine/metrics";
 import { compareProbes, noiseBasis, sharedRange, type Change } from "../engine/compare";
-import { LIFTS, N_TO_LBF, STOP_FRACTION } from "../engine/constants";
+import { LIFTS, N_TO_LBF, POPULATION_FL } from "../engine/constants";
 import { fmt, force, fromUnit, ms, pct, plateStep, signed, suggestBarLb, toUnit, usePageTitle, wt, wtRange, type Unit } from "../format";
 import { byDateDesc, probeDate, probeWhen, type SavedProbe } from "../probes";
 import { isUsable, useStore } from "../store";
@@ -43,13 +43,17 @@ export default function Report() {
     if (ol && link && ol.scrollWidth > ol.clientWidth) ol.scrollLeft = link.offsetLeft - (ol.clientWidth - link.offsetWidth) / 2;
   }, [section]);
   const { analysis: a, unit } = useStore();
+  const { others } = useOtherProbes();
+  // Compare joins the menu once there is a second probe of this lift; its address always answers.
+  const shown = SECTIONS.filter((s) => s.id !== "compare" || others.length > 0 || section === "compare");
   const idx = SECTIONS.findIndex((s) => s.id === section);
   const meta = SECTIONS[idx];
   usePageTitle(meta ? (meta.id ? `${meta.nav}, report` : "Report") : "Not found");
   if (!meta) return <NotFound />;
 
-  const prev = idx > 0 ? SECTIONS[idx - 1] : null;
-  const next = idx < SECTIONS.length - 1 ? SECTIONS[idx + 1] : null;
+  const at = shown.findIndex((s) => s.id === section);
+  const prev = at > 0 ? shown[at - 1] : null;
+  const next = at < shown.length - 1 ? shown[at + 1] : null;
   const href = (id: string) => (id ? `/report/${id}` : "/report");
 
   return (
@@ -58,7 +62,7 @@ export default function Report() {
       <div className="report">
         <nav className="report-nav" aria-label="Report sections">
           <ol ref={navRef}>
-            {SECTIONS.map((s) => (
+            {shown.map((s) => (
               <li key={s.id}>
                 <NavLink to={href(s.id)} end className={({ isActive }) => (isActive ? "active" : undefined)}>
                   {s.nav}
@@ -125,21 +129,28 @@ function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
       to: "/report/l-star",
       label: "L*, fast-twitch threshold",
       value: a.lstar != null ? `${fmt(a.lstar, 1)}%` : "–",
-      note: a.lstarLb != null ? `${wt(a.lstarLb, unit)}. Population at the same line: ${pct(a.lstarPop)}.` : "Needs a Force–Load line.",
+      note: a.lstarLb != null ? `${wt(a.lstarLb, unit)}. The population line (probe-log spreadsheet) crosses at ${pct(a.lstarPop)}.` : "Needs a Force–Load line.",
     },
     {
       to: "/report/force-load",
       label: "Force–Load line",
-      value: a.fl.m != null ? `${fmt(a.fl.m, 4)} per %` : "–",
-      note: a.fl.r2 != null ? `R² ${fmt(a.fl.r2, 3)} across ${a.points.length} loads.` : "Needs two or more loads.",
+      value: a.fl.m != null ? (a.fl.m > POPULATION_FL.m ? "Falls slower than population" : "Falls faster than population") : "–",
+      note: a.fl.m != null ? `Slope ${fmt(a.fl.m, 4)} per % against ${POPULATION_FL.m}; R² ${fmt(a.fl.r2, 3)} across ${a.points.length} loads.` : "Needs two or more loads.",
     },
     {
       to: "/report/decay",
       label: "Velocity that tracks force loss",
-      value: a.decoupling.corrMean != null ? `r ${fmt(a.decoupling.corrMean, 2)}` : "–",
+      value:
+        a.decoupling.corrMean != null && a.decoupling.corrPeak != null
+          ? a.decoupling.corrPeak > a.decoupling.corrMean + 0.005
+            ? "Peak velocity"
+            : a.decoupling.corrMean > a.decoupling.corrPeak + 0.005
+              ? "Mean velocity"
+              : "Either"
+          : "–",
       note:
         a.decoupling.corrMean != null
-          ? `Mean velocity loss against surplus loss, ${a.decoupling.n} reps pooled. Peak velocity: r ${fmt(a.decoupling.corrPeak, 2)}.`
+          ? `Against surplus loss over ${a.decoupling.n} reps: peak r ${fmt(a.decoupling.corrPeak, 2)}, mean r ${fmt(a.decoupling.corrMean, 2)}.`
           : "Needs an all-out set with velocities.",
     },
     {
@@ -164,7 +175,10 @@ function Overview({ a, unit }: { a: Analysis; unit: Unit }) {
   }
   return (
     <>
-      <p className="lede">Six readings from {a.probe.reps.length} logged reps. Each opens its evidence.</p>
+      <p className="lede">
+        {["One", "Two", "Three", "Four", "Five", "Six", "Seven"][rows.length - 1] ?? rows.length} readings from{" "}
+        {a.probe.reps.length} logged reps. Each opens its evidence.
+      </p>
       <div className="readings">
         {rows.map((r) => (
           <Link key={r.label} to={r.to} className="reading" style={{ textDecoration: "none" }}>
@@ -346,7 +360,9 @@ function Decay({ a, unit }: { a: Analysis; unit: Unit }) {
             Across all-out sets ({a.decoupling.n} reps), surplus loss tracks mean-velocity loss at r ={" "}
             {fmt(a.decoupling.corrMean, 2)} and peak-velocity loss at r = {fmt(a.decoupling.corrPeak, 2)}.
             {noise
-              ? ` Across repeated singles, ${noise.peak < noise.mean ? "peak" : "mean"} velocity was the steadier reading: ${fmt(Math.min(noise.peak, noise.mean) * 100, 1)}% rep to rep against ${fmt(Math.max(noise.peak, noise.mean) * 100, 1)}%.`
+              ? fmt(noise.peak * 100, 1) === fmt(noise.mean * 100, 1)
+                ? ` Across repeated singles the two were equally steady, ${fmt(noise.mean * 100, 1)}% rep to rep.`
+                : ` Across repeated singles, ${noise.peak < noise.mean ? "peak" : "mean"} velocity was the steadier reading: ${fmt(Math.min(noise.peak, noise.mean) * 100, 1)}% rep to rep against ${fmt(Math.max(noise.peak, noise.mean) * 100, 1)}%.`
               : ""}{" "}
             Stops use mean velocity because MVT and the velocity-loss literature are written in it
             {noise && noise.peak < noise.mean && a.decoupling.corrPeak != null && a.decoupling.corrMean != null && a.decoupling.corrPeak > a.decoupling.corrMean
@@ -462,40 +478,6 @@ function Sessions({ a, unit }: { a: Analysis; unit: Unit }) {
         )}
       </section>
 
-      <section className="stack" aria-labelledby="stops-h">
-        <h3 id="stops-h">Stop velocities at your tested loads</h3>
-        <p>
-          Stop = (1 − f) × fresh velocity + f × MVT, with MVT {fmt(a.probe.mvt, 2)} m/s and f = {STOP_FRACTION.power}{" "}
-          power, {STOP_FRACTION.strength} strength, {STOP_FRACTION.hypertrophyBelowLstar} hypertrophy below L* and{" "}
-          {STOP_FRACTION.hypertrophyAboveLstar} above it.
-        </p>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Load</th>
-                <th>Fresh mean v</th>
-                <th>Power stop</th>
-                <th>Strength stop</th>
-                <th>Hypertrophy stop</th>
-              </tr>
-            </thead>
-            <tbody>
-              {a.stopsAtTested.map((s) => (
-                <tr key={s.lb}>
-                  <td>
-                    {fmt(s.load, 1)}% ({wt(s.lb, unit)})
-                  </td>
-                  <td>{ms(s.v)}</td>
-                  <td>{ms(s.power)}</td>
-                  <td>{ms(s.strength)}</td>
-                  <td>{ms(s.hypertrophy)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
       <QualCard id="sessions" />
     </>
   );
@@ -509,10 +491,10 @@ function BandTable({ bands, unit }: { bands: Analysis["bands"]; unit: Unit }) {
           <tr>
             <th>Band</th>
             <th>Load</th>
+            <th>Stop below</th>
             <th>Bar</th>
             <th>Reps</th>
             <th>Sets</th>
-            <th>Stop below</th>
             <th>Neural dose</th>
           </tr>
         </thead>
@@ -526,10 +508,10 @@ function BandTable({ bands, unit }: { bands: Analysis["bands"]; unit: Unit }) {
               <td>
                 {fmt(b.lo, 0)}–{fmt(b.hi, 0)}%
               </td>
+              <td>{ms(b.stop)}</td>
               <td>{wtRange(b.loLb, b.hiLb, unit)}</td>
               <td>{b.reps}</td>
               <td>{b.sets}</td>
-              <td>{ms(b.stop)}</td>
               <td>{b.neural != null ? fmt(b.neural, 0) : "not counted"}</td>
             </tr>
           ))}

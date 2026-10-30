@@ -7,7 +7,7 @@ const METRICS = [
     name: "Net force",
     formula: "Peak force − bar weight",
     unit: "lbf",
-    meaning: "Force left over after holding the bar up. The physical quantity the ratios are built from.",
+    meaning: "The force that accelerates the bar, beyond what its weight alone takes. The quantity the ratios are built from.",
   },
   {
     name: "Surplus Index",
