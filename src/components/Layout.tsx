@@ -66,6 +66,7 @@ export default function Layout() {
                 {n.label}
               </NavLink>
             ))}
+            <a href="https://barbellhacks.com/#toolkit">← Barbell Hacks</a>
           </nav>
           <div className="segmented unit-toggle" role="group" aria-label="Weight unit">
             {(["lb", "kg"] as const).map((u) => (
