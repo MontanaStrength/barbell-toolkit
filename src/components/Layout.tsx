@@ -56,6 +56,9 @@ export default function Layout() {
     <>
       <header className="site-header">
         <div className="page site-header-inner">
+          <nav className="nav" aria-label="Parent site">
+            <a href="https://barbellhacks.com/#toolkit">← Barbell Hacks</a>
+          </nav>
           <Link to="/" className="wordmark">
             <Mark />
             Barbell Toolkit
